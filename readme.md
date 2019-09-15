@@ -6,16 +6,12 @@ The goal of inputshare is to make using multiple computers at the same time easi
 * Share a global clipboard between all connected computers
 * Drag and drop text, images and files between computers 
 
-Note: This project is in very early development, and things could break.
-
-Note 2: There is current no UI for this project, but will be added later in development. 
-
 ## Demo ##
 Quick demo:
 [![](http://img.youtube.com/vi/rlR89GpMeCE/0.jpg)](http://www.youtube.com/watch?v=rlR89GpMeCE "Inputshare demo")
 
 ## Requirements ##
-* Dotnet SDK 3-Preview8
+* Dotnet SDK 3-Preview9
 * Windows 7 or newer 
 
 ## Compiling ##
