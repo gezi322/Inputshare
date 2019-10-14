@@ -11,7 +11,7 @@ Quick demo:
 [![](http://img.youtube.com/vi/rlR89GpMeCE/0.jpg)](http://www.youtube.com/watch?v=rlR89GpMeCE "Inputshare demo")
 
 ## Requirements ##
-* Dotnet SDK 3-Preview9
+* Dotnet 3 runtime (runtime + desktop apps)
 * Windows 7 or newer 
 
 ## Compiling ##
