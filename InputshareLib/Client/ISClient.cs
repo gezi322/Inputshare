@@ -8,6 +8,7 @@ using InputshareLib.DragDrop;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using InputshareLib.Input;
+using System.Threading;
 
 namespace InputshareLib.Client
 {
@@ -19,13 +20,7 @@ namespace InputshareLib.Client
         /// </summary>
         public event EventHandler SasRequested;
 
-        private struct ClientEdges
-        {
-            public bool Left;
-            public bool Right;
-            public bool Top;
-            public bool Bottom;
-        }
+      
 
         public bool IsConnected
         {
@@ -38,7 +33,7 @@ namespace InputshareLib.Client
             }
         }
 
-        public bool ActiveClient { get; protected set; }
+        public bool ActiveClient { get; private set; }
         public IPEndPoint ServerAddress { get => socket.ServerAddress; }
 
         public event EventHandler<bool> ActiveClientChanged;
@@ -58,23 +53,27 @@ namespace InputshareLib.Client
 
         public string ClientName { get; private set; } = Environment.MachineName;
         public Guid ClientId { get; private set; } = Guid.NewGuid();
+        private IPEndPoint lastConnectedAddress;
 
-        struct DataOperation
-        {
-            public DataOperation(Guid operationId, ClipboardDataBase data)
+        /// <summary>
+        /// If true, the client will automatically keep trying to reconnect to
+        /// the last connected host
+        /// </summary>
+        public bool AutoReconnect { get { return _autoReconnect; } set
             {
-                OperationId = operationId;
-                Data = data;
-                AssociatedAccessTokens = new List<Guid>();
-                Completed = false;
+                _autoReconnect = value;
+
+                if (socket != null && !IsConnected && lastConnectedAddress != null && displayMan != null && !socket.AttemptingConnection)
+                {
+                    socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
+                }
             }
-            public Guid OperationId { get; }
-            public ClipboardDataBase Data { get; }
-
-            public bool Completed { get; set; } 
-
-            public List<Guid> AssociatedAccessTokens { get; set; }
         }
+
+        private bool _autoReconnect;
+
+
+      
 
         private DataOperation currentClipboardOperation = new DataOperation();
         private DataOperation currentDragDropOperation = new DataOperation();
@@ -202,7 +201,7 @@ namespace InputshareLib.Client
 
         public void Connect(string address, int port, string name, Guid id = new Guid())
         {
-            if (!IPAddress.TryParse(address, out _))
+            if (!IPAddress.TryParse(address, out IPAddress addr))
                 throw new ArgumentException("Invalid address");
 
             if (port < 0 || port > 65535)
@@ -219,6 +218,7 @@ namespace InputshareLib.Client
             ddController.Server = socket; //bad design, but the client is going to be rewritten anyway
             ClientName = name;
             ClientId = id;
+            lastConnectedAddress = new IPEndPoint(addr, port);
             socket.Connect(address, port, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
         }
 
@@ -383,6 +383,13 @@ namespace InputshareLib.Client
         {
             ISLogger.Write("Connection failed: " + reason);
             ConnectionFailed?.Invoke(this, reason);
+
+            if (AutoReconnect)
+            {
+                ISLogger.Write("Auto reconnect enabled... attempting to reconnect");
+                socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
+                return;
+            }
         }
 
         private void OnConnectionError(object sender, string reason)
@@ -393,6 +400,15 @@ namespace InputshareLib.Client
             ISLogger.Write("Connection error: " + reason);
             ConnectionError?.Invoke(this, reason);
             socket.Dispose();
+
+            if (AutoReconnect)
+            {
+                ISLogger.Write("Auto reconnect enabled... attempting to reconnect");
+                socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
+                return;
+            }
+
+            
         }
 
         private void OnConnected(object sender, EventArgs e)
@@ -444,6 +460,31 @@ namespace InputshareLib.Client
         private async Task<byte[]> File_RequestDataAsync(Guid token, Guid operationId, Guid fileId, int readLen)
         {
             return await socket.RequestReadStreamAsync(token, fileId, readLen);
+        }
+
+        private struct ClientEdges
+        {
+            public bool Left;
+            public bool Right;
+            public bool Top;
+            public bool Bottom;
+        }
+
+        struct DataOperation
+        {
+            public DataOperation(Guid operationId, ClipboardDataBase data)
+            {
+                OperationId = operationId;
+                Data = data;
+                AssociatedAccessTokens = new List<Guid>();
+                Completed = false;
+            }
+            public Guid OperationId { get; }
+            public ClipboardDataBase Data { get; }
+
+            public bool Completed { get; set; }
+
+            public List<Guid> AssociatedAccessTokens { get; set; }
         }
     }
 }

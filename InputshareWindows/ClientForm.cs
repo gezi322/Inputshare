@@ -133,9 +133,13 @@ namespace InputshareWindows
                     ShowMessage(ex.Message);
                 }
             }
-                
+
             else
+            {
                 client.Disconnect();
+                OnDisconnect();
+            }
+               
         }
 
         private void ShowMessage(string message)
@@ -144,6 +148,11 @@ namespace InputshareWindows
             {
                 MessageBox.Show(message);
             });
+        }
+
+        private void autoReconnectTickbox_CheckedChanged(object sender, EventArgs e)
+        {
+            client.AutoReconnect = autoReconnectTickbox.Checked;
         }
     }
 }

@@ -36,6 +36,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
+            this.autoReconnectTickbox = new System.Windows.Forms.CheckBox();
             // 
             // consoleRichTextBox
             // 
@@ -47,7 +48,7 @@
             // 
             // connectButton
             // 
-            this.connectButton.Location = new System.Drawing.Point(99, 98);
+            this.connectButton.Location = new System.Drawing.Point(5, 98);
             this.connectButton.Name = "connectButton";
             this.connectButton.Size = new System.Drawing.Size(155, 23);
             this.connectButton.TabIndex = 1;
@@ -57,21 +58,21 @@
             // 
             // addressTextBox
             // 
-            this.addressTextBox.Location = new System.Drawing.Point(99, 25);
+            this.addressTextBox.Location = new System.Drawing.Point(5, 25);
             this.addressTextBox.Name = "addressTextBox";
             this.addressTextBox.Size = new System.Drawing.Size(100, 23);
             this.addressTextBox.TabIndex = 2;
             // 
             // portTextBox
             // 
-            this.portTextBox.Location = new System.Drawing.Point(205, 25);
+            this.portTextBox.Location = new System.Drawing.Point(111, 25);
             this.portTextBox.Name = "portTextBox";
             this.portTextBox.Size = new System.Drawing.Size(49, 23);
             this.portTextBox.TabIndex = 3;
             // 
             // clientNameTextBox
             // 
-            this.clientNameTextBox.Location = new System.Drawing.Point(99, 69);
+            this.clientNameTextBox.Location = new System.Drawing.Point(5, 69);
             this.clientNameTextBox.Name = "clientNameTextBox";
             this.clientNameTextBox.Size = new System.Drawing.Size(155, 23);
             this.clientNameTextBox.TabIndex = 4;
@@ -80,7 +81,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.BackColor = System.Drawing.Color.Transparent;
-            this.label1.Location = new System.Drawing.Point(99, 51);
+            this.label1.Location = new System.Drawing.Point(5, 51);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(74, 15);
             this.label1.TabIndex = 5;
@@ -90,7 +91,7 @@
             // 
             this.label2.AutoSize = true;
             this.label2.BackColor = System.Drawing.Color.Transparent;
-            this.label2.Location = new System.Drawing.Point(99, 7);
+            this.label2.Location = new System.Drawing.Point(5, 7);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(52, 15);
             this.label2.TabIndex = 6;
@@ -100,17 +101,29 @@
             // 
             this.label3.AutoSize = true;
             this.label3.BackColor = System.Drawing.Color.Transparent;
-            this.label3.Location = new System.Drawing.Point(205, 7);
+            this.label3.Location = new System.Drawing.Point(111, 7);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(32, 15);
             this.label3.TabIndex = 7;
             this.label3.Text = "Port:";
+            // 
+            // autoReconnectTickbox
+            // 
+            this.autoReconnectTickbox.AutoSize = true;
+            this.autoReconnectTickbox.Location = new System.Drawing.Point(166, 102);
+            this.autoReconnectTickbox.Name = "autoReconnectTickbox";
+            this.autoReconnectTickbox.Size = new System.Drawing.Size(108, 19);
+            this.autoReconnectTickbox.TabIndex = 8;
+            this.autoReconnectTickbox.Text = "Auto reconnect";
+            this.autoReconnectTickbox.UseVisualStyleBackColor = true;
+            this.autoReconnectTickbox.CheckedChanged += new System.EventHandler(this.autoReconnectTickbox_CheckedChanged);
             // 
             // ClientForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(355, 245);
+            this.Controls.Add(this.autoReconnectTickbox);
             this.Controls.Add(this.clientNameTextBox);
             this.Controls.Add(this.portTextBox);
             this.Controls.Add(this.addressTextBox);
@@ -135,5 +148,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.CheckBox autoReconnectTickbox;
     }
 }

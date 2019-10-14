@@ -51,6 +51,8 @@ namespace InputshareLib.Client
 
         private bool serverResponded = false;
 
+        public bool AttemptingConnection { get; private set; }
+
         public event EventHandler CancelAnyDragDrop;
 
         public ISClientSocket()
@@ -78,10 +80,14 @@ namespace InputshareLib.Client
 
             conInfo = info;
 
+            if (tcpSocket != null)
+                tcpSocket.Dispose();
+
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
             {
                 NoDelay = true //Disable nagles algorithm!
             };
+            AttemptingConnection = true;
             ISLogger.Write("Attempting to connect to {0}:{1} as {2}", destAddr, port, info.Name);
             tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, null);
             serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
@@ -243,12 +249,14 @@ namespace InputshareLib.Client
 
         protected override void HandleConnectionClosed(string error)
         {
+            AttemptingConnection = false;
             serverResponded = true;
             base.HandleConnectionClosed(error);
         }
 
         protected override void HandleConnectedFailed(string error)
         {
+            AttemptingConnection = false;
             base.IsConnected = false;
             errorHandled = true;
             base.HandleConnectedFailed(error);
@@ -257,6 +265,7 @@ namespace InputshareLib.Client
 
         protected override void OnConnected()
         {
+            AttemptingConnection = false;
             base.OnConnected();
         }
 
