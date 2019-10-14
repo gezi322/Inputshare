@@ -5,6 +5,15 @@ namespace InputshareLibWindows.Native
 {
     public static class Kernel32
     {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("Kernel32.dll", SetLastError = true)]
+        public static extern uint GetCurrentThreadId();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern uint WTSGetActiveConsoleSessionId();
+
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
 

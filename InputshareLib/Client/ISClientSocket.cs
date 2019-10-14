@@ -82,7 +82,7 @@ namespace InputshareLib.Client
             {
                 NoDelay = true //Disable nagles algorithm!
             };
-
+            ISLogger.Write("Attempting to connect to {0}:{1} as {2}", destAddr, port, info.Name);
             tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, null);
             serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
         }

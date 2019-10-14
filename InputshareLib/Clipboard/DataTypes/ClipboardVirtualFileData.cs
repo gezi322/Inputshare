@@ -98,7 +98,6 @@ namespace InputshareLib.Clipboard.DataTypes
             /// <summary>
             /// The access token that allows us to retrieve this file from the host PC
             /// </summary>
-            [field: NonSerialized]
             public Guid RemoteAccessToken { get; set; }
 
 

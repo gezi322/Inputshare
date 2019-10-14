@@ -106,6 +106,9 @@ namespace InputshareLib
                         message = method.DeclaringType.Name + "." + method.Name + GenerateParamaterString(method.GetParameters()) + ":\n" + message + "\n";
                     }
 
+                    if (Debugger.IsAttached)
+                        Debug.WriteLine(message);
+
                     if (EnableConsole)
                         Console.WriteLine(message);
 
@@ -119,7 +122,7 @@ namespace InputshareLib
                     LogMessageOut?.Invoke(null, message);
                 }catch(Exception ex)
                 {
-                    Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
+                    //Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
                 }
                
             }

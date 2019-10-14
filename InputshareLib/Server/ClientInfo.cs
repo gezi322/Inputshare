@@ -19,9 +19,14 @@ namespace InputshareLib.Server
             ClientAddress = clientAddress;
         }
 
-        public ClientInfo LeftClient { get; internal set; }
-        public ClientInfo RightClient { get; internal set; }
-        public ClientInfo TopClient { get; internal set; }
+        public override string ToString()
+        {
+            return Name;
+        }
+
+        public ClientInfo LeftClient { get; set; }
+        public ClientInfo RightClient { get; set; }
+        public ClientInfo TopClient { get; set; }
         public ClientInfo BottomClient { get; set; }
         public bool InputClient { get; internal set; } = false;
         public string Name { get; }
@@ -29,5 +34,7 @@ namespace InputshareLib.Server
         public DisplayConfig DisplayConf { get; }
         public Hotkey ClientHotkey { get; }
         public IPEndPoint ClientAddress { get; }
+
+        public static ClientInfo None { get => new ClientInfo("None", Guid.NewGuid(), null, null, null); }
     }
 }

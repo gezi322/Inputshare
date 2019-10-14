@@ -6,25 +6,30 @@ using static InputshareLibWindows.Native.User32;
 
 namespace InputshareLibWindows
 {
-    public class HookWindow : MessageWindow
+    public sealed class HookWindow : MessageWindow
     {
+        public event EventHandler DesktopSwitchEvent;
+
         private const int WM_CLIPBOARDUPDATE = 0x031D;
         public bool MouseHooked { get; private set; }
         public bool KeyboardHooked { get; private set; }
         public bool MonitoringClipboard { get; private set; }
+        public bool MonitoringDesktop { get; private set; }
 
         public delegate void ClipboardContentChangedDelegate(System.Windows.Forms.IDataObject data);
-        
+
         private LowLevelHookCallback mouseCallback;
         private LowLevelHookCallback keyboardCallback;
         private ClipboardContentChangedDelegate clipboardChangeCallback;
+        private WinEventDelegate winEventLocalCallback;
 
         public IntPtr MouseHookProc { get; private set; }
         public IntPtr KeyboardHookProc { get; private set; }
+        private IntPtr winEventHook;
 
         public HookWindow(string wndName) : base(wndName)
         {
-
+            winEventLocalCallback = WinEventCallback;
         }
 
         public override void CloseWindow()
@@ -43,6 +48,9 @@ namespace InputshareLibWindows
 
             if (MouseHooked)
                 UninstallMouseHook();
+
+            if (MonitoringDesktop)
+                UninstallDesktopMonitor();
         }
 
         #region keyboard hooks
@@ -114,8 +122,8 @@ namespace InputshareLibWindows
             mouseCallback = callback;
 
             using Process curProcess = Process.GetCurrentProcess();
-                using ProcessModule curModule = curProcess.MainModule;
-                    MouseHookProc = SetWindowsHookEx(WH_MOUSE_LL, mouseCallback, GetModuleHandle(curModule.ModuleName), 0);
+            using ProcessModule curModule = curProcess.MainModule;
+            MouseHookProc = SetWindowsHookEx(WH_MOUSE_LL, mouseCallback, GetModuleHandle(curModule.ModuleName), 0);
 
             if (MouseHookProc == IntPtr.Zero)
             {
@@ -166,12 +174,53 @@ namespace InputshareLibWindows
 
         #endregion
 
+        #region Desktop switch listener
+        public void InstallDesktopMonitor()
+        {
+            if (MonitoringDesktop)
+                throw new InvalidOperationException("Already monitoring for desktop switches");
+
+            InvokeAction(() => { StartDesktopHook(); });
+        }
+
+        public void UninstallDesktopMonitor()
+        {
+            if (!MonitoringDesktop)
+                throw new InvalidOperationException("not monitoring for desktop switches");
+
+            InvokeAction(() => { StopDesktopHook(); });
+        }
+
+        private void StartDesktopHook()
+        {
+            winEventHook = SetWinEventHook(0x0020, 0x0020, IntPtr.Zero, winEventLocalCallback, 0, 0, 0);
+            if (winEventHook == IntPtr.Zero)
+                throw new Win32Exception();
+
+            MonitoringDesktop = true;
+            ISLogger.Write("Listening for desktop switches");
+        }
+
+        private void StopDesktopHook()
+        {
+            if (!UnhookWinEvent(winEventHook))
+                throw new Win32Exception();
+        }
+
+
+
+        #endregion
+
+        private void WinEventCallback(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+        {
+            DesktopSwitchEvent?.Invoke(this, null);
+        }
+
 
         protected override IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             if (msg == WM_CLIPBOARDUPDATE && clipboardChangeCallback != null)
                 ReadClipboardChange();
-                
 
             return base.WndProc(hWnd, msg, wParam, lParam);
         }
@@ -186,14 +235,14 @@ namespace InputshareLibWindows
                 return;
             }
 
-            if(clipboardTimer.ElapsedMilliseconds < 500)
+            if (clipboardTimer.ElapsedMilliseconds < 500)
             {
                 return;
             }
             try
             {
                 var obj = System.Windows.Forms.Clipboard.GetDataObject();
-                if(obj == null)
+                if (obj == null)
                 {
                     ISLogger.Write("Failed to read clipboard data.");
                     return;
@@ -202,11 +251,12 @@ namespace InputshareLibWindows
                 clipboardChangeCallback(obj);
 
                 clipboardTimer.Restart();
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("Error reading clipboard data: {0}", ex.Message);
             }
-            
+
         }
     }
 }

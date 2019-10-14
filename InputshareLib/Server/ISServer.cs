@@ -83,6 +83,7 @@ namespace InputshareLib.Server
             cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
 
             StartClientListener(new IPEndPoint(IPAddress.Any, port));
+            clientListener.ClientConnected += ClientListener_ClientConnected;
             StartInputManager();
             StartDisplayManager();
             StartCursorMonitor();
@@ -114,6 +115,7 @@ namespace InputshareLib.Server
             HotkeyModifiers mods = HotkeyModifiers.Alt | HotkeyModifiers.Ctrl | HotkeyModifiers.Shift;
             inputMan.AddUpdateFunctionHotkey(new Input.Hotkeys.FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
             inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
+            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
             ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
         }
 
@@ -148,7 +150,6 @@ namespace InputshareLib.Server
             inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
             inputMan.ClientHotkeyPressed += InputMan_ClientHotkeyPressed;
             inputMan.FunctionHotkeyPressed += InputMan_FunctionHotkeyPressed;
-            clientListener.ClientConnected += ClientListener_ClientConnected;
         }
 
         #endregion
@@ -182,7 +183,7 @@ namespace InputshareLib.Server
                     inputMan.Stop();
                 if (displayMan.Running)
                     displayMan.StopMonitoring();
-                if (curMon.Monitoring)
+                if (curMon.Running)
                     curMon.StopMonitoring();
                 if (dragDropMan.Running)
                     dragDropMan.Stop();
@@ -227,7 +228,7 @@ namespace InputshareLib.Server
             ISServerSocket oldClient = inputClient;
 
             //We dont care where the local cursor position is 
-            if (curMon.Monitoring)
+            if (curMon.Running)
                 curMon.StopMonitoring();
 
             client.NotifyActiveClient(true);
@@ -263,7 +264,7 @@ namespace InputshareLib.Server
             //enable local input
             inputMan.SetInputBlocked(false);
 
-            if (!curMon.Monitoring)
+            if (!curMon.Running)
                 curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
 
 
@@ -344,6 +345,10 @@ namespace InputshareLib.Server
             if (e == Hotkeyfunction.StopServer)
             {
                 Stop();
+            }else if(e == Hotkeyfunction.SendSas)
+            {
+                if(!inputClient.IsLocalhost)
+                    inputClient.SendInputData(new ISInputData(ISInputCode.IS_SENDSAS, 0, 0).ToBytes());
             }
         }
 
@@ -384,7 +389,6 @@ namespace InputshareLib.Server
         private void ClientListener_ClientConnected(object sender, ISClientListener.ClientConnectedArgs e)
         {
             ISServerSocket client = e.Socket;
-
             try
             {
                 clientMan.AddClient(client);
@@ -654,6 +658,7 @@ namespace InputshareLib.Server
         {
             ISServerSocket client = sender as ISServerSocket;
             ISLogger.Write("Server: Display config changed for {0}", client.ClientName);
+            ClientDisplayConfigChanged?.Invoke(this, GenerateClientInfo(client));
         }
 
         #endregion
@@ -698,7 +703,7 @@ namespace InputshareLib.Server
             RemoveEdgeFromClient(cA, side);
         }
 
-        public Hotkey GetHotkeyForFunction(Hotkeyfunction function)
+        public FunctionHotkey GetHotkeyForFunction(Hotkeyfunction function)
         {
             if (!Running)
                 throw new InvalidOperationException("Server not running");
@@ -722,8 +727,9 @@ namespace InputshareLib.Server
             inputMan.AddUpdateClientHotkey(new ClientHotkey(key.Key, key.Modifiers, client.Id));
 
             clientMan.GetClientById(client.Id).CurrentHotkey = key;
-
         }
+
+
 
         public void SetHotkeyForFunction(Hotkey key, Hotkeyfunction function)
         {

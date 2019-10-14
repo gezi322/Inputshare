@@ -13,10 +13,10 @@ namespace InputshareLibWindows.Cursor
 
         public override void StartMonitoring(Rectangle bounds)
         {
-            if (Monitoring)
+            if (Running)
                 throw new InvalidOperationException("Already monitoring");
 
-            Monitoring = true;
+            Running = true;
             virtualDisplayBounds = bounds;
             monitorTimer = new Timer(MonitorTimerCallback, 0, 0, 50);
             //ISLogger.Write("Windows cursor monitor started");
@@ -38,11 +38,11 @@ namespace InputshareLibWindows.Cursor
 
         public override void StopMonitoring()
         {
-            if (!Monitoring)
+            if (!Running)
                 throw new InvalidOperationException("Already stopped");
 
             monitorTimer?.Dispose();
-            Monitoring = false;
+            Running = false;
             //ISLogger.Write("Windows cursor monitor stopped");
         }
     }

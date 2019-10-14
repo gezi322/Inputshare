@@ -249,7 +249,7 @@ namespace InputshareLib.Server
 
             if (operation.State != DragDropState.Dragging)
             {
-                ISLogger.Write("DragDropController: {0} attempted to cancel dragdrop operation when state is {1}", sender.ClientName, operation.State);
+                //ISLogger.Write("DragDropController: {0} attempted to cancel dragdrop operation when state is {1}", sender.ClientName, operation.State);
                 return;
             }
 

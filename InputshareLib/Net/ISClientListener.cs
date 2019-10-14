@@ -37,8 +37,8 @@ namespace InputshareLib.Net
             if (!Listening)
                 throw new InvalidOperationException("ClientListener not listening");
 
-            cancelSource.Cancel();
             listener.Stop();
+            cancelSource.Cancel();
             Listening = false;
         }
 
@@ -46,10 +46,11 @@ namespace InputshareLib.Net
         {
             try
             {
+                Socket client = listener.EndAcceptSocket(ar);
+
                 if (cancelSource.IsCancellationRequested)
                     return;
 
-                Socket client = listener.EndAcceptSocket(ar);
                 ISLogger.Write("ISClientListener-> Accepting connection from {0}", client.RemoteEndPoint.ToString());
                 ISServerSocket clientSoc = new ISServerSocket(client);
                 clientSoc.RequestInitialInfo();
@@ -59,11 +60,10 @@ namespace InputshareLib.Net
             }
             catch (ObjectDisposedException)
             {
-
             }catch(Exception ex)
             {
                 ISLogger.Write("ISClientListener-> An error occurred while accepting client socket: {0}", ex.Message);
-                Listening = false;
+                listener.BeginAcceptSocket(Listener_AcceptSocketCallback, null);
             }
         }
 

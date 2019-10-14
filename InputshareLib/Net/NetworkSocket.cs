@@ -291,7 +291,7 @@ namespace InputshareLib.Net
         /// <param name="ar"></param>
         protected void TcpSocket_ConnectCallback(IAsyncResult ar)
         {
-            try { 
+            try {
                 tcpSocket.EndConnect(ar);
                 tcpSocket.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, null);
                 OnConnected();

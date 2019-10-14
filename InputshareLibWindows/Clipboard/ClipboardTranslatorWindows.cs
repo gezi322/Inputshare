@@ -90,7 +90,7 @@ namespace InputshareLibWindows.Clipboard
 
                 else
                 {
-                    ISLogger.Write("Debug: Could not translate dataobject: type is not implemented");
+                    throw new ClipboardTranslationException("Dataobject not implemented");
                     return null;
                 }
             }

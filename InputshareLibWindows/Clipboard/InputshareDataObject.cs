@@ -67,8 +67,6 @@ namespace InputshareLibWindows.Clipboard
 
         public override object GetData(string format, bool autoConvert)
         {
-            ISLogger.Write("Requesting format " + format);
-            
             //Don't tell the shell that we have file contents if we only have text or an image
             if(objectType == ClipboardDataType.File)
             {

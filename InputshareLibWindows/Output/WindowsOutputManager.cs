@@ -338,7 +338,7 @@ namespace InputshareLibWindows.Output
             if(((1 << 15) & GetAsyncKeyState(1)) != 0)
                 MouseRDown(false);
 
-            for (int i = 1; i < 255; i++)
+            for (int i = 2; i < 255; i++)
             {
                 if (((1 << 15) & GetAsyncKeyState(i)) != 0)
                 {

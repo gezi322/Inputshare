@@ -7,11 +7,18 @@ using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.DragDrop;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using InputshareLib.Input;
 
 namespace InputshareLib.Client
 {
     public sealed class ISClient
     {
+
+        /// <summary>
+        /// Raised when the server sends SAS signal
+        /// </summary>
+        public event EventHandler SasRequested;
+
         private struct ClientEdges
         {
             public bool Left;
@@ -92,8 +99,11 @@ namespace InputshareLib.Client
         {
             if (displayMan.Running)
                 displayMan.StopMonitoring();
-            if (curMon.Monitoring)
+            if (curMon.Running)
                 curMon.StopMonitoring();
+            if (dragDropMan.Running)
+                dragDropMan.Stop();
+
             if (clipboardMan.Running)
                 clipboardMan.Stop();
 
@@ -122,17 +132,39 @@ namespace InputshareLib.Client
             dragDropMan.DragDropCancelled += ddController.Local_DragDropCancelled;
             dragDropMan.DragDropComplete += ddController.Local_DragDropComplete;
             dragDropMan.DataDropped += ddController.Local_DataDropped;
+            dragDropMan.FileDataRequested += DragDropMan_FileDataRequested;
+        }
+        private async void DragDropMan_FileDataRequested(object sender, IDragDropManager.RequestFileDataArgs e)
+        {
+            try
+            {
+                byte[] data = await socket.RequestReadStreamAsync(e.Token, e.FileId, e.ReadLen);
+                dragDropMan.WriteToFile(e.MessageId, data);
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("Failed to read external file stream: " + ex.Message);
+                dragDropMan.WriteToFile(e.MessageId, new byte[0]);
+            }
         }
 
         private void OnLocalClipboardChange(object sender, ClipboardDataBase data)
         {
             if (socket.IsConnected)
             {
+
+                if(data.DataType == ClipboardDataType.File)
+                {
+                    ISLogger.Write("File copying/pasting is currently disabled....");
+                    return;
+                }
+
                 //create GUID and file tokens
                 Guid operationId = Guid.NewGuid();
 
                 if (currentDragDropOperation.OperationId != Guid.Empty)
                     previousOperations.Add(currentClipboardOperation.OperationId, currentClipboardOperation);
+
                 currentClipboardOperation = new DataOperation(operationId, data);
                 socket.SendClipboardData(data.ToBytes(), operationId);
                 ISLogger.Write("Created clipboard operation " + operationId);
@@ -141,7 +173,7 @@ namespace InputshareLib.Client
 
         private void OnLocalEdgeHit(object sender, Edge edge)
         {
-            if (socket.IsConnected)
+            if (socket.IsConnected && ActiveClient)
             {
                 socket.SendEdgeHit(edge);
 
@@ -248,13 +280,12 @@ namespace InputshareLib.Client
             {
                 operation = currentClipboardOperation;
 
-                /*
                 if(operation.Data.DataType == ClipboardDataType.File)
                 {
                     ISLogger.Write("Responding to token request: Copy/Pasting files not yet implemented");
                     socket.SendFileErrorResponse(args.NetworkMessageId, "Copy/Pasting files not yet implemented");
                     return;
-                }*/
+                }
             }
                 
             else if (args.FileGroupId == ddController.CurrentOperation?.OperationId)
@@ -320,14 +351,14 @@ namespace InputshareLib.Client
             ActiveClient = active;
             if (active)
             {
-                if (!curMon.Monitoring)
+                if (!curMon.Running)
                     curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
 
                 outMan.ResetKeyStates();
             }
             else
             {
-                if (curMon.Monitoring)
+                if (curMon.Running)
                     curMon.StopMonitoring();
 
                 outMan.ResetKeyStates();
@@ -337,6 +368,14 @@ namespace InputshareLib.Client
 
         private void OnInputReceived(object sender, byte[] data)
         {
+            ISInputData input = new ISInputData(data);
+
+            if(input.Code == ISInputCode.IS_SENDSAS)
+            {
+                SasRequested?.Invoke(this, new EventArgs());
+                return;
+            }
+
             outMan.Send(new Input.ISInputData(data));
         }
 
@@ -348,7 +387,7 @@ namespace InputshareLib.Client
 
         private void OnConnectionError(object sender, string reason)
         {
-            if (curMon.Monitoring)
+            if (curMon.Running)
                 curMon.StopMonitoring();
 
             ISLogger.Write("Connection error: " + reason);

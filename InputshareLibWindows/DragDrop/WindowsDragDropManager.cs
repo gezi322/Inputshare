@@ -23,6 +23,8 @@ namespace InputshareLibWindows.DragDrop
         public event EventHandler<Guid> DragDropCancelled;
         public event EventHandler<Guid> DragDropSuccess;
         public event EventHandler<Guid> DragDropComplete;
+        public event EventHandler<IDragDropManager.RequestFileDataArgs> FileDataRequested;
+
         private AutoResetEvent formLoadedEvent = new AutoResetEvent(false);
 
         public WindowsDragDropManager()
@@ -102,8 +104,16 @@ namespace InputshareLibWindows.DragDrop
 
         private void DropForm_DataDropped(object sender, IDataObject data)
         {
-            ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
-            DataDropped?.Invoke(this, cb);
+            try
+            {
+                ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
+                DataDropped?.Invoke(this, cb);
+            }
+            catch (ClipboardTranslatorWindows.ClipboardTranslationException ex)
+            {
+                ISLogger.Write("Failed to red clipboard data: " + ex.Message);
+            }
+           
         }
 
         public void CheckForDrop()
@@ -140,6 +150,11 @@ namespace InputshareLibWindows.DragDrop
 
             Running = false;
             ISLogger.Write("Windows drag drop manager exited");
+        }
+
+        public void WriteToFile(Guid fileId, byte[] data)
+        {
+            throw new NotImplementedException();
         }
     }
 }
