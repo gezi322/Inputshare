@@ -102,7 +102,6 @@ namespace InputshareLib.Client
                 curMon.StopMonitoring();
             if (dragDropMan.Running)
                 dragDropMan.Stop();
-
             if (clipboardMan.Running)
                 clipboardMan.Stop();
 
@@ -149,7 +148,7 @@ namespace InputshareLib.Client
 
         private void OnLocalClipboardChange(object sender, ClipboardDataBase data)
         {
-            if (socket.IsConnected)
+            if (socket != null && socket.IsConnected)
             {
 
                 if(data.DataType == ClipboardDataType.File)
@@ -172,7 +171,7 @@ namespace InputshareLib.Client
 
         private void OnLocalEdgeHit(object sender, Edge edge)
         {
-            if (socket.IsConnected && ActiveClient)
+            if (socket != null && socket.IsConnected && ActiveClient)
             {
                 socket.SendEdgeHit(edge);
 
@@ -193,7 +192,7 @@ namespace InputshareLib.Client
 
         private void OnLocalDisplayConfigChange(object sender, Displays.DisplayManagerBase.DisplayConfig config)
         {
-            if (socket.IsConnected)
+            if (socket != null && socket.IsConnected)
             {
                 socket.SendDisplayConfig(config.ToBytes());
             }
@@ -394,12 +393,12 @@ namespace InputshareLib.Client
 
         private void OnConnectionError(object sender, string reason)
         {
-            if (curMon.Running)
-                curMon.StopMonitoring();
-
             ISLogger.Write("Connection error: " + reason);
             ConnectionError?.Invoke(this, reason);
-            socket.Dispose();
+
+            if (curMon.Running)
+                curMon.StopMonitoring();
+            socket?.Close();
 
             if (AutoReconnect)
             {

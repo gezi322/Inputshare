@@ -13,6 +13,7 @@ namespace InputshareLibWindows.DragDrop
         private WindowsDropTarget dropTargetWindow;
 
         private Guid currentDropOperation = Guid.Empty;
+        private bool currentOperationSentState = false;
 
         private Thread dropSourceThread;
         private WindowsDropSource dropSourceWindow;
@@ -83,12 +84,20 @@ namespace InputshareLibWindows.DragDrop
                 return;
             }
 
-            DragDropSuccess?.Invoke(this, currentDropOperation);
+            if (!currentOperationSentState)
+            {
+                currentOperationSentState = true;
+                DragDropSuccess?.Invoke(this, currentDropOperation);
+            }
         }
 
         private void DropSourceWindow_DragDropCancelled(object sender, EventArgs e)
         {
-            DragDropCancelled?.Invoke(this, currentDropOperation);
+            if (!currentOperationSentState)
+            {
+                currentOperationSentState = true;
+                DragDropCancelled?.Invoke(this, currentDropOperation);
+            }
         }
 
         public void DoDragDrop(ClipboardDataBase data, Guid operationId)
@@ -99,6 +108,7 @@ namespace InputshareLibWindows.DragDrop
                 throw new InvalidOperationException("Form not created");
 
             currentDropOperation = operationId;
+            currentOperationSentState = false;
             dropSourceWindow.InvokeDoDragDrop(data);
         }
 

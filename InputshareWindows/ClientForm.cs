@@ -32,7 +32,8 @@ namespace InputshareWindows
 
             ISLogger.LogMessageOut += ISLogger_LogMessageOut;
             this.FormClosed += ClientForm_FormClosed;
-
+            this.FormBorderStyle = FormBorderStyle.Fixed3D;
+            this.MaximizeBox = false;
             clientNameTextBox.Text = Environment.MachineName;
             portTextBox.Text = "4441";
         }
@@ -45,7 +46,7 @@ namespace InputshareWindows
         private void ISLogger_LogMessageOut(object sender, string message)
         {
             this.Invoke(new Action(() => {
-                consoleRichTextBox.AppendText(message);
+                consoleRichTextBox.AppendText(message + "\n");
                 consoleRichTextBox.ScrollToCaret();
             }));
         }
@@ -68,13 +69,17 @@ namespace InputshareWindows
         private void Client_ConnectionFailed(object sender, string e)
         {
             OnDisconnect();
-            ShowMessage("Connection failed: " + e);
+
+            if (!client.AutoReconnect)
+                ShowMessage("Connection failed: " + e);
         }
 
         private void Client_ConnectionError(object sender, string e)
         {
             OnDisconnect();
-            ShowMessage("Connection error: " + e);
+
+            if(!client.AutoReconnect)
+                ShowMessage("Connection error: " + e);
         }
 
         private void Client_Connected(object sender, System.Net.IPEndPoint e)

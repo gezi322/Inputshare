@@ -16,12 +16,14 @@ namespace InputshareWindows
 {
     public partial class ServerForm : Form
     {
-       
 
+        private int startArg = 0;
         private ISServer server;
 
-        public ServerForm()
+        public ServerForm(int startPort = 0)
         {
+            startArg = startPort;
+
             InitializeComponent();
             this.FormClosed += MainForm_FormClosed;
         }
@@ -76,6 +78,9 @@ namespace InputshareWindows
             clientListBox.DoubleClick += ClientListBox_DoubleClick;
             this.FormBorderStyle = FormBorderStyle.Fixed3D;
             this.MaximizeBox = false;
+
+            if (startArg != 0)
+                server.Start(startArg);
         }
 
         private void Server_ClientDisconnected(object sender, ClientInfo e)

@@ -35,6 +35,7 @@
             this.bottomLabel = new System.Windows.Forms.Label();
             this.otherClientsListBox = new System.Windows.Forms.ListBox();
             this.applyButton = new System.Windows.Forms.Button();
+            this.clientHeaderLabel = new System.Windows.Forms.Label();
             // 
             // selectedClientListBox
             // 
@@ -42,14 +43,14 @@
             this.selectedClientListBox.ItemHeight = 15;
             this.selectedClientListBox.Location = new System.Drawing.Point(9, 7);
             this.selectedClientListBox.Name = "selectedClientListBox";
-            this.selectedClientListBox.Size = new System.Drawing.Size(128, 109);
+            this.selectedClientListBox.Size = new System.Drawing.Size(128, 139);
             this.selectedClientListBox.TabIndex = 0;
             // 
             // leftLabel
             // 
             this.leftLabel.AllowDrop = true;
             this.leftLabel.AutoSize = true;
-            this.leftLabel.Location = new System.Drawing.Point(143, 7);
+            this.leftLabel.Location = new System.Drawing.Point(144, 50);
             this.leftLabel.Name = "leftLabel";
             this.leftLabel.Size = new System.Drawing.Size(62, 15);
             this.leftLabel.TabIndex = 1;
@@ -59,7 +60,7 @@
             // 
             this.topLabel.AllowDrop = true;
             this.topLabel.AutoSize = true;
-            this.topLabel.Location = new System.Drawing.Point(143, 67);
+            this.topLabel.Location = new System.Drawing.Point(145, 106);
             this.topLabel.Name = "topLabel";
             this.topLabel.Size = new System.Drawing.Size(61, 15);
             this.topLabel.TabIndex = 1;
@@ -69,7 +70,7 @@
             // 
             this.rightLabel.AllowDrop = true;
             this.rightLabel.AutoSize = true;
-            this.rightLabel.Location = new System.Drawing.Point(143, 37);
+            this.rightLabel.Location = new System.Drawing.Point(144, 77);
             this.rightLabel.Name = "rightLabel";
             this.rightLabel.Size = new System.Drawing.Size(70, 15);
             this.rightLabel.TabIndex = 1;
@@ -79,7 +80,7 @@
             // 
             this.bottomLabel.AllowDrop = true;
             this.bottomLabel.AutoSize = true;
-            this.bottomLabel.Location = new System.Drawing.Point(143, 101);
+            this.bottomLabel.Location = new System.Drawing.Point(143, 131);
             this.bottomLabel.Name = "bottomLabel";
             this.bottomLabel.Size = new System.Drawing.Size(82, 15);
             this.bottomLabel.TabIndex = 1;
@@ -91,24 +92,34 @@
             this.otherClientsListBox.ItemHeight = 15;
             this.otherClientsListBox.Location = new System.Drawing.Point(273, 7);
             this.otherClientsListBox.Name = "otherClientsListBox";
-            this.otherClientsListBox.Size = new System.Drawing.Size(128, 109);
+            this.otherClientsListBox.Size = new System.Drawing.Size(128, 139);
             this.otherClientsListBox.TabIndex = 0;
             // 
             // applyButton
             // 
-            this.applyButton.Location = new System.Drawing.Point(9, 122);
+            this.applyButton.Location = new System.Drawing.Point(9, 152);
             this.applyButton.Name = "applyButton";
-            this.applyButton.Size = new System.Drawing.Size(392, 23);
+            this.applyButton.Size = new System.Drawing.Size(392, 38);
             this.applyButton.TabIndex = 2;
             this.applyButton.Text = "Apply";
             this.applyButton.UseVisualStyleBackColor = true;
             this.applyButton.Click += new System.EventHandler(this.applyButton_Click);
             // 
+            // clientHeaderLabel
+            // 
+            this.clientHeaderLabel.AutoSize = true;
+            this.clientHeaderLabel.Location = new System.Drawing.Point(143, 7);
+            this.clientHeaderLabel.Name = "clientHeaderLabel";
+            this.clientHeaderLabel.Size = new System.Drawing.Size(79, 15);
+            this.clientHeaderLabel.TabIndex = 3;
+            this.clientHeaderLabel.Text = "Select a client";
+            // 
             // DisplayConfigEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(406, 153);
+            this.ClientSize = new System.Drawing.Size(406, 196);
+            this.Controls.Add(this.clientHeaderLabel);
             this.Controls.Add(this.applyButton);
             this.Controls.Add(this.leftLabel);
             this.Controls.Add(this.selectedClientListBox);
@@ -131,5 +142,6 @@
         private System.Windows.Forms.Label bottomLabel;
         private System.Windows.Forms.ListBox otherClientsListBox;
         private System.Windows.Forms.Button applyButton;
+        private System.Windows.Forms.Label clientHeaderLabel;
     }
 }

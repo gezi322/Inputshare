@@ -1,9 +1,14 @@
 ﻿using InputshareLib;
+using InputshareLibWindows.Windows;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
+using System.Net;
+using System.Security.Claims;
+using System.Security.Principal;
 using System.Text;
 using System.Windows.Forms;
 
@@ -11,17 +16,21 @@ namespace InputshareWindows
 {
     public partial class InitForm : Form
     {
-        public static void Main()
+        private string[] startArgs;
+
+        public static void Main(string[] args)
         {
-            ISLogger.EnableConsole = false;
+            ISLogger.EnableConsole = true;
             ISLogger.EnableLogFile = true;
             ISLogger.SetLogFileName("InputshareWindows.log");
-
-            Application.Run(new InitForm());
+            
+            
+            Application.Run(new InitForm(args));
         }
 
-        public InitForm()
+        public InitForm(string[] args)
         {
+            startArgs = args;
             InitializeComponent();
             this.FormClosed += InitForm_FormClosed;
         }
@@ -35,11 +44,21 @@ namespace InputshareWindows
         {
             this.FormBorderStyle = FormBorderStyle.Fixed3D;
             this.MaximizeBox = false;
+
+            ArgumentParser.LaunchArgs inputArgs = ArgumentParser.ParseArgs(startArgs).Args;
+
+            if (inputArgs.HasFlag(ArgumentParser.LaunchArgs.StartServer))
+                LaunchServer(4441);
+            else if (inputArgs.HasFlag(ArgumentParser.LaunchArgs.StartServiceClient))
+                LaunchServiceClient();
+            else if (inputArgs.HasFlag(ArgumentParser.LaunchArgs.StartClient))
+                LaunchClient();
+
         }
 
         private void serverButton_Click(object sender, EventArgs e)
         {
-            ShowForm(new ServerForm());
+            LaunchServer();
         }
 
         private void ShowForm(Form form)
@@ -52,12 +71,68 @@ namespace InputshareWindows
 
         private void buttonClient_Click(object sender, EventArgs e)
         {
-            ShowForm(new ClientForm());
+            LaunchClient();
         }
 
         private void buttonServiceClient_Click(object sender, EventArgs e)
         {
-            ShowForm(new ServiceClientForm());
+            LaunchServiceClient();
+        }
+
+        private void LaunchClient(IPEndPoint autoConnectHost = null)
+        {
+            ShowForm(new ClientForm());
+        }
+
+        private void LaunchServer(int autoStartPort = 0)
+        {
+            ShowForm(new ServerForm(autoStartPort));
+        }
+
+        private void LaunchServiceClient() 
+        {
+            IntPtr token = Token.GetCurrentProcessToken();
+            var elevation = Token.QueryElevation(token);
+            Token.CloseToken(token);
+
+            if(elevation != InputshareLibWindows.Native.AdvApi32.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull)
+            {
+                if (!IsAdministrator())
+                    MessageBox.Show("Run as administrator to connect to the service client");
+                else
+                    RelaunchAsAdministrator();
+
+                return;
+            }
+            else
+            {
+                ShowForm(new ServiceClientForm());
+            }
+        }
+
+        private void RelaunchAsAdministrator()
+        {
+            ProcessStartInfo info = new ProcessStartInfo
+            {
+                Verb = "runas",
+                UseShellExecute = true,
+                FileName = @"inputsharewindows.exe",
+                Arguments = "startserviceclient",
+            };
+
+            Process.Start(info);
+            Process.GetCurrentProcess().Kill();
+        }
+
+        private bool IsAdministrator()
+        {
+            using (WindowsIdentity id = WindowsIdentity.GetCurrent())
+            {
+                WindowsPrincipal p = new WindowsPrincipal(id);
+                List<Claim> claims = new List<Claim>(p.UserClaims);
+                Claim admin = claims.Find(p => p.Value.Contains("S-1-5-32-544"));
+                return admin != null;
+            }
         }
     }
 }

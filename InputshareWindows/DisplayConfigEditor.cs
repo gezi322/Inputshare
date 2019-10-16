@@ -242,7 +242,15 @@ namespace InputshareWindows
             otherClientsListBox.Items.Add(ClientInfo.None);
 
             if (selectedClient == null)
+            {
+                clientHeaderLabel.Text = "Select a client";
                 return;
+            }
+            else
+            {
+                clientHeaderLabel.Text = "Edges of " + selectedClient.Name;
+            }
+
             if (selectedClient.LeftClient == null)
                 leftLabel.Text = "Left: None";
             else

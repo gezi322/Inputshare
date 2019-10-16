@@ -293,6 +293,10 @@ namespace InputshareLib.Net
         {
             try {
                 tcpSocket.EndConnect(ar);
+
+                if (socketBuff == null)
+                    socketBuff = new byte[Settings.SocketBufferSize];
+
                 tcpSocket.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, null);
                 OnConnected();
             }

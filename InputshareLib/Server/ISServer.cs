@@ -64,11 +64,12 @@ namespace InputshareLib.Server
             curMon = dependencies.CursorMonitor;
             dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
+
+            AssignEvents();
         }
 
         #region init
 
-        private bool firstRun = true;
         public void Start(int port)
         {
             if (Running)
@@ -81,17 +82,17 @@ namespace InputshareLib.Server
 
             ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
             cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
+            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
 
             StartClientListener(new IPEndPoint(IPAddress.Any, port));
             clientListener.ClientConnected += ClientListener_ClientConnected;
             StartInputManager();
             StartDisplayManager();
             StartCursorMonitor();
-            AssignEvents();
+            
 
             Running = true;
             clientMan.AddClient(ISServerSocket.Localhost);
-            firstRun = false;
             ISLogger.Write("Server: Inputshare server started");
             Started?.Invoke(this, null);
         }
@@ -141,13 +142,9 @@ namespace InputshareLib.Server
 
         private void AssignEvents()
         {
-            if (!firstRun)
-                return;
-
             displayMan.DisplayConfigChanged += DisplayMan_DisplayConfigChanged;
             curMon.EdgeHit += CurMon_EdgeHit;
             inputMan.InputReceived += InputMan_InputReceived;
-            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
             inputMan.ClientHotkeyPressed += InputMan_ClientHotkeyPressed;
             inputMan.FunctionHotkeyPressed += InputMan_FunctionHotkeyPressed;
         }
@@ -597,7 +594,6 @@ namespace InputshareLib.Server
         private void Client_ConnectionError(object sender, string error)
         {
             ISServerSocket client = sender as ISServerSocket;
-
             if (client == inputClient)
                 SwitchToLocalInput();
 
@@ -614,6 +610,7 @@ namespace InputshareLib.Server
                 inputMan.RemoveClientHotkey(client.ClientId);
             RemoveClientFromEdges(client);
             ClientDisconnected?.Invoke(this, GenerateClientInfo(client));
+            client.Dispose();
         }
 
         private void RemoveClientFromEdges(ISServerSocket client)

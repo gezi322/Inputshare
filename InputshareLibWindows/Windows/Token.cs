@@ -12,7 +12,7 @@ using InputshareLibWindows.Native;
 
 namespace InputshareLibWindows.Windows
 {
-    public static class Token
+    public class Token
     {
         private static uint STANDARD_RIGHTS_READ = 0x00020000;
         private static uint TOKEN_QUERY = 0x0008;

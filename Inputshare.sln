@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLibWindows", "Inp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareWindows", "InputshareWindows\InputshareWindows.csproj", "{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InputshareService", "InputshareService\InputshareService.csproj", "{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareService", "InputshareService\InputshareService.csproj", "{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InputshareSP", "InputshareSP\InputshareSP.csproj", "{282F2139-D231-4350-B447-4B6A4B73539E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareSP", "InputshareSP\InputshareSP.csproj", "{282F2139-D231-4350-B447-4B6A4B73539E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,8 +69,8 @@ Global
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x64.ActiveCfg = Release|Any CPU
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x64.Build.0 = Release|Any CPU
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x86.ActiveCfg = Release|Any CPU
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x86.Build.0 = Release|Any CPU
+		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x86.ActiveCfg = Release|x86
+		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Release|x86.Build.0 = Release|x86
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -81,8 +81,8 @@ Global
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x64.ActiveCfg = Release|Any CPU
 		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x64.Build.0 = Release|Any CPU
-		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x86.ActiveCfg = Release|Any CPU
-		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x86.Build.0 = Release|Any CPU
+		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x86.ActiveCfg = Release|x86
+		{282F2139-D231-4350-B447-4B6A4B73539E}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
