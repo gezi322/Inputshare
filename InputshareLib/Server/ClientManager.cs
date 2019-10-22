@@ -1,4 +1,5 @@
-﻿using System;
+﻿using InputshareLib.Server.API;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -99,6 +100,11 @@ namespace InputshareLib.Server
                 return GetClientById(clientId).ClientName;
 
             return null;
+        }
+
+        public void ClearClients()
+        {
+            clients.Clear();
         }
 
         public class DuplicateGuidException : Exception

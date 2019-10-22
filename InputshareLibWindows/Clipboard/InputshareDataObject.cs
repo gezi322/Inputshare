@@ -67,8 +67,6 @@ namespace InputshareLibWindows.Clipboard
 
         public override object GetData(string format, bool autoConvert)
         {
-            ISLogger.Write("Requesting format " + format);
-            
             //Don't tell the shell that we have file contents if we only have text or an image
             if(objectType == ClipboardDataType.File)
             {
@@ -119,7 +117,7 @@ namespace InputshareLibWindows.Clipboard
                             medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
                             return;
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             //ISLogger.Write("InputshareDataObject: Get FileContents failed: " + ex.Message);
                             return;

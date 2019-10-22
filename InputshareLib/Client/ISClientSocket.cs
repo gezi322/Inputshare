@@ -9,6 +9,8 @@ namespace InputshareLib.Client
 {
     internal class ISClientSocket : NetworkSocket
     {
+        public bool AutoReconnect { get; set; } = true;
+
         /// <summary>
         /// Occurs when a connection attempt fails
         /// </summary>
@@ -35,7 +37,7 @@ namespace InputshareLib.Client
         /// <summary>
         /// Address of the current connected server
         /// </summary>
-        public IPEndPoint ServerAddress { get; private set; }
+        public IPEndPoint ServerAddress { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
 
         /// <summary>
         /// Fires after a certain ammount of time after a connection attempt
@@ -49,7 +51,8 @@ namespace InputshareLib.Client
         /// </summary>
         private ConnectionInfo conInfo;
 
-        private bool serverResponded = false;
+        public bool AttemptingConnection { get; private set; }
+        protected bool serverResponded = false;
 
         public event EventHandler CancelAnyDragDrop;
 
@@ -78,12 +81,21 @@ namespace InputshareLib.Client
 
             conInfo = info;
 
+            if (tcpSocket != null)
+                tcpSocket.Dispose();
+
+            ServerAddress = new IPEndPoint(destAddr, port);
+            AttemptingConnection = true;
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
             {
                 NoDelay = true //Disable nagles algorithm!
             };
 
-            tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, null);
+            serverResponded = false;
+            errorHandled = false;
+           
+            ISLogger.Write("Attempting to connect to {0}:{1} as {2}", destAddr, port, info.Name);
+            tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, tcpSocket);
             serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
         }
 
@@ -119,7 +131,7 @@ namespace InputshareLib.Client
         /// <param name="sync"></param>
         private void ServerReplyTimerCallback(object sync)
         {
-            if (!base.IsConnected && !serverResponded)
+            if (!base.IsConnected && !serverResponded && !errorHandled)
                 HandleConnectedFailed("Timed out waiting for server reponse");
 
             serverReplyTimer.Dispose();
@@ -175,6 +187,7 @@ namespace InputshareLib.Client
         {
             base.HandleMessage(data);
             MessageType type = (MessageType)data[4];
+
             if (type == MessageType.ServerRequestInitialInfo)
             {
                 HandleRequestInitialInfo();
@@ -239,24 +252,60 @@ namespace InputshareLib.Client
             serverResponded = true;
             ConnectionFailed?.Invoke(this, "The server declined the connection '" + message.Reason + "'");
             errorHandled = true;
+
+            ConnectionFailed?.Invoke(this, message.Reason);
+
+            if (AutoReconnect)
+            {
+                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
+                Thread.Sleep(2000);
+                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+            }
+            AttemptingConnection = false;
         }
 
         protected override void HandleConnectionClosed(string error)
         {
+            AttemptingConnection = false;
             serverResponded = true;
             base.HandleConnectionClosed(error);
+
+            if (AutoReconnect)
+            {
+                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
+                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+            }
         }
 
         protected override void HandleConnectedFailed(string error)
         {
+            
             base.IsConnected = false;
             errorHandled = true;
+
             base.HandleConnectedFailed(error);
+            tcpSocket?.Dispose();
             ConnectionFailed?.Invoke(this, error);
+            if (AutoReconnect)
+            {
+                
+                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
+                Thread.Sleep(2000);
+                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+            }
+            else
+            {
+                AttemptingConnection = false;
+            }
+            
+           
+
+            
         }
 
         protected override void OnConnected()
         {
+            AttemptingConnection = false;
             base.OnConnected();
         }
 

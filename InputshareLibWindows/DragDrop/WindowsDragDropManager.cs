@@ -12,8 +12,6 @@ namespace InputshareLibWindows.DragDrop
         private Thread dropFormThread;
         private WindowsDropTarget dropTargetWindow;
 
-        private Guid currentDropOperation = Guid.Empty;
-
         private Thread dropSourceThread;
         private WindowsDropSource dropSourceWindow;
         public bool Running { get; private set; }
@@ -23,6 +21,11 @@ namespace InputshareLibWindows.DragDrop
         public event EventHandler<Guid> DragDropCancelled;
         public event EventHandler<Guid> DragDropSuccess;
         public event EventHandler<Guid> DragDropComplete;
+
+#pragma warning disable CS0067
+        public event EventHandler<IDragDropManager.RequestFileDataArgs> FileDataRequested;
+#pragma warning restore CS0067
+
         private AutoResetEvent formLoadedEvent = new AutoResetEvent(false);
 
         public WindowsDragDropManager()
@@ -73,20 +76,20 @@ namespace InputshareLibWindows.DragDrop
             dropSourceWindow.CancelDrop();
         }
 
-        private void DropSourceWindow_DragDropSuccess(object sender, EventArgs e)
+        private void DropSourceWindow_DragDropSuccess(object sender, Guid operationId)
         {
             if (dropTargetWindow.InputshareDataDropped)
             {
                 dropTargetWindow.InputshareDataDropped = false;
                 return;
             }
-
-            DragDropSuccess?.Invoke(this, currentDropOperation);
+            
+            DragDropSuccess?.Invoke(this, operationId);
         }
 
-        private void DropSourceWindow_DragDropCancelled(object sender, EventArgs e)
+        private void DropSourceWindow_DragDropCancelled(object sender, Guid operationId)
         {
-            DragDropCancelled?.Invoke(this, currentDropOperation);
+            DragDropCancelled?.Invoke(this, operationId);
         }
 
         public void DoDragDrop(ClipboardDataBase data, Guid operationId)
@@ -96,14 +99,24 @@ namespace InputshareLibWindows.DragDrop
             if (dropSourceWindow == null)
                 throw new InvalidOperationException("Form not created");
 
-            currentDropOperation = operationId;
-            dropSourceWindow.InvokeDoDragDrop(data);
+            if (dropSourceWindow.Dropping)
+                dropSourceWindow.CancelDrop();
+
+            dropSourceWindow.InvokeDoDragDrop(data, operationId);
         }
 
         private void DropForm_DataDropped(object sender, IDataObject data)
         {
-            ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
-            DataDropped?.Invoke(this, cb);
+            try
+            {
+                ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
+                DataDropped?.Invoke(this, cb);
+            }
+            catch (ClipboardTranslatorWindows.ClipboardTranslationException ex)
+            {
+                ISLogger.Write("Failed to red clipboard data: " + ex.Message);
+            }
+           
         }
 
         public void CheckForDrop()
@@ -140,6 +153,11 @@ namespace InputshareLibWindows.DragDrop
 
             Running = false;
             ISLogger.Write("Windows drag drop manager exited");
+        }
+
+        public void WriteToFile(Guid fileId, byte[] data)
+        {
+            throw new NotImplementedException();
         }
     }
 }

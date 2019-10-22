@@ -1,10 +1,15 @@
 ﻿using InputshareLib.Client;
+using InputshareLib.Clipboard;
+using InputshareLib.Cursor;
+using InputshareLib.Displays;
+using InputshareLib.DragDrop;
 using InputshareLib.Server;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.Cursor;
 using InputshareLibWindows.Displays;
 using InputshareLibWindows.DragDrop;
 using InputshareLibWindows.Input;
+using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.Output;
 
 namespace InputshareLibWindows
@@ -32,6 +37,18 @@ namespace InputshareLibWindows
                 displayManager = new WindowsDisplayManager(),
                 dragDropManager = new WindowsDragDropManager(),
                 outputManager = new WindowsOutputManager()
+            };
+        }
+
+        public static ClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
+        {
+            return new ClientDependencies
+            {
+                clipboardManager = new ServiceClipboardManager(mainHost),
+                cursorMonitor = new ServiceCursorMonitor(mainHost),
+                displayManager = new ServiceDisplayManager(mainHost),
+                dragDropManager = new ServiceDragDropManager(mainHost, dragDropHost),
+                outputManager = new ServiceOutputManager(mainHost)
             };
         }
     }

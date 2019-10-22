@@ -55,7 +55,6 @@ namespace InputshareLib.Clipboard.DataTypes
         [Serializable]
         public class FileAttributes
         {
-            [field: NonSerialized]
             public delegate Task<byte[]> RequestPartDelegate(Guid token,Guid operationId,  Guid fileId, int readLen);
 
             [field: NonSerialized]
@@ -98,7 +97,6 @@ namespace InputshareLib.Clipboard.DataTypes
             /// <summary>
             /// The access token that allows us to retrieve this file from the host PC
             /// </summary>
-            [field: NonSerialized]
             public Guid RemoteAccessToken { get; set; }
 
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using static InputshareLibWindows.Native.User32;
@@ -10,17 +11,35 @@ namespace InputshareLibWindows.Displays
 {
     public class WindowsDisplayManager : DisplayManagerBase
     {
-        private const int CX_VIRTUALSCREEN = 78;
-        private const int CY_VIRTUALSCREEN = 79;
+        private byte[] currentRawConfig = new byte[0];
+        private System.Threading.Timer displayUpdateTimer;
 
         public WindowsDisplayManager()
         {
             UpdateConfigManual();
+
         }
-        
+
+        private void UpdateTimerCallback(object sync)
+        {
+            CheckForUpdate();
+        }
+
+        public void CheckForUpdate()
+        {
+            DisplayConfig conf = GetDisplayConfig();
+
+            if (!conf.ToBytes().SequenceEqual(currentRawConfig))
+            {
+                CurrentConfig = conf;
+                currentRawConfig = CurrentConfig.ToBytes();
+                OnConfigUpdated(conf);
+            }
+        }
+
         private Display GetDisplay(int index)
         {
-            if(Screen.AllScreens[index] == null)
+            if (Screen.AllScreens[index] == null)
                 throw new ArgumentException("Display does not exist");
 
             Display indexDisplay = null;
@@ -54,19 +73,18 @@ namespace InputshareLibWindows.Displays
 
         private DisplayConfig GetDisplayConfig()
         {
-            //
             int w = GetSystemMetrics(CX_VIRTUALSCREEN);
             int h = GetSystemMetrics(CY_VIRTUALSCREEN);
-            Rectangle vBounds = new Rectangle(0, 0,0,0);
+            Rectangle vBounds = new Rectangle(0, 0, 0, 0);
 
             List<Display> displays = new List<Display>();
-            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, 
-                delegate(IntPtr hMonitor, IntPtr hdcMonitor, ref W32Rect lprcMonitor, IntPtr dwData)
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
+                delegate (IntPtr hMonitor, IntPtr hdcMonitor, ref W32Rect lprcMonitor, IntPtr dwData)
                 {
                     MONITORINFOEX mi = new MONITORINFOEX();
                     mi.Size = Marshal.SizeOf(mi);
                     int displayIndex = 1;
-                    if(GetMonitorInfo(hMonitor, ref mi))
+                    if (GetMonitorInfo(hMonitor, ref mi))
                     {
                         Rectangle r = Rectangle.FromLTRB(mi.Monitor.left, mi.Monitor.top, mi.Monitor.right, mi.Monitor.bottom);
                         vBounds = Rectangle.Union(vBounds, r);
@@ -81,17 +99,25 @@ namespace InputshareLibWindows.Displays
 
         public override void StartMonitoring()
         {
+            if (!Running)
+                displayUpdateTimer = new System.Threading.Timer(UpdateTimerCallback, null, 0, 1500);
             Running = true;
+
         }
 
         public override void StopMonitoring()
         {
+            if (Running)
+                displayUpdateTimer.Dispose();
+
             Running = false;
         }
 
         public override void UpdateConfigManual()
         {
             CurrentConfig = GetDisplayConfig();
+            currentRawConfig = CurrentConfig.ToBytes();
+            OnConfigUpdated(CurrentConfig);
         }
     }
 }

@@ -1,16 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <Platforms>AnyCPU;x64;x86</Platforms>    
-
     <Version>1.0.1</Version>
     <Authors>Sam Barraclough</Authors>
     <Company>Sbarrac1</Company>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
+    <ApplicationIcon />
+    <StartupObject />
 
   </PropertyGroup>
 
@@ -28,7 +29,12 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\builds\release64</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\InputshareLibWindows\InputshareLibWindows.csproj" />

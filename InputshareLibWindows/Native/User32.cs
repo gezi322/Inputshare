@@ -5,6 +5,32 @@ namespace InputshareLibWindows.Native
 {
     public static class User32
     {
+        public const int CX_VIRTUALSCREEN = 78;
+        public const int CY_VIRTUALSCREEN = 79;
+        public static int UOI_NAME = 2;
+
+        [DllImport("user32.dll")]
+        public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr OpenDesktop(string lpszDesktop, uint dwFlags,
+            bool fInherit, ACCESS_MASK dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, ACCESS_MASK dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool CloseDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr GetThreadDesktop(uint dwThreadId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool GetUserObjectInformation(IntPtr hObj, int nIndex,
+            byte[] pvInfo, uint nLength, out uint lpnLengthNeeded);
 
         [DllImport("USER32.dll")]
         public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
@@ -64,7 +90,7 @@ namespace InputshareLibWindows.Native
         [DllImport("user32.dll")]
         public static extern bool SetProcessDPIAware();
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError =true)]
         public static extern bool GetCursorPos(out POINT pos);
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -192,5 +218,146 @@ namespace InputshareLibWindows.Native
             public int bottom;
         }
 
+        [Flags]
+        public enum ACCESS_MASK : uint
+        {
+            DELETE = 0x00010000,
+            READ_CONTROL = 0x00020000,
+            WRITE_DAC = 0x00040000,
+            WRITE_OWNER = 0x00080000,
+            SYNCHRONIZE = 0x00100000,
+
+            STANDARD_RIGHTS_REQUIRED = 0x000F0000,
+
+            STANDARD_RIGHTS_READ = 0x00020000,
+            STANDARD_RIGHTS_WRITE = 0x00020000,
+            STANDARD_RIGHTS_EXECUTE = 0x00020000,
+
+            STANDARD_RIGHTS_ALL = 0x001F0000,
+
+            SPECIFIC_RIGHTS_ALL = 0x0000FFFF,
+
+            ACCESS_SYSTEM_SECURITY = 0x01000000,
+
+            MAXIMUM_ALLOWED = 0x02000000,
+
+            GENERIC_READ = 0x80000000,
+            GENERIC_WRITE = 0x40000000,
+            GENERIC_EXECUTE = 0x20000000,
+            GENERIC_ALL = 0x10000000,
+
+            DESKTOP_READOBJECTS = 0x00000001,
+            DESKTOP_CREATEWINDOW = 0x00000002,
+            DESKTOP_CREATEMENU = 0x00000004,
+            DESKTOP_HOOKCONTROL = 0x00000008,
+            DESKTOP_JOURNALRECORD = 0x00000010,
+            DESKTOP_JOURNALPLAYBACK = 0x00000020,
+            DESKTOP_ENUMERATE = 0x00000040,
+            DESKTOP_WRITEOBJECTS = 0x00000080,
+            DESKTOP_SWITCHDESKTOP = 0x00000100,
+
+            WINSTA_ENUMDESKTOPS = 0x00000001,
+            WINSTA_READATTRIBUTES = 0x00000002,
+            WINSTA_ACCESSCLIPBOARD = 0x00000004,
+            WINSTA_CREATEDESKTOP = 0x00000008,
+            WINSTA_WRITEATTRIBUTES = 0x00000010,
+            WINSTA_ACCESSGLOBALATOMS = 0x00000020,
+            WINSTA_EXITWINDOWS = 0x00000040,
+            WINSTA_ENUMERATE = 0x00000100,
+            WINSTA_READSCREEN = 0x00000200,
+
+            WINSTA_ALL_ACCESS = 0x0000037F
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint SendInput(uint nInputs, [In] Input[] pInputs, int cbSize);
+
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vkey);
+
+        public static int InputSize = Marshal.SizeOf(typeof(Input));
+
+        public const int MOUSEEVENTF_LEFTDOWN = 0x02;
+        public const int MOUSEEVENTF_LEFTUP = 0x04;
+        public const int MOUSEEVENTF_RIGHTDOWN = 0x08;
+        public const int MOUSEEVENTF_RIGHTUP = 0x10;
+        public const int MOUSEEVENTF_XDOWN = 0x0080;
+        public const int MOUSEEVENTF_XUP = 0x0100;
+        public const int MOUSEEVENTF_WHEEL = 0x0800;
+        public const int MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+        public const int MOUSEEVENTF_MIDDLEUP = 0x0040;
+
+
+        public const uint MAPVK_VK_TO_VSC = 0x00;
+        public const uint MAPVK_VSC_TO_VK = 0x01;
+        public const uint MAPVK_VK_TO_CHAR = 0x02;
+        public const uint MAPVK_VSC_TO_VK_EX = 0x03;
+        public const uint MAPVK_VK_TO_VSC_EX = 0x04;
+
+        public const int MOUSEEVENTF_MOVE = 0x0001;
+        public const int MOUSEEVENTF_VIRTUALDESK = 0x4000;
+        public const int MOUSEEVENTF_ABSOLUTE = 0x8000;
+
+
+        [Flags]
+        public enum InputType
+        {
+            Mouse = 0,
+            Keyboard = 1,
+            Hardware = 2
+        }
+
+        [Flags]
+        public enum KeyEventF
+        {
+            KeyDown = 0x0000,
+            ExtendedKey = 0x0001,
+            KeyUp = 0x0002,
+            Unicode = 0x0004,
+            Scancode = 0x0008,
+        }
+
+        public struct Input
+        {
+            public int type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct InputUnion
+        {
+            [FieldOffset(0)] public MouseInput mi;
+            [FieldOffset(0)] public KeyboardInput ki;
+            [FieldOffset(0)] public readonly HardwareInput hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MouseInput
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KeyboardInput
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HardwareInput
+        {
+            public readonly uint uMsg;
+            public readonly ushort wParamL;
+            public readonly ushort wParamH;
+        }
     }
 }

@@ -10,6 +10,7 @@ namespace InputshareLib.Server
     internal class GlobalClipboardController
     {
         public delegate void SetClipboardDataDelegate(ClipboardDataBase cbData);
+        public event EventHandler<ClipboardOperation> GlobalCLipboardChanged;
 
         private SetClipboardDataDelegate SetLocalClipboardData;
         private ClientManager clientMan;
@@ -35,28 +36,40 @@ namespace InputshareLib.Server
         public void OnClientClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
         {
             ISServerSocket client = sender as ISServerSocket;
-            ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.rawData);
+            ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
             SetGlobalClipboard(cbData, client, args.OperationId);
         }
 
         private void SetGlobalClipboard(ClipboardDataBase data, ISServerSocket host, Guid operationId)
         {
-            ISLogger.Write("New clipboard operation. Type {0}, Host {1}, ID {2}", data.DataType, host.ClientName, operationId);
+            try
+            {
+                ISLogger.Write("New clipboard operation. Type {0}, Host {1}, ID {2}", data.DataType, host.ClientName, operationId);
 
-            if (data.DataType == ClipboardDataType.File)
+                if (data.DataType == ClipboardDataType.File)
+                {
+                    SetClipboardFiles((data as ClipboardVirtualFileData), host, operationId);
+                }
+                else
+                {
+                    SetClipboardTextOrImage(data, host, operationId);
+                }
+
+                GlobalCLipboardChanged?.Invoke(this, currentOperation);
+            }catch(Exception ex)
             {
-                SetClipboardFiles((data as ClipboardVirtualFileData), host, operationId);
+                ISLogger.Write("Failed to set global clipboard data: " + ex.Message);
             }
-            else
-            {
-                SetClipboardTextOrImage(data, host, operationId);
-            }
+            
         }
 
         private async void SetClipboardFiles(ClipboardVirtualFileData cbFiles, ISServerSocket host, Guid operationId)
         {
             if (currentOperation != null && currentOperation.DataType == ClipboardDataType.File)
                 previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);
+
+            if(currentOperation != null && currentOperation.LocalhostAccessToken != Guid.Empty)
+                fileController.DeleteToken(currentOperation.LocalhostAccessToken);
 
             currentOperation = new ClipboardOperation(operationId, cbFiles.DataType, cbFiles, host);
             if (host == ISServerSocket.Localhost)

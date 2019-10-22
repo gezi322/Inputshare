@@ -14,7 +14,7 @@ namespace InputshareLib.Net
 
         public bool FullyReceived { get => MessageSize == BytesRead; }
 
-        private MemoryStream messageStream;
+        private readonly MemoryStream messageStream;
         private bool cancelled;
 
         public LargeMessageHandler(Guid messageId, int messageSize)
@@ -34,7 +34,7 @@ namespace InputshareLib.Net
 
         public void Close()
         {
-            messageStream.Close();
+            messageStream.Dispose();
         }
 
         public byte[] ReadAndClose()

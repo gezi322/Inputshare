@@ -3,6 +3,11 @@ using System;
 
 namespace InputshareLib.Clipboard
 {
+
+    /// <summary>
+    /// Manages the windows clipboard.
+    /// Sets clipboard data and monitors for changes.
+    /// </summary>
     public abstract class ClipboardManagerBase
     {
         public event EventHandler<ClipboardDataBase> ClipboardContentChanged;

@@ -1,10 +1,11 @@
 ﻿using InputshareLib;
 using InputshareLib.Input;
 using InputshareLib.Output;
+using InputshareLibWindows.Native;
 using System;
 using System.Runtime.InteropServices;
 using static InputshareLibWindows.Native.User32;
-
+using Input = InputshareLibWindows.Native.User32.Input;
 namespace InputshareLibWindows.Output
 {
     public class WindowsOutputManager : IOutputManager
@@ -76,7 +77,7 @@ namespace InputshareLibWindows.Output
         }
         private void MoveMouseAbs(short x, short y)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
 
             POINT pt = ConvertScreenPointToAbsolutePoint((uint)x, (uint)y);
@@ -93,7 +94,7 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
 
@@ -141,7 +142,7 @@ namespace InputshareLibWindows.Output
 
         private void KeyDownVirtual(short vKey, bool down)
         {
-            Input kbIn;
+            User32.Input kbIn;
             kbIn.type = 1; //type keyboarrd
             uint flags;
             if (down)
@@ -161,12 +162,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { kbIn }, InputSize);
+            SendInput(1, new User32.Input[1] { kbIn }, InputSize);
         }
 
         private void MouseXDown(short button, bool down)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
 
             uint flags;
@@ -187,12 +188,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
         private void KeyDownScan(short scan, bool down)
         {
-            Input kbIn;
+            User32.Input kbIn;
             kbIn.type = 1; //type keyboarrd
             uint flags;
             if (down)
@@ -212,12 +213,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { kbIn }, InputSize);
+            SendInput(1, new User32.Input[1] { kbIn }, InputSize);
         }
 
         private void MoveMouseRelative(short x, short y)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
 
             mouseIn.u = new InputUnion
@@ -232,7 +233,7 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            if (SendInput(1, new Input[1] { mouseIn }, InputSize) != 1)
+            if (SendInput(1, new User32.Input[1] { mouseIn }, InputSize) != 1)
             {
                 ISLogger.Write("Sendinput failed " + Marshal.GetLastWin32Error());
             }
@@ -240,7 +241,7 @@ namespace InputshareLibWindows.Output
 
         private void MouseYScroll(short dir)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
 
             mouseIn.u = new InputUnion
@@ -255,12 +256,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
         private void MouseLDown(bool down)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
             uint flags;
             if (down)
@@ -280,12 +281,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
         private void MouseRDown(bool down)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
             uint flags;
             if (down)
@@ -305,12 +306,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
         private void MouseMDown(bool down)
         {
-            Input mouseIn;
+            User32.Input mouseIn;
             mouseIn.type = 0; //type mouse
             uint flags;
             if (down)
@@ -330,15 +331,12 @@ namespace InputshareLibWindows.Output
                 }
             };
 
-            SendInput(1, new Input[1] { mouseIn }, InputSize);
+            SendInput(1, new User32.Input[1] { mouseIn }, InputSize);
         }
 
         public void ResetKeyStates()
         {
-            if(((1 << 15) & GetAsyncKeyState(1)) != 0)
-                MouseRDown(false);
-
-            for (int i = 1; i < 255; i++)
+            for (int i = 6; i < 255; i++)
             {
                 if (((1 << 15) & GetAsyncKeyState(i)) != 0)
                 {
@@ -349,108 +347,7 @@ namespace InputshareLibWindows.Output
 
 
         #region win32
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern uint SendInput(uint nInputs, [In] Input[] pInputs, int cbSize);
-
-        [DllImport("user32.dll")]
-        static extern short GetAsyncKeyState(int vkey);
-
-        static int InputSize = Marshal.SizeOf(typeof(Input));
-
-        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
-        private const int MOUSEEVENTF_LEFTUP = 0x04;
-        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
-        private const int MOUSEEVENTF_RIGHTUP = 0x10;
-        private const int MOUSEEVENTF_XDOWN = 0x0080;
-        private const int MOUSEEVENTF_XUP = 0x0100;
-        private const int MOUSEEVENTF_WHEEL = 0x0800;
-        private const int MOUSEEVENTF_MIDDLEDOWN = 0x0020;
-        private const int MOUSEEVENTF_MIDDLEUP = 0x0040;
-
-
-        const uint MAPVK_VK_TO_VSC = 0x00;
-        const uint MAPVK_VSC_TO_VK = 0x01;
-        const uint MAPVK_VK_TO_CHAR = 0x02;
-        const uint MAPVK_VSC_TO_VK_EX = 0x03;
-        const uint MAPVK_VK_TO_VSC_EX = 0x04;
-
-        const int MOUSEEVENTF_MOVE = 0x0001;
-        const int MOUSEEVENTF_VIRTUALDESK = 0x4000;
-        const int MOUSEEVENTF_ABSOLUTE = 0x8000;
-
-
-        [Flags]
-        private enum InputType
-        {
-            Mouse = 0,
-            Keyboard = 1,
-            Hardware = 2
-        }
-
-        [Flags]
-        private enum KeyEventF
-        {
-            KeyDown = 0x0000,
-            ExtendedKey = 0x0001,
-            KeyUp = 0x0002,
-            Unicode = 0x0004,
-            Scancode = 0x0008,
-        }
-
-        private struct Input
-        {
-            public int type;
-            public InputUnion u;
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        private struct InputUnion
-        {
-            [FieldOffset(0)] public MouseInput mi;
-            [FieldOffset(0)] public KeyboardInput ki;
-            [FieldOffset(0)] public readonly HardwareInput hi;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MouseInput
-        {
-            public int dx;
-            public int dy;
-            public uint mouseData;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct KeyboardInput
-        {
-            public ushort wVk;
-            public ushort wScan;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct HardwareInput
-        {
-            public readonly uint uMsg;
-            public readonly ushort wParamL;
-            public readonly ushort wParamH;
-        }
-
-        private struct POINT
-        {
-            public POINT(int x, int y)
-            {
-                X = x;
-                Y = y;
-            }
-            public int X;
-            public int Y;
-        }
-
+       
         #endregion
     }
 }
