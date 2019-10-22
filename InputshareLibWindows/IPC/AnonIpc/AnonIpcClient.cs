@@ -1,5 +1,6 @@
 ﻿using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
+using InputshareLib.Displays;
 using InputshareLibWindows.IPC.AnonIpc.Messages;
 using System;
 using System.Collections.Generic;
@@ -24,8 +25,6 @@ namespace InputshareLibWindows.IPC.AnonIpc
 
         private AnonymousPipeClientStream readPipe;
         private AnonymousPipeClientStream writePipe;
-
-        
 
         public AnonIpcClient(string readHandle, string writeHandle, string conName) : base(false, conName, false)
         {

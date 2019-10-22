@@ -1,4 +1,5 @@
 ﻿using InputshareLib;
+using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLibWindows.Output;
 using InputshareLibWindows.Windows;
@@ -11,7 +12,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using static InputshareLib.Displays.DisplayManagerBase;
 using static InputshareLibWindows.Native.User32;
 
 namespace InputshareSP

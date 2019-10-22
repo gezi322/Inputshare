@@ -8,7 +8,6 @@ using System;
 using System.Configuration;
 using System.Diagnostics;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,6 +63,8 @@ namespace InputshareService
         private void SpDragDropTaskLoop()
         {
             iHostDragDrop = new AnonIpcHost("Dragdrop process");
+            spDragDropHandle.host = iHostDragDrop;
+
             while (!stopping)
             {
                 try
@@ -82,6 +83,7 @@ namespace InputshareService
         private void SpMainTaskLoop()
         {
             iHostMain = new AnonIpcHost("Main process");
+            spMainHandle.host = iHostMain;
 
             while (!stopping)
             {

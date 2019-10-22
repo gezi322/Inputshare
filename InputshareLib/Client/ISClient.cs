@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using InputshareLib.Input;
 using System.Threading;
+using InputshareLib.Displays;
 
 namespace InputshareLib.Client
 {
@@ -176,7 +177,7 @@ namespace InputshareLib.Client
                 
         }
 
-        private void OnLocalDisplayConfigChange(object sender, Displays.DisplayManagerBase.DisplayConfig config)
+        private void OnLocalDisplayConfigChange(object sender, DisplayConfig config)
         {
             if (socket != null && socket.IsConnected)
             {

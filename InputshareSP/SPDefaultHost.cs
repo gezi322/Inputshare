@@ -3,14 +3,11 @@ using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.IPC.AnonIpc;
-using InputshareLibWindows.IPC.AnonIpc;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static InputshareLibWindows.Native.User32;
 
 namespace InputshareSP
 {

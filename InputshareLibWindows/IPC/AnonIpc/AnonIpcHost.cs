@@ -1,5 +1,6 @@
 ﻿using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
+using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLibWindows.IPC.AnonIpc.Messages;
 using System;
@@ -9,8 +10,6 @@ using System.IO.Pipes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static InputshareLib.Displays.DisplayManagerBase;
-
 namespace InputshareLibWindows.IPC.AnonIpc
 {
 

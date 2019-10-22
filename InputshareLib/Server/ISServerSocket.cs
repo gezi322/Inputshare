@@ -1,4 +1,5 @@
-﻿using InputshareLib.Input.Hotkeys;
+﻿using InputshareLib.Displays;
+using InputshareLib.Input.Hotkeys;
 using InputshareLib.Net;
 using InputshareLib.Net.Messages;
 using System;
@@ -356,7 +357,7 @@ namespace InputshareLib.Server
         /// <param name="message"></param>
         private void HandleDisplayConfigMessage(DisplayConfigMessage message)
         {
-            DisplayConfiguration = new Displays.DisplayManagerBase.DisplayConfig(message.ConfigData);
+            DisplayConfiguration = new DisplayConfig(message.ConfigData);
             ClientDisplayConfigUpdated.Invoke(this, DisplayConfiguration);
         }
 

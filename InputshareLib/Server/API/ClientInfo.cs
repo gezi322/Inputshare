@@ -1,4 +1,5 @@
-﻿using InputshareLib.Input.Hotkeys;
+﻿using InputshareLib.Displays;
+using InputshareLib.Input.Hotkeys;
 using System;
 using System.Net;
 using static InputshareLib.Displays.DisplayManagerBase;
