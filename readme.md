@@ -22,7 +22,7 @@ Quick demo:
 ## Compiling ##
 The solution can be compiled normally using visual studio. Builds are stored in /builds/release32 or /builds/debug64 etc depending on the build setting.
 
-
+Logs are stored at C:\ProgramData\sbarrac1\inputshare
 
 ## Using ##
 
@@ -67,6 +67,8 @@ To set a clients position in the display config editor, first select a client fr
 
 ### Assigning a hotkey to a client ###
 To assign a hotkey to a client, or to edit a function hotkey, double click on the list box item. To assign a key, click the button on the popup window and press the hotkey, once done click the button again and the hotkey will be assigned.
+
+![](https://i.imgur.com/W62w0vb.png)
 
 Hotkey modifiers can be any of the following: Alt, Ctrl, shift.
 
