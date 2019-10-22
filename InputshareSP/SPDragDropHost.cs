@@ -4,7 +4,9 @@ using InputshareLibWindows.DragDrop;
 using InputshareLibWindows.IPC.AnonIpc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace InputshareSP
@@ -14,34 +16,59 @@ namespace InputshareSP
         private AnonIpcClient iClient;
         private WindowsDragDropManager dropMan;
 
-        public SPDragDropHost(AnonIpcClient ipc)
+        public SPDragDropHost(string readPipe, string writePipe)
         {
-            ISLogger.SetLogFileName("InputshareSP_DragDropHost.log");
             dropMan = new WindowsDragDropManager();
             dropMan.Start();
 
-            iClient = ipc;
+            iClient = new AnonIpcClient(readPipe, writePipe, "ServiceConnection");
+
+            Task.Run(() => {
+                Thread.Sleep(5000);
+
+                if (!iClient.IsConnected)
+                {
+                    ISLogger.Write("Failed to connect to service... exiting");
+                    Exit();
+                }
+            });
+
             iClient.DoDragDropReceived += IClient_DoDragDropReceived;
-            iClient.CheckForDropReceived += (object s, EventArgs e) => { dropMan.CheckForDrop(); };
+            iClient.CheckForDropReceived += (object s, EventArgs e) => { ISLogger.Write("Checking for drop..."); dropMan.CheckForDrop(); };
+            iClient.Disconnected += IClient_Disconnected;
+            iClient.Connected += IClient_Connected;
+
             dropMan.DragDropComplete += (object s, Guid operation) => { iClient.SendDragDropComplete(operation); };
             dropMan.DragDropCancelled += (object s, Guid operation) => { iClient.SendDragDropCancelled(operation); };
             dropMan.DragDropSuccess += (object s, Guid operation) => { iClient.SendDragDropSuccess(operation); };
             dropMan.DataDropped += (object s, ClipboardDataBase data) => { iClient.SendDroppedData(data); };
 
             Console.Title = "SP dragdrop host";
-
+           
             ISLogger.Write("Starting SP dragdrop host...");
             Console.ReadLine();
         }
 
-        private void IClient_DoDragDropReceived(object sender, Tuple<ClipboardDataBase, Guid> e)
+        private void IClient_Connected(object sender, EventArgs e)
         {
-            ISLogger.Write("Doing drop type " + e.Item1.DataType);
+            ISLogger.Write("Connected to service");
+        }
 
-            ClipboardDataBase data = e.Item1;
+        private void IClient_Disconnected(object sender, string reason)
+        {
+            ISLogger.Write("Lost connection to service... " + reason);
+            Thread.Sleep(500);
+            Exit();
+        }
+
+        private void IClient_DoDragDropReceived(object sender, Tuple<Guid, ClipboardDataBase> ret)
+        {
+            ISLogger.Write("Doing drop type " + ret.Item2.DataType);
+
+            ClipboardDataBase data = ret.Item2;
 
             //If we are dropping files, we need a way for the dataobject to communicate with host
-            if(data is ClipboardVirtualFileData files)
+            if( data is ClipboardVirtualFileData files)
             {
                 foreach (var file in files.AllFiles)
                 {
@@ -50,13 +77,13 @@ namespace InputshareSP
                 }
             }
 
-            dropMan.DoDragDrop(e.Item1, e.Item2);
+            dropMan.DoDragDrop(ret.Item2, ret.Item1);
         }
         private async Task<byte[]> VirtualFile_ReadData(Guid token, Guid operationId, Guid fileId, int readLen)
         {
             try
             {
-                return iClient.ReadStream(token, fileId, readLen);
+                return await iClient.ReadStreamAsync(token, fileId, readLen);
             }catch(Exception ex)
             {
                 ISLogger.Write("Failed to read external data stream: " + ex.Message);
@@ -71,6 +98,14 @@ namespace InputshareSP
         private void File_ReadComplete(object sender, EventArgs e)
         {
 
+        }
+
+        private void Exit()
+        {
+            if (dropMan.Running)
+                dropMan.Stop();
+
+            Process.GetCurrentProcess().Kill();
         }
     }
 }

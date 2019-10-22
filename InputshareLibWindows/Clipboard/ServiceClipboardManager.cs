@@ -10,12 +10,18 @@ namespace InputshareLibWindows.Clipboard
 {
     public class ServiceClipboardManager : ClipboardManagerBase
     {
-        private AnonIpcHost host;
+        private IpcHandle host;
 
-        public ServiceClipboardManager(AnonIpcHost mainHost)
+        public ServiceClipboardManager(IpcHandle mainHost)
         {
             host = mainHost;
-            host.ClipboardDataReceived += Host_ClipboardDataReceived;
+            host.HandleUpdated += Host_HandleUpdated;
+            host.host.ClipboardDataReceived += Host_ClipboardDataReceived;
+        }
+
+        private void Host_HandleUpdated(object sender, EventArgs e)
+        {
+            host.host.ClipboardDataReceived += Host_ClipboardDataReceived;
         }
 
         private void Host_ClipboardDataReceived(object sender, ClipboardDataBase data)
@@ -24,7 +30,7 @@ namespace InputshareLibWindows.Clipboard
         }
 
         public override void SetClipboardData(ClipboardDataBase data) {
-            host.SendClipboardData(data);
+            host.host.SendClipboardData(data);
         }
 
         public override void Start()

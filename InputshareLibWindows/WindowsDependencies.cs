@@ -40,7 +40,7 @@ namespace InputshareLibWindows
             };
         }
 
-        public static ClientDependencies GetServiceDependencies(AnonIpcHost mainHost, AnonIpcHost dragDropHost)
+        public static ClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
         {
             return new ClientDependencies
             {

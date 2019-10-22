@@ -117,6 +117,7 @@ namespace InputshareLibWindows.Displays
         {
             CurrentConfig = GetDisplayConfig();
             currentRawConfig = CurrentConfig.ToBytes();
+            OnConfigUpdated(CurrentConfig);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace InputshareSP
         static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            ISLogger.SetLogFileName("InputshareSPmain.log");
+            ISLogger.SetLogFileName("InputshareSP_Main.log");
             ISLogger.EnableConsole = true;
             ISLogger.EnableLogFile = true;
             ISLogger.PrefixTime = true;
@@ -29,28 +29,20 @@ namespace InputshareSP
             string mode = args[0];
             string readPipe = args[1];
             string writePipe = args[2];
-
-            AnonIpcClient iClient = new AnonIpcClient(writePipe, readPipe, "ServiceIpc");
-
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-
-            while (!iClient.Connected)
-            {
-                if(sw.ElapsedMilliseconds > 2000)
-                {
-                    ISLogger.Write("Failed to connect to service IPC... exiting");
-                    Thread.Sleep(2000);
-                    return;
-                }
-
-                Thread.Sleep(100);
-            }
+           
 
             if (mode == "Default")
-                new SPDefaultHost(iClient);
+            {
+                ISLogger.SetLogFileName("InputshareSP_DefaultHost.log");
+                new SPDefaultHost(readPipe, writePipe);
+            }
+                
             else if (mode == "DragDrop")
-                new SPDragDropHost(iClient);
+            {
+                ISLogger.SetLogFileName("InputshareSP_DragDropHost.log");
+                new SPDragDropHost(readPipe, writePipe);
+            }
+                
             else
                 OnInvalidArgs();
 
@@ -65,6 +57,8 @@ namespace InputshareSP
             ISLogger.Write(ex.Message);
             ISLogger.Write(ex.StackTrace);
             ISLogger.Write("---------------------------------");
+            Thread.Sleep(5000);
+            Process.GetCurrentProcess().Kill();
         }
 
         private static void PrintInfo()

@@ -1,6 +1,7 @@
 ﻿using InputshareLib;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Server;
+using InputshareLib.Server.API;
 using InputshareLibWindows;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ namespace InputshareWindows
 
             InitializeComponent();
             this.FormClosed += MainForm_FormClosed;
+            realtimeMouseRadioButton.Checked = true;
         }
 
         private void Server_Stopped(object sender, EventArgs e)
@@ -61,6 +63,8 @@ namespace InputshareWindows
         {
             if (server.Running)
                 server.Stop();
+
+            ISLogger.LogMessageOut -= ISLogger_LogMessageOut;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -68,6 +72,7 @@ namespace InputshareWindows
             server = new ISServer(WindowsDependencies.GetServerDependencies());
             server.Started += Server_Started;
             server.Stopped += Server_Stopped;
+            server.GlobalClipboardContentChanged += Server_GlobalClipboardContentChanged;
 
             ISLogger.LogMessageOut += ISLogger_LogMessageOut;
             consoleRichTextBox.BackColor = Color.White;
@@ -81,6 +86,14 @@ namespace InputshareWindows
 
             if (startArg != 0)
                 server.Start(startArg);
+        }
+
+        private void Server_GlobalClipboardContentChanged(object sender, CurrentClipboardData e)
+        {
+            this.Invoke(new Action(() => {
+                clipboardDataTypeLabel.Text = "Data type: " + e.Type.ToString();
+                clipboardHostLabel.Text = "Host: " + e.Host.Name;
+            }));
         }
 
         private void Server_ClientDisconnected(object sender, ClientInfo e)
@@ -104,7 +117,15 @@ namespace InputshareWindows
         {
             if (server.Running)
             {
-                server.Stop();
+                try
+                {
+                    server.Stop();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed to stop server: " + ex.Message);
+                }
+                
             }
             else
             {
@@ -117,7 +138,14 @@ namespace InputshareWindows
                     return;
                 }
 
-                server.Start(port);
+                try
+                {
+                    server.Start(port);
+                }catch(Exception ex)
+                {
+                    MessageBox.Show("Failed to start server: " + ex.Message);
+                }
+                
             }
         }
 
@@ -297,6 +325,62 @@ namespace InputshareWindows
             });
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (server.Running)
+            {
+                var cb = server.GetGlobalClipboardData();
+
+                ISLogger.Write("Current clipboard type: " + cb.Type);
+                ISLogger.Write("Clipboard host: " + cb.Host.Name);
+                ISLogger.Write("Time: " + cb.CopyTime);
+            }
+        }
+
+        private void realtimeMouseRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+          
+        }
+
+        private void bufferedMouseRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void realtimeMouseRadioButton_MouseClick(object sender, MouseEventArgs e)
+        {
+            realtimeMouseRadioButton.Checked = true;
+            bufferedMouseRadioButton.Checked = false;
+
+            if (server.Running)
+                server.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Realtime);
+        }
+
+        private void bufferedMouseRadioButton_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (!int.TryParse(mouseUpdateRateTextBox.Text, out int newRate) || newRate < 1 || newRate > 1000)
+            {
+                MessageBox.Show("Invalid update rate. Must be between 1 and 1000");
+                return;
+            }
+
+            realtimeMouseRadioButton.Checked = false;
+            bufferedMouseRadioButton.Checked = true;
+
+            if (server.Running)
+                server.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Buffered, newRate);
+        }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+
         }
     }
 }

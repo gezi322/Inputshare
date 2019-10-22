@@ -44,7 +44,8 @@ namespace InputshareSP
 
         public InputDesktopThread()
         {
-
+            CurrentDisplayConfig = GetDisplayConfig();
+            currentRawDisplayConfig = CurrentDisplayConfig.ToBytes();
         }
 
         public void Start()
@@ -110,6 +111,8 @@ namespace InputshareSP
             CurrentDisplayConfig = GetDisplayConfig();
             TrySwitchInputDesktop();
 
+            Running = true;
+
             while (!cancelToken.IsCancellationRequested)
             {
                 try
@@ -174,7 +177,7 @@ namespace InputshareSP
             }
         }
 
-        private DisplayConfig GetDisplayConfig()
+        public static DisplayConfig GetDisplayConfig()
         {
             int w = GetSystemMetrics(CX_VIRTUALSCREEN);
             int h = GetSystemMetrics(CY_VIRTUALSCREEN);

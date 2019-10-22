@@ -11,15 +11,17 @@ namespace InputshareLib.Input
             Param2 = param2;
         }
 
-        public ISInputData(byte[] data)
+        public ISInputData(byte[] data, int index = 0)
         {
             if (data.Length < 5)
                 throw new ArgumentException("Invalid input data");
 
-            this.Code = (ISInputCode)data[0];
-            this.Param1 = BitConverter.ToInt16(data, 1);
-            this.Param2 = BitConverter.ToInt16(data, 3);
+            this.Code = (ISInputCode)data[0+index];
+            this.Param1 = BitConverter.ToInt16(data, 1+index);
+            this.Param2 = BitConverter.ToInt16(data, 3+index);
         }
+
+
 
         public byte[] ToBytes()
         {
@@ -28,6 +30,14 @@ namespace InputshareLib.Input
             Buffer.BlockCopy(BitConverter.GetBytes(this.Param1), 0, data, 1, 2);
             Buffer.BlockCopy(BitConverter.GetBytes(this.Param2), 0, data, 3, 2);
             return data;
+        }
+
+        public void ToBytes(byte[] target, int index)
+        {
+            target[index] = (byte)Code;
+            Buffer.BlockCopy(BitConverter.GetBytes(this.Param1), 0, target, 1+index, 2);
+            Buffer.BlockCopy(BitConverter.GetBytes(this.Param2), 0, target, 3+index, 2);
+            return;
         }
 
         public ISInputCode Code { get; }

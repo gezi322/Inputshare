@@ -4,7 +4,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public sealed class AnonIpcReadStreamResponseMessage : AnonIpcMessage
+    public sealed class AnonIpcReadStreamResponseMessage : IpcMessage
     {
         public byte[] ResponseData { get; }
 
@@ -21,7 +21,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcReadStreamResponseMessage(byte[] responseData, Guid messageId = default) : base(AnonIpcMessageType.StreamReadResponse, messageId)
+        public AnonIpcReadStreamResponseMessage(byte[] responseData, Guid messageId = default) : base(IpcMessageType.AnonIpcStreamReadResponse, messageId)
         {
             ResponseData = responseData;
         }

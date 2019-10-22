@@ -1,108 +1,87 @@
 ﻿using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.Input;
 using InputshareLibWindows.IPC.AnonIpc.Messages;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO.Pipes;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static InputshareLib.Displays.DisplayManagerBase;
 
 namespace InputshareLibWindows.IPC.AnonIpc
 {
-    public sealed class AnonIpcClient : AnonIpcBase
+    /// <summary>
+    ///  IPC client using anonymous pipes to communicate between SP and the inputshare service
+    /// </summary>
+    public class AnonIpcClient : IpcBase
     {
-        public event EventHandler<Guid> DisplayConfigRequested;
-        public event EventHandler<Guid> LeftMouseStateRequested;
-        public event EventHandler<ISInputData> InputReceived;
-        public event EventHandler<Tuple<ClipboardDataBase, Guid>> DoDragDropReceived;
-        public event EventHandler CheckForDropReceived;
         public event EventHandler<ClipboardDataBase> ClipboardDataReceived;
+        public event EventHandler<DisplayConfigRequestedArgs> DisplayConfigRequested;
+        public event EventHandler<Tuple<Guid, ClipboardDataBase>> DoDragDropReceived;
+        public event EventHandler CheckForDropReceived;
 
-        public AnonIpcClient(string writeHandle, string readHandle, string conName) : base(writeHandle, readHandle, conName)
+        private AnonymousPipeClientStream readPipe;
+        private AnonymousPipeClientStream writePipe;
+
+        
+
+        public AnonIpcClient(string readHandle, string writeHandle, string conName) : base(false, conName, false)
         {
-            Write(AnonIpcMessageType.ClientOK);
+            readPipe = new AnonymousPipeClientStream(PipeDirection.In, readHandle);
+            writePipe = new AnonymousPipeClientStream(PipeDirection.Out, writeHandle);
+            ISLogger.Write("Ipc client created");
+            Start(readPipe, writePipe);
+            Write(new IpcMessage(IpcMessageType.IpcClientOK));
         }
 
-        protected override void ProcessMessage(byte[] data)
+        
+        protected override void ProcessMessage(IpcMessageType type, byte[] data)
         {
-            AnonIpcMessageType type = (AnonIpcMessageType)data[0];
-            switch (type)
+            if (type == IpcMessageType.AnonIpcClipboardData)
             {
-                case AnonIpcMessageType.InputData:
-                    HandleInputData(data);
-                    break;
-                case AnonIpcMessageType.HostOK:
-                    HandleHostOK();
-                    break;
-                case AnonIpcMessageType.DisplayConfigRequest:
-                    DisplayConfigRequested?.Invoke(this, new AnonIpcMessage(data).MessageId);
-                    break;
-                case AnonIpcMessageType.LMouseStateRequest:
-                    LeftMouseStateRequested?.Invoke(this, new AnonIpcMessage(data).MessageId);
-                    break;
-                case AnonIpcMessageType.DoDragDrop:
-                    AnonIpcDoDragDropMessage msg = new AnonIpcDoDragDropMessage(data);
-                    DoDragDropReceived?.Invoke(this, new Tuple<ClipboardDataBase, Guid>(msg.DropData, msg.MessageId));
-                    break;
-                case AnonIpcMessageType.CheckForDrop:
-                    CheckForDropReceived?.Invoke(this, new EventArgs());
-                    break;
-                case AnonIpcMessageType.ClipboardData:
-                    ClipboardDataReceived?.Invoke(this, new AnonIpcClipboardDataMessage(data).Data);
-                    break;
-                default:
-                    ISLogger.Write("AnonIpcClient: Received unexpected message type " + type);
-                    break;
+                AnonIpcClipboardDataMessage msg = new AnonIpcClipboardDataMessage(data);
+                ClipboardDataReceived?.Invoke(this, msg.Data);
+            }
+            else if (type == IpcMessageType.AnonIpcCheckForDrop)
+                CheckForDropReceived?.Invoke(this, null);
+            else if (type == IpcMessageType.AnonIpcDisplayConfigRequest)
+                HandleDisplayConfigRequest(new IpcMessage(data));
+            else if (type == IpcMessageType.AnonIpcDoDragDrop)
+            {
+                AnonIpcDoDragDropMessage msg = new AnonIpcDoDragDropMessage(data);
+                DoDragDropReceived.Invoke(this, new Tuple<Guid, ClipboardDataBase>(msg.MessageId, msg.DropData));
+            }
+
+        }
+
+        private void HandleDisplayConfigRequest(IpcMessage message)
+        {
+            DisplayConfigRequestedArgs args = new DisplayConfigRequestedArgs();
+            DisplayConfigRequested?.Invoke(this, args);
+
+            if(args.Config != null)
+            {
+                Write(new AnonIpcDisplayConfigMessage(args.Config, message.MessageId));
             }
         }
 
-        private void HandleInputData(byte[] data)
+        protected override void OnConnected()
         {
-            byte[] d = new byte[5];
-            Buffer.BlockCopy(data, 1, d, 0, 5);
-            InputReceived?.Invoke(this, new ISInputData(d));
+            base.OnConnected();
         }
 
-        /// <summary>
-        /// Read a remote file stream
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="fileId"></param>
-        /// <param name="bytesRead"></param>
-        /// <returns></returns>
-        /// <exception cref="AnonIpcBase.InvalidResponseException"></exception>"
-        /// <exception cref="AnonIpcBase.RemoteStreamReadException"></exception>"
-        public byte[] ReadStream(Guid token, Guid fileId, int bytesRead)
+        protected override void OnDisconnect(string reason)
         {
-            AnonIpcMessage response = SendRequest(new AnonIpcReadStreamRequestMessage(token, fileId, bytesRead));
-
-            if (response.MessageType == AnonIpcMessageType.StreamReadResponse)
-                return (response as AnonIpcReadStreamResponseMessage).ResponseData;
-            else if (response.MessageType == AnonIpcMessageType.StreamReadError)
-                throw new RemoteStreamReadException();
-            else
-                throw new InvalidResponseException();
+            base.OnDisconnect(reason);
         }
 
-        public void SendClipboardData(ClipboardDataBase data)
+        protected override void Dispose(bool disposing)
         {
-            Write(new AnonIpcClipboardDataMessage(data));
-        }
-
-        public void SendDroppedData(ClipboardDataBase data)
-        {
-            Write(new AnonIpcDoDragDropMessage(data));
-        }
-
-        public void SendDragDropCancelled(Guid operationId)
-        {
-            Write(new AnonIpcMessage(AnonIpcMessageType.DragDropCancelled, operationId));
-        }
-        public void SendDragDropSuccess(Guid operationId)
-        {
-            Write(new AnonIpcMessage(AnonIpcMessageType.DragDropSuccess, operationId));
-        }
-        public void SendDragDropComplete(Guid operationId)
-        {
-            Write(new AnonIpcMessage(AnonIpcMessageType.DragDropComplete, operationId));
+            readPipe?.Dispose();
+            writePipe?.Dispose();
+            base.Dispose(disposing);
         }
 
         public void SendEdgeHit(Edge edge)
@@ -110,25 +89,58 @@ namespace InputshareLibWindows.IPC.AnonIpc
             Write(new AnonIpcEdgeHitMessage(edge));
         }
 
-        public void SendDisplayConfigUpdate(DisplayConfig config)
+        public void SendDisplayConfig(DisplayConfig config)
         {
             Write(new AnonIpcDisplayConfigMessage(config));
         }
-        public void SendDisplayConfigReply(Guid messageId, DisplayConfig config)
+
+        public void SendLeftMouseUpdate(bool pressed)
         {
-            Write(new AnonIpcDisplayConfigMessage(config, messageId));
+            Write(new AnonIpcLMouseStateMessage(pressed));
         }
 
-        public void SendLeftMouseState(bool state)
+        public void SendClipboardData(ClipboardDataBase data)
         {
-            Write(new AnonIpcLMouseStateMessage(state));
+            Write(new AnonIpcClipboardDataMessage(data));
         }
 
-        private void HandleHostOK()
+
+        public void SendDragDropComplete(Guid id)
         {
-            Connected = true;
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropComplete, id));
         }
 
-        
+        public void SendDragDropSuccess(Guid id)
+        {
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropSuccess, id));
+        }
+
+        public void SendDragDropCancelled(Guid id)
+        {
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropCancelled, id));
+        }
+
+        public void SendDroppedData(ClipboardDataBase data)
+        {
+            Write(new AnonIpcDoDragDropMessage(data));
+        }
+
+        public async Task<byte[]> ReadStreamAsync(Guid token, Guid fileId, int readLen)
+        {
+            try
+            {
+                AnonIpcReadStreamResponseMessage msg = (AnonIpcReadStreamResponseMessage)await SendRequest(new AnonIpcReadStreamRequestMessage(token, fileId, readLen), IpcMessageType.AnonIpcStreamReadResponse);
+                return msg.ResponseData;
+            }
+            catch (Exception ex)
+            {
+                return new byte[0];
+            }
+        }
+
+        public class DisplayConfigRequestedArgs
+        {
+            public DisplayConfig Config { get; set; }
+        }
     }
 }

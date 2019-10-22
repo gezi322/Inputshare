@@ -1,4 +1,5 @@
 ﻿using InputshareLibWindows.IPC.AnonIpc;
+using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.Windows;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,6 @@ namespace InputshareService
         /// <param name="token"></param>
         /// <returns></returns>
         /// <exception cref="CreateProcessException"></exception>"
-        /// <exception cref="Win32Exception"></exception>"
         public static Process LaunchSP(SPMode mode, WindowsDesktop desktop, bool createConsole, AnonIpcHost ipcHost, IntPtr token)
         {
             PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
@@ -38,7 +38,7 @@ namespace InputshareService
             if (!createConsole)
                 flags |= CreateProcessFlags.CREATE_NO_WINDOW;
 
-            string cmd = " " + mode.ToString() + " " + ipcHost.WriteHandle + " " + ipcHost.ReadHandle;
+            string cmd = " " + mode.ToString() + " " + ipcHost.WriteStringHandle + " " + ipcHost.ReadStringHandle;
 
             if (!CreateProcessAsUser(token, AppDomain.CurrentDomain.BaseDirectory + "\\inputsharesp.exe",
                 cmd,
@@ -56,7 +56,6 @@ namespace InputshareService
 
             return Process.GetProcessById(pi.dwProcessId);
         }
-        
         private static void CreateBlankAttribs(out SECURITY_ATTRIBUTES tokenAttribs, out SECURITY_ATTRIBUTES threadAttribs)
         {
             tokenAttribs = new SECURITY_ATTRIBUTES();

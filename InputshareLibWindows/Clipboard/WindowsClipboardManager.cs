@@ -30,6 +30,13 @@ namespace InputshareLibWindows.Clipboard
             try
             {
                 ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
+
+                if(cb.DataType == ClipboardDataType.File)
+                {
+                    ISLogger.Write("Copying/Pasting files currently disabled. Ignoring clipboard data");
+                    return;
+                }
+
                 OnClipboardDataChanged(cb);
             }catch(ClipboardTranslatorWindows.ClipboardTranslationException ex)
             {

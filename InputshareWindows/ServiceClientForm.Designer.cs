@@ -36,52 +36,57 @@
             // 
             // addressTextBox
             // 
-            this.addressTextBox.Location = new System.Drawing.Point(15, 77);
+            this.addressTextBox.Location = new System.Drawing.Point(8, 7);
             this.addressTextBox.Name = "addressTextBox";
             this.addressTextBox.Size = new System.Drawing.Size(100, 23);
             this.addressTextBox.TabIndex = 1;
+            this.addressTextBox.Visible = false;
             // 
             // portTextBox
             // 
-            this.portTextBox.Location = new System.Drawing.Point(121, 77);
+            this.portTextBox.Location = new System.Drawing.Point(114, 7);
             this.portTextBox.Name = "portTextBox";
             this.portTextBox.Size = new System.Drawing.Size(55, 23);
             this.portTextBox.TabIndex = 2;
             this.portTextBox.Text = "4441";
+            this.portTextBox.Visible = false;
             // 
             // connectButton
             // 
-            this.connectButton.Location = new System.Drawing.Point(15, 135);
+            this.connectButton.Location = new System.Drawing.Point(8, 65);
             this.connectButton.Name = "connectButton";
             this.connectButton.Size = new System.Drawing.Size(75, 23);
             this.connectButton.TabIndex = 3;
             this.connectButton.Text = "Connect";
             this.connectButton.UseVisualStyleBackColor = true;
-            this.connectButton.Click += new System.EventHandler(this.button2_Click);
+            this.connectButton.Visible = false;
+            this.connectButton.Click += new System.EventHandler(this.Button2_Click);
             // 
             // nameTextBox
             // 
-            this.nameTextBox.Location = new System.Drawing.Point(15, 106);
+            this.nameTextBox.Location = new System.Drawing.Point(8, 36);
             this.nameTextBox.Name = "nameTextBox";
             this.nameTextBox.Size = new System.Drawing.Size(100, 23);
             this.nameTextBox.TabIndex = 4;
+            this.nameTextBox.Visible = false;
             // 
             // autoReconnectCheckBox
             // 
             this.autoReconnectCheckBox.AutoSize = true;
-            this.autoReconnectCheckBox.Location = new System.Drawing.Point(121, 108);
+            this.autoReconnectCheckBox.Location = new System.Drawing.Point(89, 69);
             this.autoReconnectCheckBox.Name = "autoReconnectCheckBox";
             this.autoReconnectCheckBox.Size = new System.Drawing.Size(108, 19);
             this.autoReconnectCheckBox.TabIndex = 5;
             this.autoReconnectCheckBox.Text = "Auto reconnect";
             this.autoReconnectCheckBox.UseVisualStyleBackColor = true;
-            this.autoReconnectCheckBox.CheckedChanged += new System.EventHandler(this.autoReconnectCheckBox_CheckedChanged);
+            this.autoReconnectCheckBox.Visible = false;
+            this.autoReconnectCheckBox.CheckedChanged += new System.EventHandler(this.AutoReconnectCheckBox_CheckedChanged);
             // 
             // ServiceClientForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(411, 205);
+            this.ClientSize = new System.Drawing.Size(198, 100);
             this.Controls.Add(this.autoReconnectCheckBox);
             this.Controls.Add(this.nameTextBox);
             this.Controls.Add(this.connectButton);

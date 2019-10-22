@@ -17,11 +17,14 @@ namespace InputshareLib
         public static bool PrefixCaller { get; set; }
         public static int LogCount { get; set; }
 
+        public static int BufferedMessages { get => logWriteQueue.Count; }
+
         public static event EventHandler<string> LogMessageOut;
 
         private readonly static CancellationTokenSource cancelSource;
         private readonly static Task logWriteTask;
         private readonly static BlockingCollection<LogMessage> logWriteQueue;
+        private readonly static object queueLock = new object();
         public static string LogFolder { get => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\sbarrac1\inputshare\"; }
         static ISLogger()
         {
@@ -74,16 +77,20 @@ namespace InputshareLib
         {
             try
             {
-                if (PrefixCaller)
+                lock (queueLock)
                 {
-                    logWriteQueue.Add(new LogMessage(string.Format(message, args), new StackTrace()));
+                    if (PrefixCaller)
+                    {
+                        logWriteQueue.Add(new LogMessage(string.Format(message, args), new StackTrace()));
+                    }
+                    else
+                    {
+                        logWriteQueue.Add(new LogMessage(string.Format(message, args)));
+                    }
                 }
-                else
-                {
-                    logWriteQueue.Add(new LogMessage(string.Format(message, args)));
-                }
+                
             }
-            catch (Exception ex) { logWriteQueue.Add(new LogMessage(message)); };
+            catch { logWriteQueue.Add(new LogMessage(message)); };
             
         }
 
@@ -122,7 +129,7 @@ namespace InputshareLib
                     LogMessageOut?.Invoke(null, message);
                 }catch(Exception ex)
                 {
-                    //Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
+                    Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
                 }
                
             }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcEdgeHitMessage : AnonIpcMessage
+    public class AnonIpcEdgeHitMessage : IpcMessage
     {
         public Edge HitEdge { get; }
         public AnonIpcEdgeHitMessage(byte[] data) : base(data)
@@ -20,7 +20,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcEdgeHitMessage(Edge edge, Guid messageId = default) : base(AnonIpcMessageType.EdgeHit, messageId)
+        public AnonIpcEdgeHitMessage(Edge edge, Guid messageId = default) : base(IpcMessageType.AnonIpcEdgeHit, messageId)
         {
             HitEdge = edge;
         }

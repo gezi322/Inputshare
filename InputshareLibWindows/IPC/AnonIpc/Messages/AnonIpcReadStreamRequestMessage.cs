@@ -5,7 +5,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcReadStreamRequestMessage : AnonIpcMessage
+    public class AnonIpcReadStreamRequestMessage : IpcMessage
     {
         public AnonIpcReadStreamRequestMessage(byte[] data) : base(data)
         {
@@ -23,7 +23,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcReadStreamRequestMessage(Guid token, Guid fileId, int readLen, Guid messageId = default) : base(AnonIpcMessageType.StreamReadRequest, messageId)
+        public AnonIpcReadStreamRequestMessage(Guid token, Guid fileId, int readLen, Guid messageId = default) : base(IpcMessageType.AnonIpcStreamReadRequest, messageId)
         {
             Token = token;
             FileId = fileId;

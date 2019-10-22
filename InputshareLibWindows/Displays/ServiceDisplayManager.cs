@@ -1,4 +1,5 @@
-﻿using InputshareLib.Displays;
+﻿using InputshareLib;
+using InputshareLib.Displays;
 using InputshareLibWindows.IPC.AnonIpc;
 using System;
 using System.Collections.Generic;
@@ -8,12 +9,18 @@ namespace InputshareLibWindows.Displays
 {
     public sealed class ServiceDisplayManager : DisplayManagerBase
     {
-        private AnonIpcHost host;
+        private IpcHandle host;
 
-        public ServiceDisplayManager(AnonIpcHost hostMain)
+        public ServiceDisplayManager(IpcHandle hostMain)
         {
             host = hostMain;
-            host.DisplayConfigUpdated += Host_DisplayConfigUpdated;
+            host.host.DisplayConfigUpdated += Host_DisplayConfigUpdated;
+            host.HandleUpdated += Host_HandleUpdated;
+        }
+
+        private void Host_HandleUpdated(object sender, EventArgs e)
+        {
+            host.host.DisplayConfigUpdated += Host_DisplayConfigUpdated;
         }
 
         private void Host_DisplayConfigUpdated(object sender, DisplayConfig newConfig)
@@ -33,7 +40,15 @@ namespace InputshareLibWindows.Displays
 
         public override void UpdateConfigManual()
         {
-            CurrentConfig = host.GetDisplayConfig();
+            try
+            {
+                OnConfigUpdated(host.host.GetDisplayConfig().Result);
+            }
+            catch(Exception ex)
+            {
+                ISLogger.Write("ServiceDisplayManager: Failed to update display config: " + ex.Message);
+            }
+            
         }
     }
 }

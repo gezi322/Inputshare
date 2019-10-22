@@ -36,6 +36,7 @@
             this.otherClientsListBox = new System.Windows.Forms.ListBox();
             this.applyButton = new System.Windows.Forms.Button();
             this.clientHeaderLabel = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
             // 
             // selectedClientListBox
             // 
@@ -90,16 +91,16 @@
             // 
             this.otherClientsListBox.FormattingEnabled = true;
             this.otherClientsListBox.ItemHeight = 15;
-            this.otherClientsListBox.Location = new System.Drawing.Point(273, 7);
+            this.otherClientsListBox.Location = new System.Drawing.Point(277, 7);
             this.otherClientsListBox.Name = "otherClientsListBox";
             this.otherClientsListBox.Size = new System.Drawing.Size(128, 139);
             this.otherClientsListBox.TabIndex = 0;
             // 
             // applyButton
             // 
-            this.applyButton.Location = new System.Drawing.Point(9, 152);
+            this.applyButton.Location = new System.Drawing.Point(9, 185);
             this.applyButton.Name = "applyButton";
-            this.applyButton.Size = new System.Drawing.Size(392, 38);
+            this.applyButton.Size = new System.Drawing.Size(396, 38);
             this.applyButton.TabIndex = 2;
             this.applyButton.Text = "Apply";
             this.applyButton.UseVisualStyleBackColor = true;
@@ -114,11 +115,21 @@
             this.clientHeaderLabel.TabIndex = 3;
             this.clientHeaderLabel.Text = "Select a client";
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(9, 167);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(396, 15);
+            this.label1.TabIndex = 4;
+            this.label1.Text = "Select a client from the left and drag clients from the right to assign edges";
+            // 
             // DisplayConfigEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(406, 196);
+            this.ClientSize = new System.Drawing.Size(413, 225);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.clientHeaderLabel);
             this.Controls.Add(this.applyButton);
             this.Controls.Add(this.leftLabel);
@@ -143,5 +154,6 @@
         private System.Windows.Forms.ListBox otherClientsListBox;
         private System.Windows.Forms.Button applyButton;
         private System.Windows.Forms.Label clientHeaderLabel;
+        private System.Windows.Forms.Label label1;
     }
 }

@@ -11,6 +11,19 @@
             Modifiers = mods;
         }
 
+        public override bool Equals(object obj)
+        {
+            if(obj is Hotkey hk)
+                return (hk.Key == Key && hk.Modifiers == Modifiers);
+            else
+                return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
         public override string ToString()
         {
             if (Modifiers == 0 && Key == 0)

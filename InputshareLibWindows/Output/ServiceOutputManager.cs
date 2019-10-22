@@ -9,9 +9,9 @@ namespace InputshareLibWindows.Output
 {
     class ServiceOutputManager : IOutputManager
     {
-        private AnonIpcHost host;
+        private IpcHandle host;
 
-        public ServiceOutputManager(AnonIpcHost iHostMain)
+        public ServiceOutputManager(IpcHandle iHostMain)
         {
             host = iHostMain;
         }
@@ -23,8 +23,7 @@ namespace InputshareLibWindows.Output
 
         public void Send(ISInputData input)
         {
-            if (host.Connected)
-                host.SendInput(input);
+            host.host.SendInput(input);
         }
     }
 }

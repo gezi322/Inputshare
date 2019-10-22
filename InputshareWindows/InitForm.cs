@@ -10,6 +10,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace InputshareWindows
@@ -23,9 +24,22 @@ namespace InputshareWindows
             ISLogger.EnableConsole = true;
             ISLogger.EnableLogFile = true;
             ISLogger.SetLogFileName("InputshareWindows.log");
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             
             
             Application.Run(new InitForm(args));
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Exception ex = e.ExceptionObject as Exception;
+
+            ISLogger.Write("--------------------------");
+            ISLogger.Write("UNHANDLED EXCEPTION");
+            ISLogger.Write(ex.Message);
+            ISLogger.Write(ex.StackTrace);
+            ISLogger.Write("--------------------------");
+            Thread.Sleep(2000);
         }
 
         public InitForm(string[] args)
@@ -91,6 +105,7 @@ namespace InputshareWindows
 
         private void LaunchServiceClient() 
         {
+            /*
             IntPtr token = Token.GetCurrentProcessToken();
             var elevation = Token.QueryElevation(token);
             Token.CloseToken(token);
@@ -105,9 +120,9 @@ namespace InputshareWindows
                 return;
             }
             else
-            {
+            {*/
                 ShowForm(new ServiceClientForm());
-            }
+            //}
         }
 
         private void RelaunchAsAdministrator()

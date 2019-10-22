@@ -5,7 +5,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcDoDragDropMessage : AnonIpcMessage
+    public class AnonIpcDoDragDropMessage : IpcMessage
     {
         public ClipboardDataBase DropData { get; }
 
@@ -24,7 +24,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcDoDragDropMessage(ClipboardDataBase dragData, Guid messageId = default) : base(AnonIpcMessageType.DoDragDrop, messageId)
+        public AnonIpcDoDragDropMessage(ClipboardDataBase dragData, Guid messageId = default) : base(IpcMessageType.AnonIpcDoDragDrop, messageId)
         {
             DropData = dragData;
         }

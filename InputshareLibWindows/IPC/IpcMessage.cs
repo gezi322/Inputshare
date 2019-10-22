@@ -3,14 +3,19 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLibWindows.IPC.AnonIpc.Messages
+namespace InputshareLibWindows.IPC
 {
-    public class AnonIpcMessage
+
+    /// <summary>
+    /// Base class for all messages that are sent over IPC
+    /// </summary>
+    [Serializable]
+    public class IpcMessage
     {
-        public AnonIpcMessageType MessageType { get; }
+        public IpcMessageType MessageType { get; }
         public Guid MessageId { get; }
 
-        public AnonIpcMessage(AnonIpcMessageType type, Guid messageId = default)
+        public IpcMessage(IpcMessageType type, Guid messageId = default)
         {
             MessageType = type;
 
@@ -27,15 +32,15 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
 
         protected byte[] CreateArray(int size)
         {
-            byte[] data = new byte[17+size];
+            byte[] data = new byte[17 + size];
             data[0] = (byte)MessageType;
             data.InsertGuid(MessageId, 1);
             return data;
         }
 
-        public AnonIpcMessage(byte[] data)
+        public IpcMessage(byte[] data)
         {
-            MessageType = (AnonIpcMessageType)data[0];
+            MessageType = (IpcMessageType)data[0];
             MessageId = data.ParseGuid(1);
         }
     }

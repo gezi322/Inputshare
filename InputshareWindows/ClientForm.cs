@@ -41,6 +41,7 @@ namespace InputshareWindows
         private void ClientForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             client.Stop();
+            ISLogger.LogMessageOut -= ISLogger_LogMessageOut;
         }
 
         private void ISLogger_LogMessageOut(object sender, string message)
@@ -128,7 +129,8 @@ namespace InputshareWindows
             {
                 try
                 {
-                    client.Connect(addressTextBox.Text, int.Parse(portTextBox.Text), clientNameTextBox.Text, Guid.NewGuid());
+                    client.SetClientName(clientNameTextBox.Text);
+                    client.Connect(addressTextBox.Text, int.Parse(portTextBox.Text));
                 }
                 catch (FormatException)
                 {

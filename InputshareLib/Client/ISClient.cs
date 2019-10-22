@@ -20,8 +20,6 @@ namespace InputshareLib.Client
         /// </summary>
         public event EventHandler SasRequested;
 
-      
-
         public bool IsConnected
         {
             get
@@ -34,7 +32,7 @@ namespace InputshareLib.Client
         }
 
         public bool ActiveClient { get; private set; }
-        public IPEndPoint ServerAddress { get => socket.ServerAddress; }
+        public IPEndPoint ServerAddress { get => lastConnectedAddress; }
 
         public event EventHandler<bool> ActiveClientChanged;
         public event EventHandler<IPEndPoint> Connected;
@@ -46,7 +44,7 @@ namespace InputshareLib.Client
         private ClientEdges edges;
         private readonly IOutputManager outMan;
         private readonly ClipboardManagerBase clipboardMan;
-        private  ISClientSocket socket;
+        private ISClientSocket socket = new ISClientSocket();
         private readonly Displays.DisplayManagerBase displayMan;
         private readonly Cursor.CursorMonitorBase curMon;
         private readonly IDragDropManager dragDropMan;
@@ -59,19 +57,7 @@ namespace InputshareLib.Client
         /// If true, the client will automatically keep trying to reconnect to
         /// the last connected host
         /// </summary>
-        public bool AutoReconnect { get { return _autoReconnect; } set
-            {
-                _autoReconnect = value;
-
-                if (socket != null && !IsConnected && lastConnectedAddress != null && displayMan != null && !socket.AttemptingConnection)
-                {
-                    socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
-                }
-            }
-        }
-
-        private bool _autoReconnect;
-
+        public bool AutoReconnect { get => socket.AutoReconnect; set => socket.AutoReconnect = value; }
 
       
 
@@ -91,7 +77,7 @@ namespace InputshareLib.Client
             dragDropMan = dependencies.dragDropManager;
             ddController = new LocalDragDropController(fileController, dragDropMan);
             Init();
-            
+            CreateSocketEvents();
         }
 
         public void Stop()
@@ -198,7 +184,7 @@ namespace InputshareLib.Client
             }
         }
 
-        public void Connect(string address, int port, string name, Guid id = new Guid())
+        public void Connect(string address, int port)
         {
             if (!IPAddress.TryParse(address, out IPAddress addr))
                 throw new ArgumentException("Invalid address");
@@ -206,19 +192,27 @@ namespace InputshareLib.Client
             if (port < 0 || port > 65535)
                 throw new ArgumentException("Invalid port");
 
-            if (socket != null)
-                socket.Close();
 
-            if (id == Guid.Empty)
-                id = Guid.NewGuid();
+            if (socket != null && socket.AttemptingConnection)
+            {
+                ISLogger.Write("Already attempting connection... ingoring request");
+                return;
+            }
 
-            socket = new ISClientSocket();
-            CreateSocketEvents();
-            ddController.Server = socket; //bad design, but the client is going to be rewritten anyway
-            ClientName = name;
-            ClientId = id;
+            
+            ddController.Server = socket; //TODO - bad design
             lastConnectedAddress = new IPEndPoint(addr, port);
             socket.Connect(address, port, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
+        }
+
+        public void SetClientGuid(Guid newGuid)
+        {
+            ClientId = newGuid;
+        }
+
+        public void SetClientName(string name)
+        {
+            ClientName = name;
         }
 
         private void CreateSocketEvents()
@@ -238,6 +232,7 @@ namespace InputshareLib.Client
             socket.DragDropCancelled += ddController.Socket_DragDropCancelled;
             socket.DragDropOperationComplete += ddController.Socket_DragDropComplete;
         }
+
         private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs e)
         {
             fileController.CloseStream(e.Token, e.File);
@@ -294,6 +289,7 @@ namespace InputshareLib.Client
             }
             else
             {
+                socket.SendFileErrorResponse(args.NetworkMessageId, "Token not found");
                 //todo - return error
                 ISLogger.Write("Server requested token for invalid operation");
                 return;
@@ -382,13 +378,6 @@ namespace InputshareLib.Client
         {
             ISLogger.Write("Connection failed: " + reason);
             ConnectionFailed?.Invoke(this, reason);
-
-            if (AutoReconnect)
-            {
-                ISLogger.Write("Auto reconnect enabled... attempting to reconnect");
-                socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
-                return;
-            }
         }
 
         private void OnConnectionError(object sender, string reason)
@@ -398,15 +387,6 @@ namespace InputshareLib.Client
 
             if (curMon.Running)
                 curMon.StopMonitoring();
-            socket?.Close();
-
-            if (AutoReconnect)
-            {
-                ISLogger.Write("Auto reconnect enabled... attempting to reconnect");
-                socket.Connect(lastConnectedAddress.Address.ToString(), lastConnectedAddress.Port, new ISClientSocket.ConnectionInfo(ClientName, Guid.NewGuid(), displayMan.CurrentConfig.ToBytes()));
-                return;
-            }
-
             
         }
 
@@ -421,7 +401,7 @@ namespace InputshareLib.Client
             try
             {
                 ISLogger.Write("Got clipboard operation " + args.OperationId);
-                ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.rawData);
+                ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
                 
 
                 if(cbData is ClipboardVirtualFileData cbFiles)

@@ -3,7 +3,7 @@ using System;
 using System.Net;
 using static InputshareLib.Displays.DisplayManagerBase;
 
-namespace InputshareLib.Server
+namespace InputshareLib.Server.API
 {
     /// <summary>
     /// Represents a client connected to the inputshare server (for use with a UI)

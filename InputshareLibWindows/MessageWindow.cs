@@ -83,7 +83,7 @@ namespace InputshareLibWindows
                         }
 
                         return;
-                    }catch(Exception ex)
+                    }catch
                     {
                         Thread.Sleep(25);
                     }

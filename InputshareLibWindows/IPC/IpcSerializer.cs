@@ -1,16 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 
-namespace InputshareLibWindows.IPC.NamedIpc.Messages
+namespace InputshareLibWindows.IPC
 {
-    internal static class NamedIpcMessageSerializer
+    /// <summary>
+    /// Serializes objects that can be sent over IPC
+    /// </summary>
+    internal static class IpcMessageSerializer
     {
         private static BinaryFormatter binF = new BinaryFormatter();
 
-        public static byte[] Serialize(NamedIpcMessage message)
+        public static byte[] Serialize(IpcMessage message)
         {
             using (MemoryStream ms = new MemoryStream())
             {
@@ -20,12 +20,12 @@ namespace InputshareLibWindows.IPC.NamedIpc.Messages
             }
         }
 
-        public static NamedIpcMessage DeSerialize(byte[] data)
+        public static IpcMessage DeSerialize(byte[] data)
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
                 ms.Seek(0, SeekOrigin.Begin);
-                return (NamedIpcMessage)binF.Deserialize(ms);
+                return (IpcMessage)binF.Deserialize(ms);
             }
         }
     }

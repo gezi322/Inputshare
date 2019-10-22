@@ -25,13 +25,25 @@
     <OutputPath>..\builds\release32</OutputPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>..\builds\debug64</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="4.6.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.6.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\InputshareLibWindows\InputshareLibWindows.csproj" />
     <ProjectReference Include="..\InputshareLib\InputshareLib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="InputshareService.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

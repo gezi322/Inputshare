@@ -4,6 +4,7 @@ using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Net;
 using InputshareLib.Output;
+using InputshareLib.Server.API;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -20,8 +21,9 @@ namespace InputshareLib.Server
         public event EventHandler Stopped;
         public event EventHandler<ClientInfo> ClientConnected;
         public event EventHandler<ClientInfo> ClientDisconnected;
-        public event EventHandler<ClientInfo> ClientDisplayConfigChanged; // TODO
+        public event EventHandler<ClientInfo> ClientDisplayConfigChanged;
         public event EventHandler<ClientInfo> InputClientSwitched;
+        public event EventHandler<CurrentClipboardData> GlobalClipboardContentChanged;
 
         public bool Running { get; private set; }
         public bool LocalInput { get; private set; }
@@ -65,6 +67,18 @@ namespace InputshareLib.Server
             dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
 
+            fileController = new FileAccessController();
+            clientMan = new ClientManager(12);
+            ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
+            cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
+
+            cbController.GlobalCLipboardChanged += (object o, GlobalClipboardController.ClipboardOperation data) =>
+            {
+                GlobalClipboardContentChanged?.Invoke(this, GetGlobalClipboardData());
+            };
+
+            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
+
             AssignEvents();
         }
 
@@ -76,13 +90,8 @@ namespace InputshareLib.Server
                 throw new InvalidOperationException("Server already running");
 
             clientSwitchTimer.Restart();
-            fileController = new FileAccessController();
-            clientMan = new ClientManager(12);
+            
             ISLogger.Write("Server: Starting server...");
-
-            ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
-            cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
-            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
 
             StartClientListener(new IPEndPoint(IPAddress.Any, port));
             clientListener.ClientConnected += ClientListener_ClientConnected;
@@ -125,14 +134,6 @@ namespace InputshareLib.Server
             curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
         }
 
-        public void SetMouseInputMode(MouseInputMode mode, int interval = 0)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            inputMan.SetMouseInputMode(mode, interval);
-        }
-
         private void StartDisplayManager()
         {
             displayMan.UpdateConfigManual();
@@ -173,6 +174,8 @@ namespace InputshareLib.Server
                     }
                     catch (Exception) { }
                 }
+
+                clientMan.ClearClients();
 
                 if (clientListener != null && clientListener.Listening)
                     clientListener.Stop();
@@ -362,11 +365,7 @@ namespace InputshareLib.Server
                 SwitchToClientInput(targetClient);
         }
 
-        /// <summary>
-        /// not yet implemented.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="conf"></param>
+
         private void DisplayMan_DisplayConfigChanged(object sender, DisplayConfig conf)
         {
             ISServerSocket.Localhost.DisplayConfiguration = conf;
@@ -672,6 +671,14 @@ namespace InputshareLib.Server
             return info;
         }
 
+        public void SetMouseInputMode(MouseInputMode mode, int interval = 0)
+        {
+            if (!Running)
+                throw new InvalidOperationException("Server not running");
+
+            inputMan.SetMouseInputMode(mode, interval);
+        }
+
         /// <summary>
         /// Sets a client to the edge of another client
         /// </summary>
@@ -725,8 +732,6 @@ namespace InputshareLib.Server
 
             clientMan.GetClientById(client.Id).CurrentHotkey = key;
         }
-
-
 
         public void SetHotkeyForFunction(Hotkey key, Hotkeyfunction function)
         {
@@ -784,6 +789,17 @@ namespace InputshareLib.Server
         private ClientInfo GetCurrentInputClient()
         {
             return GenerateClientInfo(inputClient, true);
+        }
+
+        public CurrentClipboardData GetGlobalClipboardData()
+        {
+            if (!Running)
+                throw new InvalidOperationException("Server not running");
+
+            if (cbController.currentOperation == null)
+                return new CurrentClipboardData(CurrentClipboardData.ClipboardDataType.None, GenerateLocalhostInfo(), DateTime.Now);
+
+            return new CurrentClipboardData((CurrentClipboardData.ClipboardDataType)cbController.currentOperation.DataType, GenerateClientInfo(cbController.currentOperation.Host), DateTime.Now);
         }
 
         #endregion

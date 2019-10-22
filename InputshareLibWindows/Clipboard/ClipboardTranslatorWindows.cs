@@ -90,8 +90,11 @@ namespace InputshareLibWindows.Clipboard
 
                 else
                 {
+                    ISLogger.Write("Could not translate clipboard data... possible formats:");
+                    foreach (var format in data.GetFormats())
+                        ISLogger.Write(format);
+
                     throw new ClipboardTranslationException("Dataobject not implemented");
-                    return null;
                 }
             }
             catch (COMException ex)

@@ -11,12 +11,13 @@ namespace InputshareLib.DragDrop
 
         public bool LeftMouseState { get => false; }
 
+#pragma warning disable CS0067
         public event EventHandler<Guid> DragDropCancelled;
         public event EventHandler<Guid> DragDropSuccess;
         public event EventHandler<Guid> DragDropComplete;
         public event EventHandler<ClipboardDataBase> DataDropped;
         public event EventHandler<IDragDropManager.RequestFileDataArgs> FileDataRequested;
-
+#pragma warning restore CS0067
         public void CancelDrop()
         {
         }

@@ -65,7 +65,7 @@ namespace InputshareLibWindows.Input
 
             if (mode == MouseRecordMode)
             {
-                if (interval > 1 && interval != bufferRecordInterval)
+                if (interval >= 1 && interval <= 1000 && interval != bufferRecordInterval)
                 {
                     bufferRecordInterval = 1000 / interval;
                     ISLogger.Write("Cursor record mode set to buffered at {0}/S", 1000/bufferRecordInterval);
@@ -168,6 +168,12 @@ namespace InputshareLibWindows.Input
                 ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
                 Task.Run(() =>
                 {
+                    if(cb.DataType == ClipboardDataType.File)
+                    {
+                        ISLogger.Write("Copying/Pasting files currently disabled. Ignoring clipboard data");
+                        return;
+                    }
+
                     ClipboardDataChanged?.Invoke(this, cb);
                 });
             }

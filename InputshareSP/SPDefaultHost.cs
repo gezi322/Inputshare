@@ -3,9 +3,13 @@ using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.IPC.AnonIpc;
+using InputshareLibWindows.IPC.AnonIpc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static InputshareLibWindows.Native.User32;
 
 namespace InputshareSP
@@ -20,47 +24,106 @@ namespace InputshareSP
         private InputDesktopThread inputDeskThread;
         private WindowsClipboardManager clipMan;
 
-        public SPDefaultHost(AnonIpcClient ipc)
+        public SPDefaultHost(string readPipe, string writePipe)
         {
-            ISLogger.SetLogFileName("InputshareSP_DefaultHost.log");
-            iClient = ipc;
-            AssignIpcEvents();
-
-            Console.Title = "SP default host"; 
+            Console.Title = "SP default host";
             ISLogger.Write("Starting SP default host...");
 
+            ISLogger.Write("Connecting to service...");
+            iClient = new AnonIpcClient(readPipe, writePipe, "ServiceConnection");
+
+            Task.Run(() => {
+                Thread.Sleep(5000);
+
+                if (!iClient.IsConnected)
+                {
+                    ISLogger.Write("Failed to connect to service... exiting");
+                    Exit();
+                }
+            });
+
+
+            iClient.Connected += IClient_Connected;
+            iClient.Disconnected += IClient_Disconnected;
+            iClient.InputReceived += IClient_InputReceived;
+            iClient.ClipboardDataReceived += IClient_ClipboardDataReceived;
+            iClient.DisplayConfigRequested += IClient_DisplayConfigRequested;
+
             inputDeskThread = new InputDesktopThread();
+            
+            inputDeskThread.Start();
+            
             AssignInputThreadEvents();
+            
 
             clipMan = new WindowsClipboardManager();
+            clipMan.ClipboardContentChanged += ClipMan_ClipboardContentChanged;
             clipMan.Start();
-            clipMan.ClipboardContentChanged += (object s, ClipboardDataBase data) => { iClient.SendClipboardData(data); };
 
             Console.ReadLine();
 
             Exit();
         }
-        
-        private void AssignIpcEvents()
+
+        private void ClipMan_ClipboardContentChanged(object sender, ClipboardDataBase e)
         {
-            iClient.DisplayConfigRequested += (object s, Guid replyId) => { iClient.SendDisplayConfigReply(replyId, inputDeskThread.CurrentDisplayConfig); };
-            iClient.InputReceived += (object s, ISInputData input) => { inputDeskThread.SendInput(input); };
-            iClient.ClipboardDataReceived += (object s, ClipboardDataBase data) => { clipMan.SetClipboardData(data); };
+            iClient.SendClipboardData(e);
+        }
+
+        private void IClient_Disconnected(object sender, string reason)
+        {
+            ISLogger.Write("IPC DISCONNECTED!");
+            Exit();
+        }
+
+        private void IClient_Connected(object sender, EventArgs e)
+        {
+            ISLogger.Write("IPC CONNECTED!");
+        }
+
+        private void IClient_ClipboardDataReceived(object sender, ClipboardDataBase e)
+        {
+            if (clipMan != null && clipMan.Running)
+                clipMan.SetClipboardData(e);
+        }
+
+        private void IClient_InputReceived(object sender, ISInputData e)
+        {
+            if (inputDeskThread != null && inputDeskThread.Running)
+                inputDeskThread.SendInput(e);
+        }
+
+        private void IClient_DisplayConfigRequested(object sender, AnonIpcClient.DisplayConfigRequestedArgs e)
+        {
+            e.Config = InputDesktopThread.GetDisplayConfig();
         }
 
         private void AssignInputThreadEvents()
         {
-            inputDeskThread.Start();
-            inputDeskThread.DisplayConfigChanged += (object s, EventArgs _) => { iClient.SendDisplayConfigUpdate(inputDeskThread.CurrentDisplayConfig); };
-            inputDeskThread.EdgeHit += (object s, Edge edge) => { iClient.SendEdgeHit(edge); };
-            inputDeskThread.LeftMouseStateChanged += (object s, bool state) => { iClient.SendLeftMouseState(state); };
+            inputDeskThread.DisplayConfigChanged += InputDeskThread_DisplayConfigChanged;
+            inputDeskThread.EdgeHit += InputDeskThread_EdgeHit;
+            inputDeskThread.LeftMouseStateChanged += InputDeskThread_LeftMouseStateChanged;
         }
 
+        private void InputDeskThread_LeftMouseStateChanged(object sender, bool e)
+        {
+            iClient.SendLeftMouseUpdate(e);
+        }
+
+        private void InputDeskThread_EdgeHit(object sender, Edge e)
+        {
+            iClient.SendEdgeHit(e);
+        }
+
+        private void InputDeskThread_DisplayConfigChanged(object sender, EventArgs e)
+        {
+            iClient.SendDisplayConfig(inputDeskThread.CurrentDisplayConfig);
+        }
 
         private void Exit()
         {
             inputDeskThread?.Stop();
-            iClient.Dispose();
+            Process.GetCurrentProcess().Kill();
         }
     }
 }

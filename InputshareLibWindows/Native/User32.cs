@@ -269,5 +269,95 @@ namespace InputshareLibWindows.Native
             WINSTA_ALL_ACCESS = 0x0000037F
         }
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint SendInput(uint nInputs, [In] Input[] pInputs, int cbSize);
+
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vkey);
+
+        public static int InputSize = Marshal.SizeOf(typeof(Input));
+
+        public const int MOUSEEVENTF_LEFTDOWN = 0x02;
+        public const int MOUSEEVENTF_LEFTUP = 0x04;
+        public const int MOUSEEVENTF_RIGHTDOWN = 0x08;
+        public const int MOUSEEVENTF_RIGHTUP = 0x10;
+        public const int MOUSEEVENTF_XDOWN = 0x0080;
+        public const int MOUSEEVENTF_XUP = 0x0100;
+        public const int MOUSEEVENTF_WHEEL = 0x0800;
+        public const int MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+        public const int MOUSEEVENTF_MIDDLEUP = 0x0040;
+
+
+        public const uint MAPVK_VK_TO_VSC = 0x00;
+        public const uint MAPVK_VSC_TO_VK = 0x01;
+        public const uint MAPVK_VK_TO_CHAR = 0x02;
+        public const uint MAPVK_VSC_TO_VK_EX = 0x03;
+        public const uint MAPVK_VK_TO_VSC_EX = 0x04;
+
+        public const int MOUSEEVENTF_MOVE = 0x0001;
+        public const int MOUSEEVENTF_VIRTUALDESK = 0x4000;
+        public const int MOUSEEVENTF_ABSOLUTE = 0x8000;
+
+
+        [Flags]
+        public enum InputType
+        {
+            Mouse = 0,
+            Keyboard = 1,
+            Hardware = 2
+        }
+
+        [Flags]
+        public enum KeyEventF
+        {
+            KeyDown = 0x0000,
+            ExtendedKey = 0x0001,
+            KeyUp = 0x0002,
+            Unicode = 0x0004,
+            Scancode = 0x0008,
+        }
+
+        public struct Input
+        {
+            public int type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct InputUnion
+        {
+            [FieldOffset(0)] public MouseInput mi;
+            [FieldOffset(0)] public KeyboardInput ki;
+            [FieldOffset(0)] public readonly HardwareInput hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MouseInput
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KeyboardInput
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HardwareInput
+        {
+            public readonly uint uMsg;
+            public readonly ushort wParamL;
+            public readonly ushort wParamH;
+        }
     }
 }

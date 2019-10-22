@@ -5,7 +5,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcClipboardDataMessage : AnonIpcMessage
+    public class AnonIpcClipboardDataMessage : IpcMessage
     {
         public AnonIpcClipboardDataMessage(byte[] data) : base(data)
         {
@@ -22,7 +22,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcClipboardDataMessage(ClipboardDataBase data, Guid messageId = default) : base(AnonIpcMessageType.ClipboardData, messageId)
+        public AnonIpcClipboardDataMessage(ClipboardDataBase data, Guid messageId = default) : base(IpcMessageType.AnonIpcClipboardData, messageId)
         {
             Data = data;
         }

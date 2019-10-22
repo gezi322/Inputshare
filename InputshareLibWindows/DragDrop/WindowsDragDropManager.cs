@@ -12,9 +12,6 @@ namespace InputshareLibWindows.DragDrop
         private Thread dropFormThread;
         private WindowsDropTarget dropTargetWindow;
 
-        private Guid currentDropOperation = Guid.Empty;
-        private bool currentOperationSentState = false;
-
         private Thread dropSourceThread;
         private WindowsDropSource dropSourceWindow;
         public bool Running { get; private set; }
@@ -24,7 +21,10 @@ namespace InputshareLibWindows.DragDrop
         public event EventHandler<Guid> DragDropCancelled;
         public event EventHandler<Guid> DragDropSuccess;
         public event EventHandler<Guid> DragDropComplete;
+
+#pragma warning disable CS0067
         public event EventHandler<IDragDropManager.RequestFileDataArgs> FileDataRequested;
+#pragma warning restore CS0067
 
         private AutoResetEvent formLoadedEvent = new AutoResetEvent(false);
 
@@ -76,28 +76,20 @@ namespace InputshareLibWindows.DragDrop
             dropSourceWindow.CancelDrop();
         }
 
-        private void DropSourceWindow_DragDropSuccess(object sender, EventArgs e)
+        private void DropSourceWindow_DragDropSuccess(object sender, Guid operationId)
         {
             if (dropTargetWindow.InputshareDataDropped)
             {
                 dropTargetWindow.InputshareDataDropped = false;
                 return;
             }
-
-            if (!currentOperationSentState)
-            {
-                currentOperationSentState = true;
-                DragDropSuccess?.Invoke(this, currentDropOperation);
-            }
+            
+            DragDropSuccess?.Invoke(this, operationId);
         }
 
-        private void DropSourceWindow_DragDropCancelled(object sender, EventArgs e)
+        private void DropSourceWindow_DragDropCancelled(object sender, Guid operationId)
         {
-            if (!currentOperationSentState)
-            {
-                currentOperationSentState = true;
-                DragDropCancelled?.Invoke(this, currentDropOperation);
-            }
+            DragDropCancelled?.Invoke(this, operationId);
         }
 
         public void DoDragDrop(ClipboardDataBase data, Guid operationId)
@@ -107,9 +99,10 @@ namespace InputshareLibWindows.DragDrop
             if (dropSourceWindow == null)
                 throw new InvalidOperationException("Form not created");
 
-            currentDropOperation = operationId;
-            currentOperationSentState = false;
-            dropSourceWindow.InvokeDoDragDrop(data);
+            if (dropSourceWindow.Dropping)
+                dropSourceWindow.CancelDrop();
+
+            dropSourceWindow.InvokeDoDragDrop(data, operationId);
         }
 
         private void DropForm_DataDropped(object sender, IDataObject data)

@@ -1,5 +1,5 @@
 ﻿using InputshareLib;
-using InputshareLibWindows.IPC.NamedIpc;
+using InputshareLibWindows.IPC.NetIpc;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,63 +14,80 @@ namespace InputshareWindows
 {
     public partial class ServiceClientForm : Form
     {
-        private NamedIpcClient serviceHost;
-        private NamedIpcClient.ServiceConnectionState currentState;
-        private System.Threading.Timer stateUpdateTimer;
+        private NetIpcClient netClient;
+
 
         public ServiceClientForm()
         {
             InitializeComponent();
+            Closed += ServiceClientForm_Closed;
         }
 
-        private void ServiceClientForm_Load(object sender, EventArgs e)
+        private void ServiceClientForm_Closed(object sender, EventArgs e)
         {
-            nameTextBox.Text = Environment.MachineName;
-
-            Task.Run(() => {
-                try
-                {
-                    serviceHost = new NamedIpcClient();
-                    serviceHost.StateReceived += ServiceHost_StateReceived;
-                    currentState = serviceHost.GetState();
-
-                    this.Invoke(new Action(() => { nameTextBox.Text = currentState.ClientName; }));
-                    OnStateUpdate();
-                }catch(Exception ex)
-                {
-                    MessageBox.Show("Failed to connect to service IPC. Check that the inputshare service is running.\n\n" + ex.Message);
-                    this.Close();
-                }
-                
-            });
-
-            //stateUpdateTimer = new System.Threading.Timer(StateUpdateTimerCallback, null, 0, 1000);
-        }
-
-        private void StateUpdateTimerCallback(object sync)
-        {
-            if (serviceHost != null && serviceHost.Connected)
+            if(netClient != null)
             {
-                currentState = serviceHost.GetState();
-                OnStateUpdate();
+                netClient.Disconnected -= NetClient_Disconnected;
+                netClient?.Dispose();
             }
-               
+           
         }
 
-        private void ServiceHost_StateReceived(object sender, NamedIpcClient.ServiceConnectionState newState)
+        private async void ServiceClientForm_Load(object sender, EventArgs e)
         {
-            currentState = newState;
-            OnStateUpdate();
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.Text = "Inputshare service client";
+            await ConnectIpc();
         }
 
-        private void OnStateUpdate()
+        private async Task ConnectIpc()
         {
-            ISLogger.Write("Got state update... connected = " + currentState.Connected);
+            try
+            {
+                netClient = new NetIpcClient("Service connection");
+                netClient.Disconnected += NetClient_Disconnected;
+                netClient.ServerConnected += NetClient_ServerConnected;
+                netClient.ServerDisconnected += NetClient_ServerDisconnected;
+                netClient.AutoReconnectChanged += NetClient_AutoReconnectChanged;
+                if (!netClient.ConnectedEvent.WaitOne(3000))
+                    throw new Exception("Timed out waiting for connection");
 
-            if (currentState.Connected)
-                OnConnected();
-            else
-                OnDisconnected();
+
+                if (await netClient.GetConnectedState())
+                    OnConnected();
+                else
+                    OnDisconnected();
+
+                nameTextBox.Text = await netClient.GetClientName();
+                autoReconnectCheckBox.Checked = await netClient.GetAutoReconnectState();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to connect to service IPC. Check that the inputshare service is running.\n\n" + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                InvokeClose();
+            }
+        }
+
+        private void NetClient_AutoReconnectChanged(object sender, bool e)
+        {
+            this.Invoke(new Action(() => { autoReconnectCheckBox.Checked = e; }));
+        }
+
+        private void NetClient_ServerDisconnected(object sender, EventArgs e)
+        {
+            OnDisconnected();
+        }
+
+        private void NetClient_ServerConnected(object sender, EventArgs e)
+        {
+            OnConnected();
+        }
+
+        private void NetClient_Disconnected(object sender, string reason)
+        {
+            MessageBox.Show("Connection to service lost. " + reason);
+            InvokeClose();
         }
 
         private void OnConnected()
@@ -82,7 +99,7 @@ namespace InputshareWindows
                 addressTextBox.Hide();
                 connectButton.Text = "Disconnect";
                 autoReconnectCheckBox.Show();
-                autoReconnectCheckBox.Checked = currentState.AutoReconnect;
+                connectButton.Show();
             }));
         }
         private void OnDisconnected()
@@ -94,24 +111,69 @@ namespace InputshareWindows
                 addressTextBox.Show();
                 connectButton.Text = "Connect";
                 autoReconnectCheckBox.Show();
-                autoReconnectCheckBox.Checked = currentState.AutoReconnect;
+                connectButton.Show();
             }));
         }
 
-
-
-        private void button2_Click(object sender, EventArgs e)
+        private void InvokeClose()
         {
-            if (!currentState.Connected)
-                serviceHost.Connect(new System.Net.IPEndPoint(IPAddress.Parse(addressTextBox.Text), int.Parse(portTextBox.Text)), nameTextBox.Text);
-            else
-                serviceHost.Disconnect();
+            this.Invoke(new Action(() => { this.Close(); }));
         }
 
-        private void autoReconnectCheckBox_CheckedChanged(object sender, EventArgs e)
+
+        private async void Button2_Click(object sender, EventArgs e)
         {
-            if (serviceHost.Connected)
-                serviceHost.SetAutoReconnect(autoReconnectCheckBox.Checked);
+            if (await netClient.GetConnectedState())
+            {
+                netClient.Disconnect();
+            }
+            else
+            {
+                IPEndPoint ipe = ParseAddressInput();
+
+                if (ipe == null)
+                {
+                    MessageBox.Show("Invalid address/port");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(nameTextBox.Text))
+                {
+                    MessageBox.Show("Invalid client name");
+                    return;
+                }
+
+                netClient.SetName(nameTextBox.Text);
+                netClient.Connect(ipe);
+            }
+           
+        }
+
+        private IPEndPoint ParseAddressInput()
+        {
+            if (!IPAddress.TryParse(addressTextBox.Text, out IPAddress addr))
+            {
+                var addresses = Dns.GetHostAddresses(addressTextBox.Text);
+
+                if (addresses.Length == 0)
+                    return null;
+
+                foreach(var address in addresses)
+                {
+                    if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        addr = address;
+                }
+            }
+
+            if (!int.TryParse(portTextBox.Text, out int port))
+                return null;
+
+            return new IPEndPoint(addr, port);
+        }
+
+        private void AutoReconnectCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            netClient.SetAutoReconnectEnable(autoReconnectCheckBox.Checked);
         }
     }
 }

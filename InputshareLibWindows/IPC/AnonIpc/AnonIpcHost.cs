@@ -4,83 +4,91 @@ using InputshareLib.Input;
 using InputshareLibWindows.IPC.AnonIpc.Messages;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO.Pipes;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static InputshareLib.Displays.DisplayManagerBase;
 
 namespace InputshareLibWindows.IPC.AnonIpc
 {
-    public sealed class AnonIpcHost : AnonIpcBase
+
+    /// <summary>
+    /// IPC host using anonymous pipes to communicate between the inputshare proccess and SP.
+    /// </summary>
+    public class AnonIpcHost : IpcBase
     {
-        public event EventHandler<DisplayConfig> DisplayConfigUpdated;
+        public event EventHandler<ClipboardDataBase> ClipboardDataReceived;
         public event EventHandler<Edge> EdgeHit;
+        public event EventHandler<DisplayConfig> DisplayConfigUpdated;
         public event EventHandler<bool> LeftMouseStateUpdated;
         public event EventHandler<ClipboardDataBase> DataDropped;
-        public event EventHandler<StreamReadRequestArgs> RequestedReadStream;
-        public event EventHandler<ClipboardDataBase> ClipboardDataReceived;
-
+        public event EventHandler<Guid> DragDropComplete;
         public event EventHandler<Guid> DragDropCancelled;
         public event EventHandler<Guid> DragDropSuccess;
-        public event EventHandler<Guid> DragDropComplete;
+        public event EventHandler<StreamReadRequestArgs> RequestedReadStream;
 
-        public string WriteHandle { get => writeHandle; }
-        public string ReadHandle { get => readHandle; }
+        public string ReadStringHandle { get; private set; }
+        public string WriteStringHandle { get; private set; }
 
-        public AnonIpcHost(string conName) : base(conName)
+        private AnonymousPipeServerStream readPipe;
+        private AnonymousPipeServerStream writePipe;
+
+        public AnonIpcHost(string conName) : base(false, conName, false)
         {
-
+            RebuildHost();
         }
 
-        protected override void ProcessMessage(byte[] data)
+        private void RebuildHost()
         {
-            AnonIpcMessageType type = (AnonIpcMessageType)data[0];
-            switch (type)
-            {
-                case AnonIpcMessageType.ClientOK:
-                    HandleClientOK();
-                    break;
-                case AnonIpcMessageType.DisplayConfigReply:
-                    DisplayConfigUpdated?.Invoke(this, new AnonIpcDisplayConfigMessage(data).Config);
-                    break;
-                case AnonIpcMessageType.EdgeHit:
-                    EdgeHit?.Invoke(this, new AnonIpcEdgeHitMessage(data).HitEdge);
-                    break;
-                case AnonIpcMessageType.LMouseStateReply:
-                    LeftMouseStateUpdated?.Invoke(this, new AnonIpcLMouseStateMessage(data).LeftMouseState);
-                    break;
-                case AnonIpcMessageType.DoDragDrop:
-                    DataDropped?.Invoke(this, new AnonIpcDoDragDropMessage(data).DropData);
-                    break;
-                case AnonIpcMessageType.DragDropComplete:
-                    DragDropComplete?.Invoke(this, new AnonIpcMessage(data).MessageId);
-                    break;
-                case AnonIpcMessageType.DragDropSuccess:
-                    DragDropSuccess?.Invoke(this, new AnonIpcMessage(data).MessageId);
-                    break;
-                case AnonIpcMessageType.DragDropCancelled:
-                    DragDropCancelled?.Invoke(this, new AnonIpcMessage(data).MessageId);
-                    break;
-                case AnonIpcMessageType.StreamReadRequest:
-                    AnonIpcReadStreamRequestMessage msg = new AnonIpcReadStreamRequestMessage(data);
-                    RequestedReadStream?.Invoke(this, new StreamReadRequestArgs(msg.MessageId, msg.Token, msg.FileId, msg.ReadLen));
-                    break;
-                case AnonIpcMessageType.ClipboardData:
-                    ClipboardDataReceived?.Invoke(this, new AnonIpcClipboardDataMessage(data).Data);
-                    break;
-                default:
-                    ISLogger.Write("AnonIpcHost: Received unexpected message type " + type);
-                    break;
-            }
+            readPipe?.Close();
+            writePipe?.Close();
+
+            readPipe = new AnonymousPipeServerStream(PipeDirection.In, System.IO.HandleInheritability.Inheritable);
+            writePipe = new AnonymousPipeServerStream(PipeDirection.Out, System.IO.HandleInheritability.Inheritable);
+            ReadStringHandle = readPipe.GetClientHandleAsString();
+            WriteStringHandle = writePipe.GetClientHandleAsString();
+
+            Start(readPipe, writePipe);
         }
 
-        private byte[] header5 = BitConverter.GetBytes(6);
-        public void SendInput(ISInputData input)
+        protected override void OnConnected()
         {
-            byte[] data = new byte[10];
-            Buffer.BlockCopy(header5, 0, data, 0, 4);
-            data[4] = (byte)AnonIpcMessageType.InputData;
-            Buffer.BlockCopy(input.ToBytes(), 0, data, 5, 5);
-            pipeWrite.Write(data);
-            pipeWrite.Flush();
+            base.OnConnected();
+        }
+
+        protected override void OnDisconnect(string reason)
+        {
+            base.OnDisconnect(reason);
+        }
+
+        protected override void ProcessMessage(IpcMessageType type, byte[] data)
+        {
+            if (type == IpcMessageType.AnonIpcClipboardData)
+                ClipboardDataReceived?.Invoke(this, new AnonIpcClipboardDataMessage(data).Data);
+            else if (type == IpcMessageType.AnonIpcEdgeHit)
+                EdgeHit?.Invoke(this, new AnonIpcEdgeHitMessage(data).HitEdge);
+            else if (type == IpcMessageType.AnonIpcDisplayConfigReply)
+                DisplayConfigUpdated?.Invoke(this, new AnonIpcDisplayConfigMessage(data).Config);
+            else if (type == IpcMessageType.AnonIpcLMouseStateReply)
+                LeftMouseStateUpdated?.Invoke(this, new AnonIpcLMouseStateMessage(data).LeftMouseState);
+            else if (type == IpcMessageType.AnonIpcDoDragDrop)
+                DataDropped?.Invoke(this, new AnonIpcDoDragDropMessage(data).DropData);
+            else if (type == IpcMessageType.AnonIpcDragDropCancelled)
+                DragDropCancelled?.Invoke(this, new IpcMessage(data).MessageId);
+            else if (type == IpcMessageType.AnonIpcDragDropSuccess)
+                DragDropSuccess?.Invoke(this, new IpcMessage(data).MessageId);
+            else if (type == IpcMessageType.AnonIpcDragDropComplete)
+                DragDropComplete?.Invoke(this, new IpcMessage(data).MessageId);
+            else if (type == IpcMessageType.AnonIpcStreamReadRequest)
+                HandleReadStreamRequest(new AnonIpcReadStreamRequestMessage(data));
+        }
+
+        private void HandleReadStreamRequest(AnonIpcReadStreamRequestMessage message)
+        {
+            StreamReadRequestArgs args = new StreamReadRequestArgs(message.MessageId, message.Token, message.FileId, message.ReadLen);
+            RequestedReadStream?.Invoke(this, args);
         }
 
         public void SendClipboardData(ClipboardDataBase data)
@@ -88,46 +96,37 @@ namespace InputshareLibWindows.IPC.AnonIpc
             Write(new AnonIpcClipboardDataMessage(data));
         }
 
+        public async Task<DisplayConfig> GetDisplayConfig()
+        {
+            AnonIpcDisplayConfigMessage msg = (AnonIpcDisplayConfigMessage)await SendRequest(new IpcMessage(IpcMessageType.AnonIpcDisplayConfigRequest), IpcMessageType.AnonIpcDisplayConfigReply);
+            return msg.Config;
+        }
+
+        public void SendCheckForDrop()
+        {
+            Write(new IpcMessage(IpcMessageType.AnonIpcCheckForDrop));
+        }
+
+        public void SendDoDragDrop(ClipboardDataBase data, Guid operationId)
+        {
+            Write(new AnonIpcDoDragDropMessage(data, operationId));
+        }
+
+        public void SendReadReplyError(Guid messageId)
+        {
+            Write(new IpcMessage(IpcMessageType.AnonIpcStreamReadError, messageId));
+        }
+
         public void SendReadReply(Guid messageId, byte[] data)
         {
             Write(new AnonIpcReadStreamResponseMessage(data, messageId));
         }
 
-        public void SendReadReplyError(Guid messageId)
+        protected override void Dispose(bool disposing)
         {
-            Write(new AnonIpcMessage(AnonIpcMessageType.StreamReadError, messageId));
-        }
-
-        /// <summary>
-        /// Gets the display config from the client
-        /// </summary>
-        /// <returns></returns>
-        public DisplayConfig GetDisplayConfig()
-        {
-            AnonIpcMessage reply = SendRequest(new AnonIpcMessage(AnonIpcMessageType.DisplayConfigRequest));
-
-
-            if (!(reply is AnonIpcDisplayConfigMessage))
-                throw new InvalidResponseException();
-            else
-                return (reply as AnonIpcDisplayConfigMessage).Config;
-        }
-
-        public void SendDoDragDrop(ClipboardDataBase dropData, Guid operationId)
-        {
-            Write(new AnonIpcDoDragDropMessage(dropData, operationId));
-        }
-
-        public void SendCheckForDrop()
-        {
-            Write(AnonIpcMessageType.CheckForDrop);
-        }
-
-        private void HandleClientOK()
-        {
-            ISLogger.Write("AnonIpcHost ({0}): Client connected", pipeName);
-            Write(AnonIpcMessageType.HostOK);
-            Connected = true;
+            readPipe?.Dispose();
+            writePipe?.Dispose();
+            base.Dispose(disposing);
         }
 
         public class StreamReadRequestArgs
@@ -144,20 +143,6 @@ namespace InputshareLibWindows.IPC.AnonIpc
             public Guid Token { get; }
             public Guid FileId { get; }
             public int ReadLen { get; }
-        }
-
-        public void ReCreatePipeHost()
-        {
-            Connected = false;
-            readBuffer = new byte[1024];
-            pipeRead.Dispose();
-            pipeWrite.Dispose();
-            CreateHost();
-        }
-
-        public void RemoveHandles()
-        {
-            DisposeHandles();
         }
     }
 }

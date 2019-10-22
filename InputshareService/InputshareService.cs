@@ -2,33 +2,34 @@
 using InputshareLib.Client;
 using InputshareLibWindows;
 using InputshareLibWindows.IPC.AnonIpc;
-using InputshareLibWindows.IPC.NamedIpc;
+using InputshareLibWindows.IPC.NetIpc;
 using InputshareLibWindows.Windows;
 using System;
-using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
-using static InputshareLib.Displays.DisplayManagerBase;
 
 namespace InputshareService
 {
     public sealed class InputshareService : ServiceBase
     {
-        [DllImport("sas.dll")]
-        public static extern void SendSAS(bool asUser);
-
         private ISClient clientInstance;
-        private NamedIpcHost appHost;
 
         private AnonIpcHost iHostMain;
         private AnonIpcHost iHostDragDrop;
+        private NetIpcHost appHost;
 
-        private Process spMainProcess;
-        private Process spDragDropProcess;
+        private IpcHandle spMainHandle = new IpcHandle();
+        private IpcHandle spDragDropHandle = new IpcHandle();
+
+        /// <summary>
+        /// True if the service is stopping.
+        /// </summary>
+        private bool stopping = false;
 
         static void Main(string[] args)
         {
@@ -50,190 +51,259 @@ namespace InputshareService
             ISLogger.Write("Inputshare service starting...");
             ISLogger.Write("Console session state: " + Session.ConsoleSessionState);
             SetPriority();
-            StartNamedIpcHost();
-            
 
-            iHostMain = new AnonIpcHost("SPMain");
-            LaunchSPMain();
+            Task.Run(() => { SpDragDropTaskLoop(); });
+            Task.Run(() => { SpMainTaskLoop(); });
 
-            iHostDragDrop = new AnonIpcHost("SPDragDrop");
-            LaunchSPDragDrop();
 
-            Task.Run(() =>
-            {
-                //TODO
-                while (!iHostDragDrop.Connected || !iHostMain.Connected)
-                {
-                    Thread.Sleep(350);
-                }
-                Thread.Sleep(500);
+            Task.Run(() => { LoadAndStart(); });
 
-                ISLogger.Write("IPC connected");
-
-                DisplayConfig config = iHostMain.GetDisplayConfig();
-                ISLogger.Write(config.VirtualBounds);
-
-                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(iHostMain, iHostDragDrop));
-                //clientInstance.Connect("192.168.0.12", 4441, Environment.MachineName, Guid.NewGuid());
-                clientInstance.ConnectionError += ClientInstance_ConnectionError;
-                clientInstance.ConnectionFailed += ClientInstance_ConnectionFailed;
-                clientInstance.Connected += ClientInstance_Connected;
-                clientInstance.SasRequested += (object a, EventArgs b) => SendSAS(false);
-                clientInstance.Disconnected += ClientInstance_Disconnected;
-            });
-
-            
             base.OnStart(args);
+        }
+
+        private void SpDragDropTaskLoop()
+        {
+            iHostDragDrop = new AnonIpcHost("Dragdrop process");
+            while (!stopping)
+            {
+                try
+                {
+                    Process proc = LaunchSPDragDrop();
+                    proc.WaitForExit();
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
+
+            }
+        }
+
+        private void SpMainTaskLoop()
+        {
+            iHostMain = new AnonIpcHost("Main process");
+
+            while (!stopping)
+            {
+                try
+                {
+                    Process proc = LaunchSPMain();
+                    proc.WaitForExit();
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+        }
+
+        private LoadedConfiguration LoadConfig()
+        {
+            try
+            {
+                string name = Config.Read(Config.ConfigProperty.LastClientName);
+                Guid id = new Guid(Config.Read(Config.ConfigProperty.LastClientGuid));
+                bool connected = Config.Read(Config.ConfigProperty.LastConnectionState) == "True";
+                IPEndPoint.TryParse(Config.Read(Config.ConfigProperty.LastConnectedAddress), out IPEndPoint address);
+
+                IPEndPoint lastAddr = new IPEndPoint(IPAddress.Any, 0);
+                if (address != null)
+                    lastAddr = address;
+
+                bool autoReconnect = Config.Read(Config.ConfigProperty.AutoReconnectEnabled) == "True";
+                return new LoadedConfiguration(connected, lastAddr, name, id, autoReconnect);
+
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to load configuration: " + ex.Message);
+                return new LoadedConfiguration(false, new IPEndPoint(IPAddress.Any, 0), Environment.MachineName, Guid.NewGuid(), false) ;
+            }
+            
         }
 
         private void ClientInstance_Disconnected(object sender, EventArgs e)
         {
+            OnStateChange();
             ISLogger.Write("Disconnected.");
-            SendAppStateUpdate();
         }
 
         private void ClientInstance_Connected(object sender, System.Net.IPEndPoint e)
         {
-            SendAppStateUpdate();
-            ISLogger.Write("Connected state = " + clientInstance.IsConnected);
-
+            OnStateChange();
         }
 
-        private void StartNamedIpcHost()
+        private void ClientInstance_ConnectionFailed(object sender, string error)
         {
-            appHost = new NamedIpcHost();
-            appHost.ConnectionStateRequested += AppHost_ConnectionStateRequested;
-            appHost.CommandConnect += AppHost_CommandConnect;
-            appHost.Disconnect += AppHost_Disconnect;
-            appHost.SetAutoReconnect += AppHost_SetAutoReconnect;
+            OnStateChange();
         }
 
-        private void AppHost_SetAutoReconnect(object sender, bool e)
+        private void ClientInstance_ConnectionError(object sender, string error)
         {
-            ISLogger.Write("IPC->Set auto reconnect " + e);
-
-            clientInstance.AutoReconnect = e;
-            SendAppStateUpdate();
+            OnStateChange();
         }
 
-        private void AppHost_Disconnect(object sender, EventArgs e)
+        private void OnStateChange()
         {
-            ISLogger.Write("IPC->Disconnect");
-
-            if (clientInstance.IsConnected)
-                clientInstance.Disconnect();
+            SaveConfig();
         }
 
-        private void AppHost_CommandConnect(object sender, Tuple<System.Net.IPEndPoint, string> e)
-        {
-            ISLogger.Write("IPC->Connect to " + e.Item1.Address + ":" + e.Item1.Port + " as " + e.Item2);
-            if (clientInstance.IsConnected)
-                return;
 
-            clientInstance.Connect(e.Item1.Address.ToString(), e.Item1.Port, e.Item2);
-        }
-
-        private void AppHost_ConnectionStateRequested(object sender, NamedIpcHost.StateRequestArgs e)
-        {
-            ISLogger.Write("IPC client requested state");
-            e.Connected = clientInstance.IsConnected;
-            e.clientId = clientInstance.ClientId;
-            e.ClientName = clientInstance.ClientName;
-
-            if (e.Connected)
-                e.ConnectedAddress = clientInstance.ServerAddress;
-        }
-
-        private void ClientInstance_ConnectionFailed(object sender, string e)
-        {
-            ISLogger.Write("Failed to connect... " + e);
-            ISLogger.Write("Connected state = " + clientInstance.IsConnected);
-            SendAppStateUpdate();
-        }
-
-        private void ClientInstance_ConnectionError(object sender, string e)
-        {
-            ISLogger.Write("Connection error... " + e);
-            ISLogger.Write("Connected state = " + clientInstance.IsConnected);
-            SendAppStateUpdate();
-
-        }
-
-        private void SpMainProcess_Exited(object sender, EventArgs e)
-        {
-            spMainProcess?.Dispose();
-            LaunchSPMain();
-        }
-        private void SpDragDropProcess_Exited(object sender, EventArgs e)
-        {
-            spDragDropProcess?.Dispose();
-
-            if (Session.ConsoleSessionLoggedIn)
-                LaunchSPDragDrop();
-        }
-
-        private void SendAppStateUpdate()
-        {
-            if (appHost.ClientConnected)
-            {
-                bool con = clientInstance.IsConnected;
-                ISLogger.Write("Sending state. connected = " + con);
-                if(con)
-                    appHost.SendState(con, clientInstance.ServerAddress, clientInstance.ClientName, clientInstance.ClientId, clientInstance.AutoReconnect);
-                else
-                    appHost.SendState(con, new System.Net.IPEndPoint(IPAddress.Any, 0), clientInstance.ClientName, clientInstance.ClientId, clientInstance.AutoReconnect);
-
-            }
-        }
-
-        private void LaunchSPMain()
+        private void LoadAndStart()
         {
             try
             {
+                LoadedConfiguration conf = LoadConfig();
+                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spDragDropHandle));
+                
+
+                clientInstance.ConnectionError += ClientInstance_ConnectionError;
+                clientInstance.ConnectionFailed += ClientInstance_ConnectionFailed;
+                clientInstance.Connected += ClientInstance_Connected;
+                clientInstance.SasRequested += (object a, EventArgs b) => InputshareLibWindows.Native.Sas.SendSAS(false);
+                clientInstance.Disconnected += ClientInstance_Disconnected;
+                clientInstance.AutoReconnect = conf.AutoReconnect;
+
+                try
+                {
+                    appHost = new NetIpcHost(clientInstance, "App connection");
+                }catch(Exception ex)
+                {
+                    ISLogger.Write("Failed to create NetIPC host: " + ex.Message);
+                }
+                
+
+                if (conf.ClientName != "")
+                    clientInstance.SetClientName(conf.ClientName);
+
+                if (conf.ClientGuid != Guid.Empty)
+                    clientInstance.SetClientGuid(conf.ClientGuid);
+
+
+                if (conf.Address.ToString() != "0.0.0.0:0" && conf.Address.Port != 0)
+                {
+                    clientInstance.Connect(conf.Address.Address.ToString(), conf.Address.Port);
+                }
+                else
+                {
+                    ISLogger.Write("No previous server address found.");
+                }
+
+
+                ISLogger.Write("Service started...");
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("LAUNCH ERROR - " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                Stop();
+            }
+        }
+
+        private void SaveConfig()
+        {
+            try
+            {
+                Config.Write(Config.ConfigProperty.LastConnectionState, clientInstance.IsConnected.ToString());
+
+                if (clientInstance.ServerAddress != null && clientInstance.ServerAddress.ToString() != "0.0.0.0:0")
+                    Config.Write(Config.ConfigProperty.LastConnectedAddress, clientInstance.ServerAddress.ToString());
+
+                Config.Write(Config.ConfigProperty.LastClientName, clientInstance.ClientName);
+                Config.Write(Config.ConfigProperty.LastClientGuid, clientInstance.ClientId.ToString());
+                Config.Write(Config.ConfigProperty.AutoReconnectEnabled, clientInstance.AutoReconnect.ToString());
+            }
+            catch (ConfigurationErrorsException)
+            {
+                ISLogger.Write("Failed to write to settings file");
+            }
+        }
+
+    
+
+        private Process LaunchSPMain()
+        {
+            IntPtr sysToken = IntPtr.Zero;
+            try
+            {
+                iHostMain?.Dispose();
+                iHostMain = new AnonIpcHost("SP main");
                 ISLogger.Write("Launching SP default process");
-                iHostMain.ReCreatePipeHost();
-                IntPtr systemToken = Token.GetSystemToken(Session.ConsoleSessionId);
-                spMainProcess = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Default, WindowsDesktop.Default, false, iHostMain, systemToken);
-                Token.CloseToken(systemToken);
-                spMainProcess.EnableRaisingEvents = true;
-                spMainProcess.Exited += SpMainProcess_Exited;
-            }catch(Exception ex)
+                sysToken = Token.GetSystemToken(Session.ConsoleSessionId);
+                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Default, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostMain, sysToken);
+                Token.CloseToken(sysToken);
+                spMainHandle.host = iHostMain;
+                spMainHandle.NotifyHandleUpdate();
+                return proc;
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("Failed to launch inputshareSP main process: " + ex.Message);
+                return null;
             }
-            
+            finally
+            {
+                if (sysToken != IntPtr.Zero)
+                    Token.CloseToken(sysToken);
+            }
         }
 
-        private void LaunchSPDragDrop()
+        private Process LaunchSPDragDrop()
         {
+            IntPtr userToken = IntPtr.Zero;
             try
             {
+                iHostDragDrop?.Dispose();
+                iHostDragDrop = new AnonIpcHost("SP dragdrop");
                 ISLogger.Write("Launching SP dragdrop process");
-                iHostDragDrop.ReCreatePipeHost();
-                IntPtr userToken = Token.GetUserToken();
-                spDragDropProcess = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.DragDrop, WindowsDesktop.Default, false, iHostDragDrop, userToken);
+                userToken = Token.GetUserToken();
+                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.DragDrop, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostDragDrop, userToken);
                 Token.CloseToken(userToken);
-                spDragDropProcess.EnableRaisingEvents = true;
-                spDragDropProcess.Exited += SpDragDropProcess_Exited;
+                spDragDropHandle.host = iHostDragDrop;
+                spDragDropHandle.NotifyHandleUpdate();
+                return proc;
             }
             catch (Exception ex)
             {
                 ISLogger.Write("Failed to launch inputshareSP dragdrop process: " + ex.Message);
+                return null;
             }
-
+            finally
+            {
+                if (userToken != IntPtr.Zero)
+                    Token.CloseToken(userToken);
+            }
         }
 
         
-
         protected override void OnStop()
         {
-            ISLogger.Write("Inputshare service stopping...");
+            try
+            {
+                stopping = true;
+                ISLogger.Write("Inputshare service stopping...");
 
-            ISLogger.Write("Killing child processes...");
-            spMainProcess?.Kill();
-            spDragDropProcess?.Kill();
+                ISLogger.Write("Killing child processes...");
 
-            base.OnStop();
+                iHostDragDrop?.Dispose();
+                iHostMain?.Dispose();
+
+                if (ISLogger.BufferedMessages > 0)
+                    Thread.Sleep(1000);
+
+                foreach (var proc in Process.GetProcessesByName("inputsharesp"))
+                    proc.Kill();
+
+            }
+            catch(Exception ex)
+            {
+                ISLogger.Write("An error occurred while stopping service: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                Thread.Sleep(3000);
+            }
+            finally
+            {
+                base.OnStop();
+            }
         }
         private void SetPriority()
         {
@@ -246,21 +316,6 @@ namespace InputshareService
                 ISLogger.Write("Failed to set process priority: " + ex.Message);
             }
         }
-        protected override void OnSessionChange(SessionChangeDescription changeDescription)
-        {
-            ISLogger.Write("Session changed!");
-            ISLogger.Write("Session change reason: " + changeDescription.Reason);
-            ISLogger.Write("Session ID: " + changeDescription.SessionId);
-            ISLogger.Write("Session state: " + Session.ConsoleSessionState);
-
-            if(changeDescription.Reason == SessionChangeReason.SessionLogon)
-            {
-                if(spDragDropProcess != null)
-                    LaunchSPDragDrop();
-            }
-
-            base.OnSessionChange(changeDescription);
-        }
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
@@ -270,8 +325,26 @@ namespace InputshareService
             ISLogger.Write(ex.Message);
             ISLogger.Write(ex.StackTrace);
             ISLogger.Write("---------------------------------");
-
+            Thread.Sleep(2000);
             Stop(); 
+        }
+
+        class LoadedConfiguration
+        {
+            public LoadedConfiguration(bool connected, IPEndPoint address, string clientName, Guid clientGuid, bool autoReconnect)
+            {
+                Connected = connected;
+                Address = address;
+                ClientName = clientName;
+                ClientGuid = clientGuid;
+                AutoReconnect = autoReconnect;
+            }
+
+            public bool Connected { get; }
+            public IPEndPoint Address { get; }
+            public string ClientName { get; }
+            public Guid ClientGuid { get; }
+            public bool AutoReconnect { get; }
         }
     }
 }

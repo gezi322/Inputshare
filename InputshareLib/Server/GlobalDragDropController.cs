@@ -100,6 +100,9 @@ namespace InputshareLib.Server
 
         private async void BeginOperation(ISServerSocket sender, ClipboardDataBase cbData, Guid operationId)
         {
+            if (!ddManager.Running)
+                ddManager.Start();
+
             if (cbData == null)
             {
                 ISLogger.Write("DragDropController: Cannot begin operation: Data was null");
@@ -169,7 +172,7 @@ namespace InputshareLib.Server
 
             //Sets the new operation, which is automatically set to dragging state
             CurrentOperation = newOperation;
-
+            ISLogger.Write("BeginFileOperation " + host.ClientName + " - " + operationId);
             if (currentInputClient.IsLocalhost)
             {
                 ddManager.DoDragDrop(CurrentOperation.OperationData, newOperation.OperationId);
@@ -230,6 +233,8 @@ namespace InputshareLib.Server
 
         private void OnDropCancel(ISServerSocket sender, Guid operationId)
         {
+            ISLogger.Write("OnDropCancel " + sender.ClientName + " - " + operationId);
+
             if (sender != currentInputClient)
             {
                 ISLogger.Write("DragDropController: {0} attempted to cancel dragdrop operation when they are not input client!", sender.ClientName);
@@ -271,6 +276,7 @@ namespace InputshareLib.Server
 
         private void OnDropSuccess(ISServerSocket sender, Guid operationId)
         {
+            ISLogger.Write("OnDropSuccess " + sender.ClientName + " - " + operationId);
             if (sender != currentInputClient)
             {
                 ISLogger.Write("DragDropController: {0} attempted to send drop success when they are not input client!", sender.ClientName);
@@ -338,6 +344,8 @@ namespace InputshareLib.Server
         /// <param name="sender"></param>
         private void OnDropComplete(ISServerSocket sender, Guid operationId)
         {
+            ISLogger.Write("OnDropComplete " + sender.ClientName + " - " + operationId);
+
             if (CurrentOperation.OperationId == operationId)
             {
                 ISLogger.Write("DragDropController: Current dragdrop operation marked as complete by " + sender.ClientName + " " + operationId);

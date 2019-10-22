@@ -9,12 +9,18 @@ namespace InputshareLibWindows.Cursor
 {
     public class ServiceCursorMonitor : CursorMonitorBase
     {
-        private AnonIpcHost host;
+        private IpcHandle host;
 
-        public ServiceCursorMonitor(AnonIpcHost mainHost)
+        public ServiceCursorMonitor(IpcHandle mainHost)
         {
             host = mainHost;
-            mainHost.EdgeHit += MainHost_EdgeHit;
+            host.host.EdgeHit += MainHost_EdgeHit;
+            host.HandleUpdated += Host_HandleUpdated;
+        }
+
+        private void Host_HandleUpdated(object sender, EventArgs e)
+        {
+            host.host.EdgeHit += MainHost_EdgeHit;
         }
 
         private void MainHost_EdgeHit(object sender, InputshareLib.Edge edge)

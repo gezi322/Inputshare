@@ -69,7 +69,7 @@ namespace InputshareLib.Net
         /// A list of message handlers that are used to store a transfer operation
         /// that would be too large to fit in the socket buffer
         /// </summary>
-        private List<LargeMessageHandler> messageHandlers = new List<LargeMessageHandler>();
+        private readonly List<LargeMessageHandler> messageHandlers = new List<LargeMessageHandler>();
 
         public event EventHandler<Guid> DragDropOperationComplete;
 
@@ -79,10 +79,10 @@ namespace InputshareLib.Net
         
 
         //Used to wait for a response to a request
-        private object awaitingCollectionsLock = new object();
-        private Dictionary<Guid, NetworkMessage> awaitingReturnMessages = new Dictionary<Guid,  NetworkMessage>();
-        private Dictionary<Guid, AutoResetEvent> awaitingReturnMethods = new Dictionary<Guid, AutoResetEvent>();
-        private List<Guid> awaitingMessageIds = new List<Guid>();
+        private readonly object awaitingCollectionsLock = new object();
+        private readonly Dictionary<Guid, NetworkMessage> awaitingReturnMessages = new Dictionary<Guid,  NetworkMessage>();
+        private readonly Dictionary<Guid, AutoResetEvent> awaitingReturnMethods = new Dictionary<Guid, AutoResetEvent>();
+        private readonly List<Guid> awaitingMessageIds = new List<Guid>();
 
         /// <summary>
         /// Creates a new inputshare network socket from an existing TCP socket
@@ -94,7 +94,7 @@ namespace InputshareLib.Net
             tcpSocket.LingerState = new LingerOption(true, 1);
             tcpSocket.NoDelay = true; //Disable nagles algorithm!
             IsConnected = true;
-            tcpSocket.BeginReceive(socketBuff, 0, 4, SocketFlags.None, TcpSocket_ReadCallback, null);
+            tcpSocket.BeginReceive(socketBuff, 0, 4, SocketFlags.None, TcpSocket_ReadCallback, tcpSocket);
         }
 
         /// <summary>
@@ -149,7 +149,6 @@ namespace InputshareLib.Net
                     FileErrorMessage err = response as FileErrorMessage;
                     ISLogger.Write("File token request returned error: " + err.ErrorMessage);
                     return Guid.Empty;
-                    break;
 
                     default:
                         ISLogger.Write("Debug: Server sent unexpected reply when requesting file access token");
@@ -292,18 +291,20 @@ namespace InputshareLib.Net
         protected void TcpSocket_ConnectCallback(IAsyncResult ar)
         {
             try {
-                tcpSocket.EndConnect(ar);
+                Socket soc = (Socket)ar.AsyncState;
+                soc.EndConnect(ar);
 
                 if (socketBuff == null)
                     socketBuff = new byte[Settings.SocketBufferSize];
 
-                tcpSocket.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, null);
+                soc.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, soc);
                 OnConnected();
             }
             catch (ObjectDisposedException)
             {
 
-            }catch(SocketException ex)
+            }
+            catch(Exception ex)
             {
                 HandleConnectedFailed(ex.Message);
             }
@@ -323,7 +324,7 @@ namespace InputshareLib.Net
             }
             finally
             {
-                tcpSocket.Dispose();
+                tcpSocket?.Dispose();
                 IsConnected = false;
             }
         }
@@ -338,6 +339,7 @@ namespace InputshareLib.Net
         {
             try
             {
+               
                 byte[] data = message.ToBytes();
                 if (data.Length > Settings.NetworkMessageChunkSize)
                 {
@@ -346,7 +348,7 @@ namespace InputshareLib.Net
                 }
 
                 if (tcpSocket != null && tcpSocket.Connected)
-                    tcpSocket.BeginSend(data, 0, data.Length, SocketFlags.None, TcpSocket_SendCallback, null);
+                    tcpSocket.BeginSend(data, 0, data.Length, SocketFlags.None, TcpSocket_SendCallback, tcpSocket);
             }catch(Exception ex)
             {
                 ISLogger.Write("Sendmessage error: " + ex.Message);
@@ -394,7 +396,8 @@ namespace InputshareLib.Net
         {
             try
             {
-                int bytesOut = tcpSocket.EndSend(ar);
+                Socket soc = (Socket)ar.AsyncState;
+                int bytesOut = soc.EndSend(ar);
             }
             catch (ObjectDisposedException)
             {
@@ -410,35 +413,24 @@ namespace InputshareLib.Net
         /// Callback from an async thread when a read operation succeeds or fails
         /// </summary>
         /// <param name="ar"></param>
+
+        private int bytesIn;
         private void TcpSocket_ReadCallback(IAsyncResult ar)
         {
             try
             {
-                int bytesIn = tcpSocket.EndReceive(ar);
+                Socket soc = (Socket)ar.AsyncState;
+                int bytesIn = soc.EndReceive(ar);
 
                 //If we receive 0 bytes, the connection is closed
-                if(bytesIn == 0)
+                if (bytesIn == 0)
                 {
                     HandleConnectionClosed("Client closed connection");
                     return;
                 }
 
-                int dRem;
-                int hPos;
-
-                //Make sure that all 4 bytes are recieved
-                if (bytesIn != 4)
-                {
-                    hPos = bytesIn;
-                    dRem = 4 - bytesIn;
-                    do
-                    {
-                        int hIn = tcpSocket.Receive(socketBuff, hPos, dRem, 0);
-                        hPos += hIn;
-                        dRem -= hIn;
-                    } while (dRem > 0);
-
-                }
+                while(bytesIn < 4)
+                    bytesIn += soc.Receive(socketBuff, bytesIn, 4 - bytesIn, SocketFlags.None);
 
                 //Read the size of the packet from the header (-4 as header is already read)
                 int packetBodySize = BitConverter.ToInt32(socketBuff, 0)-4;
@@ -449,18 +441,15 @@ namespace InputshareLib.Net
                     return;
                 }
 
-                //Wait for all bytes of the packet to be read
-                dRem = packetBodySize;
-                hPos = 4;
+                bytesIn = 0;
+
                 do
                 {
-                    int bIn = tcpSocket.Receive(socketBuff, hPos, dRem, 0);
-                    hPos += bIn;
-                    dRem = packetBodySize - hPos + 4;
-                } while (dRem > 0);
+                    bytesIn += soc.Receive(socketBuff, bytesIn + 4, packetBodySize - bytesIn, 0);
+                } while (packetBodySize > bytesIn);
 
                 HandleReceivedMessage(packetBodySize + 4);
-                tcpSocket.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, null);
+                soc.BeginReceive(socketBuff, 0, 4, 0, TcpSocket_ReadCallback, soc);
             }
             catch (ObjectDisposedException)
             {
@@ -535,7 +524,7 @@ namespace InputshareLib.Net
         }
 
 
-        List<Guid> ProcessedMessageIds = new List<Guid>();
+        readonly List<Guid>  ProcessedMessageIds = new List<Guid>();
         /// <summary>
         /// Handles messages received from the client/server. Derived
         /// classes must override this method to process messages. Derived 
@@ -644,7 +633,6 @@ namespace InputshareLib.Net
             {
                 byte[] data = handler.ReadAndClose();
                 messageHandlers.Remove(handler);
-                handler = null;
                 HandleReceivedMessage(message.MessageSize, data);
             }
         }
@@ -659,7 +647,7 @@ namespace InputshareLib.Net
         {
             try
             {
-                tcpSocket.BeginSend(data, 0, data.Length, 0, TcpSocket_SendCallback, null);
+                tcpSocket.BeginSend(data, 0, data.Length, 0, TcpSocket_SendCallback, tcpSocket);
             }catch(SocketException ex)
             {
                 HandleConnectionClosed(ex.Message);
@@ -758,11 +746,11 @@ namespace InputshareLib.Net
         {
             public ClipboardDataReceivedArgs(byte[] rawData, Guid operationId)
             {
-                this.rawData = rawData;
+                this.RawData = rawData;
                 OperationId = operationId;
             }
 
-            public byte[] rawData { get; }
+            public byte[] RawData { get; }
             public Guid OperationId { get; }
         }
 

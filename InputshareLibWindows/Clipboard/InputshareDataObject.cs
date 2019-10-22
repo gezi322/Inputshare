@@ -117,7 +117,7 @@ namespace InputshareLibWindows.Clipboard
                             medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
                             return;
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             //ISLogger.Write("InputshareDataObject: Get FileContents failed: " + ex.Message);
                             return;

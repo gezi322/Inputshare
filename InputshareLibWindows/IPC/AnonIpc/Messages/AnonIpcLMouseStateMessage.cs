@@ -4,7 +4,7 @@ using System.Text;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcLMouseStateMessage : AnonIpcMessage
+    public class AnonIpcLMouseStateMessage : IpcMessage
     {
         public bool LeftMouseState { get; }
 
@@ -20,7 +20,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcLMouseStateMessage(bool state, Guid messageId = default) : base(AnonIpcMessageType.LMouseStateReply, messageId)
+        public AnonIpcLMouseStateMessage(bool state, Guid messageId = default) : base(IpcMessageType.AnonIpcLMouseStateReply, messageId)
         {
             LeftMouseState = state;
         }

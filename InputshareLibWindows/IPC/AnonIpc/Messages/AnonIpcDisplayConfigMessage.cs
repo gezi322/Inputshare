@@ -5,7 +5,7 @@ using static InputshareLib.Displays.DisplayManagerBase;
 
 namespace InputshareLibWindows.IPC.AnonIpc.Messages
 {
-    public class AnonIpcDisplayConfigMessage : AnonIpcMessage
+    public class AnonIpcDisplayConfigMessage : IpcMessage
     {
         public DisplayConfig Config { get; }
 
@@ -24,7 +24,7 @@ namespace InputshareLibWindows.IPC.AnonIpc.Messages
             return data;
         }
 
-        public AnonIpcDisplayConfigMessage(DisplayConfig config, Guid messageId = default) : base(AnonIpcMessageType.DisplayConfigReply, messageId)
+        public AnonIpcDisplayConfigMessage(DisplayConfig config, Guid messageId = default) : base(IpcMessageType.AnonIpcDisplayConfigReply, messageId)
         {
             Config = config;
         }

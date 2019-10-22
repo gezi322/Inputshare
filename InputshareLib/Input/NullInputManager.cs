@@ -13,9 +13,10 @@ namespace InputshareLib.Input
         public override bool Running { get; protected set; }
         public override MouseInputMode MouseRecordMode { get; protected set; }
 
+#pragma warning disable CS0067
         public override event EventHandler<ISInputData> InputReceived;
         public override event EventHandler<ClipboardDataBase> ClipboardDataChanged;
-
+#pragma warning restore CS0067
         public override void SetClipboardData(ClipboardDataBase cbData)
         {
 
