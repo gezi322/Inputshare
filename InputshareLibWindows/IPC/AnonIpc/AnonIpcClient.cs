@@ -30,7 +30,6 @@ namespace InputshareLibWindows.IPC.AnonIpc
         {
             readPipe = new AnonymousPipeClientStream(PipeDirection.In, readHandle);
             writePipe = new AnonymousPipeClientStream(PipeDirection.Out, writeHandle);
-            ISLogger.Write("Ipc client created");
             Start(readPipe, writePipe);
             Write(new IpcMessage(IpcMessageType.IpcClientOK));
         }

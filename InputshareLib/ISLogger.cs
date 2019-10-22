@@ -26,8 +26,10 @@ namespace InputshareLib
         private readonly static BlockingCollection<LogMessage> logWriteQueue;
         private readonly static object queueLock = new object();
         public static string LogFolder { get => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\sbarrac1\inputshare\"; }
+        
         static ISLogger()
         {
+            SetLogFileName("Inputshare.log");
             cancelSource = new CancellationTokenSource();
             logWriteTask = new Task(LogWriteLoop);
             logWriteQueue = new BlockingCollection<LogMessage>();
@@ -43,29 +45,18 @@ namespace InputshareLib
         {
             try
             {
-                if (!Directory.Exists(GetTempPath() + @"\sbarrac1"))
+                Directory.CreateDirectory(LogFolder);
+
+                if (!File.Exists(LogFolder + fName))
                 {
-                    Directory.CreateDirectory(GetTempPath() + @"\sbarrac1\inputshare");
-                }else if(!Directory.Exists(GetTempPath() + @"\sbarrac1\inputshare"))
-                {
-                    Directory.CreateDirectory(GetTempPath() + @"\sbarrac1\inputshare");
+                    File.Create(LogFolder + fName).Dispose();
                 }
 
-                if(!File.Exists(GetTempPath() + @"\sbarrac1\inputshare\" + fName))
-                {
-                    File.Create(GetTempPath() + @"\sbarrac1\inputshare\" + fName).Dispose();
-                }
-
-                LogFilePath = GetTempPath() + @"\sbarrac1\inputshare\" + fName;
+                LogFilePath = LogFolder + "\\"+  fName;
             }catch(Exception ex)
             {
                 Console.WriteLine("ISLogger: Failed to set log file path: " + ex.Message);
             }
-        }
-
-        private static string GetTempPath()
-        {
-            return Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         }
 
         public static void Write(object messageObj)

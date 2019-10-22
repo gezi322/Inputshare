@@ -21,8 +21,8 @@ namespace InputshareSP
             dropMan = new WindowsDragDropManager();
             dropMan.Start();
 
+            ISLogger.Write("Connecting to service...");
             iClient = new AnonIpcClient(readPipe, writePipe, "ServiceConnection");
-
             Task.Run(() => {
                 Thread.Sleep(5000);
 

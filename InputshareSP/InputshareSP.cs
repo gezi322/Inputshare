@@ -18,8 +18,6 @@ namespace InputshareSP
             ISLogger.EnableLogFile = true;
             ISLogger.PrefixTime = true;
 
-            PrintInfo();
-
             if (args.Length != 3)
             {
                 OnInvalidArgs();
@@ -29,7 +27,10 @@ namespace InputshareSP
             string mode = args[0];
             string readPipe = args[1];
             string writePipe = args[2];
-           
+
+
+            PrintInfo();
+            ISLogger.Write("----------------------------------------");
 
             if (mode == "Default")
             {

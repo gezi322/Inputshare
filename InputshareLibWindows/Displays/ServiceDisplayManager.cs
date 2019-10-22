@@ -42,6 +42,9 @@ namespace InputshareLibWindows.Displays
         {
             try
             {
+                if (!host.host.IsConnected)
+                    throw new Exception("Ipc not connected");
+
                 OnConfigUpdated(host.host.GetDisplayConfig().Result);
             }
             catch(Exception ex)

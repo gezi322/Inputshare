@@ -7,7 +7,10 @@ using InputshareLibWindows.Windows;
 using System;
 using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,15 +50,17 @@ namespace InputshareService
 
         protected override void OnStart(string[] args)
         {
+            ISLogger.Write("----------------------------------------------");
             ISLogger.Write("Inputshare service starting...");
             ISLogger.Write("Console session state: " + Session.ConsoleSessionState);
             SetPriority();
+            SetLogDirPermissions();
 
             Task.Run(() => { SpDragDropTaskLoop(); });
             Task.Run(() => { SpMainTaskLoop(); });
 
 
-            Task.Run(() => { LoadAndStart(); });
+            LoadAndStart();
 
             base.OnStart(args);
         }
@@ -316,6 +321,24 @@ namespace InputshareService
             catch (Exception ex)
             {
                 ISLogger.Write("Failed to set process priority: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Enables any user to write to the log folder. (allows SP dragdrop to write logs)
+        /// </summary>
+        private void SetLogDirPermissions()
+        {
+            try
+            {
+                DirectoryInfo dInfo = new DirectoryInfo(ISLogger.LogFolder);
+                DirectorySecurity dSecurity = dInfo.GetAccessControl();
+                dSecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), FileSystemRights.FullControl, InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit, PropagationFlags.NoPropagateInherit, AccessControlType.Allow));
+                dInfo.SetAccessControl(dSecurity);
+            }
+            catch(Exception ex)
+            {
+                ISLogger.Write("Failed to set log folder permissions: " + ex.Message);
             }
         }
 

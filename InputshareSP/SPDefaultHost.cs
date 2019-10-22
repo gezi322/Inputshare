@@ -24,7 +24,7 @@ namespace InputshareSP
         public SPDefaultHost(string readPipe, string writePipe)
         {
             Console.Title = "SP default host";
-            ISLogger.Write("Starting SP default host...");
+            
 
             ISLogger.Write("Connecting to service...");
             iClient = new AnonIpcClient(readPipe, writePipe, "ServiceConnection");
@@ -39,6 +39,7 @@ namespace InputshareSP
                 }
             });
 
+            ISLogger.Write("Starting SP default host...");
 
             iClient.Connected += IClient_Connected;
             iClient.Disconnected += IClient_Disconnected;
@@ -69,13 +70,13 @@ namespace InputshareSP
 
         private void IClient_Disconnected(object sender, string reason)
         {
-            ISLogger.Write("IPC DISCONNECTED!");
+            ISLogger.Write("Lost connection to service... " + reason);
             Exit();
         }
 
         private void IClient_Connected(object sender, EventArgs e)
         {
-            ISLogger.Write("IPC CONNECTED!");
+            ISLogger.Write("Connected to service");
         }
 
         private void IClient_ClipboardDataReceived(object sender, ClipboardDataBase e)
