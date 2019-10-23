@@ -130,7 +130,7 @@ namespace InputshareLibWindows.IPC.AnonIpc
                 AnonIpcReadStreamResponseMessage msg = (AnonIpcReadStreamResponseMessage)await SendRequest(new AnonIpcReadStreamRequestMessage(token, fileId, readLen), IpcMessageType.AnonIpcStreamReadResponse);
                 return msg.ResponseData;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new byte[0];
             }

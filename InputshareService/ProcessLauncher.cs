@@ -1,15 +1,10 @@
 ﻿using InputshareLibWindows.IPC.AnonIpc;
-using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.Windows;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 using static InputshareLibWindows.Native.AdvApi32;
-using static InputshareLibWindows.Windows.Desktop;
-
 namespace InputshareService
 {
     public static class ProcessLauncher

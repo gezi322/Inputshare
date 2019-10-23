@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace InputshareWindows
+namespace InputshareWindows.ServiceClient
 {
     public partial class ServiceClientForm : Form
     {

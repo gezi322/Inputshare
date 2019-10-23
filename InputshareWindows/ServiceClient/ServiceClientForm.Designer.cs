@@ -1,4 +1,4 @@
-﻿namespace InputshareWindows
+﻿namespace InputshareWindows.ServiceClient
 {
     partial class ServiceClientForm
     {

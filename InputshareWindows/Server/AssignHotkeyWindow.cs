@@ -8,7 +8,7 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace InputshareWindows
+namespace InputshareWindows.Server
 {
     public partial class AssignHotkeyWindow : Form
     {
@@ -21,6 +21,7 @@ namespace InputshareWindows
         public AssignHotkeyWindow(string assignMessage)
         {
             InitializeComponent();
+            this.TopMost = true;
             this.KeyPreview = true;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.Text = assignMessage;

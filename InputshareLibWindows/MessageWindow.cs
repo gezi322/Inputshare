@@ -72,16 +72,8 @@ namespace InputshareLibWindows
                     try
                     {
                         ignoreCbChange = true;
-                        System.Windows.Forms.Clipboard.SetDataObject(data, true);
-
-                        //If we copied an image, we need to dispose of it...
-                        if (data.ContainsImage())
-                        {
-                            ISLogger.Write("Disposing image");
-                            Image img = data.GetImage();
-                            img.Dispose();
-                        }
-
+                        System.Windows.Forms.Clipboard.SetDataObject(data, false);
+                        GC.Collect();
                         return;
                     }catch
                     {
