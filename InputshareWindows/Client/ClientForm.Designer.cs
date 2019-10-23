@@ -1,4 +1,4 @@
-﻿namespace InputshareWindows
+﻿namespace InputshareWindows.Client
 {
     partial class ClientForm
     {

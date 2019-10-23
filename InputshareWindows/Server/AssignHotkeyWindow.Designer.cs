@@ -1,4 +1,4 @@
-﻿namespace InputshareWindows
+﻿namespace InputshareWindows.Server
 {
     partial class AssignHotkeyWindow
     {

@@ -134,7 +134,7 @@ namespace InputshareLibWindows.IPC
                 int header = BitConverter.ToInt32(readBuffer, 0);
                 
                 //TODO - implement a better way to deal with messages larger than buffer
-                if (header + 4 > readBuffer.Length && header < 1024*1024) //max 1mb
+                if (header + 4 > readBuffer.Length && header < 1024*1024*50) //max 50mb
                     readBuffer = new byte[header + 4];
 
                 bytesIn = recv.Read(readBuffer, 4, header);

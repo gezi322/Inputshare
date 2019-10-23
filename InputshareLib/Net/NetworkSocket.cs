@@ -420,7 +420,7 @@ namespace InputshareLib.Net
             try
             {
                 Socket soc = (Socket)ar.AsyncState;
-                int bytesIn = soc.EndReceive(ar);
+                bytesIn = soc.EndReceive(ar);
 
                 //If we receive 0 bytes, the connection is closed
                 if (bytesIn == 0)

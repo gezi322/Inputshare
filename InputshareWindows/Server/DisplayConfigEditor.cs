@@ -9,7 +9,7 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace InputshareWindows
+namespace InputshareWindows.Server
 {
     public partial class DisplayConfigEditor : Form
     {
@@ -20,6 +20,7 @@ namespace InputshareWindows
         public DisplayConfigEditor(List<ClientInfo> clients)
         {
             InitializeComponent();
+            this.TopMost = true;
             this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
             Clients = clients;
             PopulateListBoxes();

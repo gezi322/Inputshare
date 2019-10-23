@@ -87,24 +87,31 @@ namespace InputshareLib.Server
 
         public void Start(int port)
         {
-            if (Running)
-                throw new InvalidOperationException("Server already running");
+            try
+            {
+                if (Running)
+                    throw new InvalidOperationException("Server already running");
 
-            clientSwitchTimer.Restart();
-            
-            ISLogger.Write("Server: Starting server...");
+                clientSwitchTimer.Restart();
 
-            StartClientListener(new IPEndPoint(IPAddress.Any, port));
-            clientListener.ClientConnected += ClientListener_ClientConnected;
-            StartInputManager();
-            StartDisplayManager();
-            StartCursorMonitor();
-            
+                ISLogger.Write("Server: Starting server...");
 
-            Running = true;
-            clientMan.AddClient(ISServerSocket.Localhost);
-            ISLogger.Write("Server: Inputshare server started");
-            Started?.Invoke(this, null);
+                StartClientListener(new IPEndPoint(IPAddress.Any, port));
+                clientListener.ClientConnected += ClientListener_ClientConnected;
+                StartInputManager();
+                StartDisplayManager();
+                StartCursorMonitor();
+
+
+                Running = true;
+                clientMan.AddClient(ISServerSocket.Localhost);
+                ISLogger.Write("Server: Inputshare server started");
+                Started?.Invoke(this, null);
+            }catch(Exception ex)
+            {
+                Stop();
+                throw ex;
+            }
         }
 
         private void SetClipboardData(ClipboardDataBase cbData)

@@ -1,5 +1,8 @@
 ﻿using InputshareLib;
 using InputshareLibWindows.Windows;
+using InputshareWindows.Client;
+using InputshareWindows.Server;
+using InputshareWindows.ServiceClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -78,8 +81,12 @@ namespace InputshareWindows
         private void ShowForm(Form form)
         {
             this.Hide();
-            form.ShowDialog();
-            form.Dispose();
+            form.Show();
+            form.FormClosed += Form_FormClosed;
+        }
+
+        private void Form_FormClosed(object sender, FormClosedEventArgs e)
+        {
             this.Show();
         }
 
@@ -105,24 +112,7 @@ namespace InputshareWindows
 
         private void LaunchServiceClient() 
         {
-            /*
-            IntPtr token = Token.GetCurrentProcessToken();
-            var elevation = Token.QueryElevation(token);
-            Token.CloseToken(token);
-
-            if(elevation != InputshareLibWindows.Native.AdvApi32.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull)
-            {
-                if (!IsAdministrator())
-                    MessageBox.Show("Run as administrator to connect to the service client");
-                else
-                    RelaunchAsAdministrator();
-
-                return;
-            }
-            else
-            {*/
-                ShowForm(new ServiceClientForm());
-            //}
+            ShowForm(new ServiceClientForm());
         }
 
         private void RelaunchAsAdministrator()
