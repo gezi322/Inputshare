@@ -170,6 +170,7 @@ namespace InputshareLibWindows
 
             clipboardTimer.Start();
             MonitoringClipboard = true;
+            ISLogger.Write(WindowName + ": Monitoring for clipboard changes...");
         }
 
         #endregion

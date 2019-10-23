@@ -76,13 +76,11 @@ namespace InputshareLib.Net
         public event EventHandler<FileTokenRequestArgs> RequestedFileToken;
         public event EventHandler<RequestStreamReadArgs> RequestedStreamRead;
         public event EventHandler<RequestCloseStreamArgs> RequestedCloseStream;
-        
+
 
         //Used to wait for a response to a request
-        private readonly object awaitingCollectionsLock = new object();
-        private readonly Dictionary<Guid, NetworkMessage> awaitingReturnMessages = new Dictionary<Guid,  NetworkMessage>();
-        private readonly Dictionary<Guid, AutoResetEvent> awaitingReturnMethods = new Dictionary<Guid, AutoResetEvent>();
-        private readonly List<Guid> awaitingMessageIds = new List<Guid>();
+        private Dictionary<Guid, Tuple<SemaphoreSlim, NetworkMessage>> awaitingResponseMessages = new Dictionary<Guid, Tuple<SemaphoreSlim, NetworkMessage>>();
+        private object awaitingResponseLock = new object();
 
         /// <summary>
         /// Creates a new inputshare network socket from an existing TCP socket
@@ -219,47 +217,33 @@ namespace InputshareLib.Net
         /// Sends a request to the server and waits for a reply.
         /// Throws a RequestTimedOutException if no reply is received after 10 seconds
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="request"></param>
         /// <exception cref="RequestTimedOutException"></exception>
         /// <returns></returns>
-        private async Task<NetworkMessage> SendRequestAsync(NetworkMessage message)
+        private async Task<NetworkMessage> SendRequestAsync(NetworkMessage request, int timeout = 5000)
         {
-            try
+            SemaphoreSlim evt = new SemaphoreSlim(0, 1);
+            NetworkMessage returnMsg;
+            lock (awaitingResponseLock)
             {
-                return await Task.Run(() =>
-                {
-                    AutoResetEvent evt = new AutoResetEvent(false);
-                    NetworkMessage msg;
-                    lock (awaitingCollectionsLock)
-                    {
-                        awaitingReturnMethods.Add(message.MessageId, evt);
-                        awaitingMessageIds.Add(message.MessageId);
-                    }
-                    
-                    SendMessage(message);
-                    bool cancelled = !evt.WaitOne(10000);
-
-                    lock (awaitingCollectionsLock)
-                    {
-                        evt.Dispose();
-
-                        awaitingReturnMessages.TryGetValue(message.MessageId, out msg);
-                        awaitingReturnMethods.Remove(message.MessageId);
-                        awaitingReturnMessages.Remove(message.MessageId);
-                        awaitingMessageIds.Remove(message.MessageId);
-                    }
-
-                    if(cancelled)
-                        throw new RequestTimedOutException();
-
-                    return msg;
-                });
+                awaitingResponseMessages.Add(request.MessageId, new Tuple<SemaphoreSlim, NetworkMessage>(evt, null));
             }
-            catch
+
+            SendMessage(request);
+            bool cancelled = !await evt.WaitAsync(timeout);
+
+            lock (awaitingResponseLock)
             {
-                throw;
+                evt.Dispose();
+                awaitingResponseMessages.TryGetValue(request.MessageId, out Tuple<SemaphoreSlim, NetworkMessage> ret);
+                returnMsg = ret.Item2;
+                awaitingResponseMessages.Remove(request.MessageId);
             }
-            
+
+            if (cancelled)
+                throw new RequestTimedOutException();
+
+            return returnMsg;
         }
 
         /// <summary>
@@ -530,80 +514,86 @@ namespace InputshareLib.Net
         /// classes must override this method to process messages. Derived 
         /// classes should call the base method after processing the message.
         /// </summary>
-        /// <param name="message"></param>
-        protected virtual void HandleMessage(byte[] message)
+        /// <param name="rawMessage"></param>
+        protected virtual void HandleMessage(byte[] rawMessage)
         {
 
-            MessageType type = (MessageType)message[4];
-            NetworkMessage msg = new NetworkMessage(message);
+            MessageType type = (MessageType)rawMessage[4];
+            NetworkMessage basicMessage = new NetworkMessage(rawMessage);
 
             //Make sure we don't somehow handle the same request more than once
-            if (ProcessedMessageIds.Contains(msg.MessageId))
+            if (ProcessedMessageIds.Contains(basicMessage.MessageId))
             {
                 ISLogger.Write("Ignoring duplicate message ID");
                 return;
             }
 
+            if (CheckAwaitingMessages(basicMessage, rawMessage))
+                return;
+
             if (type == MessageType.ClipboardData)
             {
-                HandleClipboardData(new ClipboardDataMessage(message));
+                HandleClipboardData(new ClipboardDataMessage(rawMessage));
             }
             else if (type == MessageType.DragDropData)
             {
-                HandleDragDropMessage(new DragDropDataMessage(message));
+                HandleDragDropMessage(new DragDropDataMessage(rawMessage));
             }
             else if (type == MessageType.DragDropSuccess)
             {
-                DragDropSuccessMessage sMsg = new DragDropSuccessMessage(message);
-                DragDropSuccess?.Invoke(this, sMsg.OperationId);
+                DragDropSuccess?.Invoke(this, new DragDropSuccessMessage(rawMessage).OperationId);
             }
             else if (type == MessageType.DragDropCancelled)
             {
-                DragDropCancelledMessage cMsg = new DragDropCancelledMessage(message);
-                DragDropCancelled?.Invoke(this, cMsg.OperationId);
+                DragDropCancelled?.Invoke(this, new DragDropCancelledMessage(rawMessage).OperationId);
             }
             else if (type == MessageType.RequestFileGroupToken)
             {
-                RequestGroupTokenMessage requestMsg = new RequestGroupTokenMessage(message);
+                RequestGroupTokenMessage requestMsg = new RequestGroupTokenMessage(rawMessage);
                 RequestedFileToken?.Invoke(this, new FileTokenRequestArgs(requestMsg.MessageId, requestMsg.FileGroupId));
             }
             else if (type == MessageType.FileStreamReadRequest)
             {
-                FileStreamReadRequestMessage requestMsg = new FileStreamReadRequestMessage(message);
+                FileStreamReadRequestMessage requestMsg = new FileStreamReadRequestMessage(rawMessage);
                 RequestedStreamRead?.Invoke(this, new RequestStreamReadArgs(requestMsg.MessageId, requestMsg.Token, requestMsg.FileRequestId, requestMsg.ReadSize));
             }else if(type == MessageType.FileStreamCloseRequest)
             {
-                FileStreamCloseStreamMessage closeMsg = new FileStreamCloseStreamMessage(message);
+                FileStreamCloseStreamMessage closeMsg = new FileStreamCloseStreamMessage(rawMessage);
                 RequestedCloseStream?.Invoke(this, new RequestCloseStreamArgs(closeMsg.Token, closeMsg.FileId));
             }else if(type == MessageType.DragDropComplete) {
-                DragDropCompleteMessage ddcMsg = new DragDropCompleteMessage(message);
+                DragDropCompleteMessage ddcMsg = new DragDropCompleteMessage(rawMessage);
                 DragDropOperationComplete?.Invoke(this, ddcMsg.OperationId);
             }
+        }
 
-            lock (awaitingCollectionsLock)
+        private bool CheckAwaitingMessages(NetworkMessage message, byte[] data)
+        {
+            lock (awaitingResponseLock)
             {
-                if (awaitingMessageIds.Contains(msg.MessageId))
+                if (awaitingResponseMessages.TryGetValue(message.MessageId, out Tuple<SemaphoreSlim, NetworkMessage> awaiting))
                 {
-                    //TODO
-                    if (type == MessageType.RequestFileGroupTokenReponse)
+                    SemaphoreSlim evt = awaiting.Item1;
+                    awaitingResponseMessages.Remove(message.MessageId);
+
+                    if (message.Type == MessageType.RequestFileGroupTokenReponse)
                     {
-                        awaitingReturnMessages.Add(msg.MessageId, new RequestGroupTokenResponseMessage(message));
+                        awaitingResponseMessages.Add(message.MessageId, new Tuple<SemaphoreSlim, NetworkMessage>(evt, new RequestGroupTokenResponseMessage(data)));
                     }
-                    else if (type == MessageType.FileStreamReadResponse)
+                    else if (message.Type == MessageType.FileStreamReadResponse)
                     {
-                        awaitingReturnMessages.Add(msg.MessageId, new FileStreamReadResponseMessage(message));
+                        awaitingResponseMessages.Add(message.MessageId, new Tuple<SemaphoreSlim, NetworkMessage>(evt, new FileStreamReadResponseMessage(data)));
                     }
-                    else if (type == MessageType.RemoteFileError)
+                    else if (message.Type == MessageType.RemoteFileError)
                     {
-                        awaitingReturnMessages.Add(msg.MessageId, new FileErrorMessage(message));
+                        awaitingResponseMessages.Add(message.MessageId, new Tuple<SemaphoreSlim, NetworkMessage>(evt, new FileErrorMessage(data)));
                     }
 
-                    awaitingReturnMethods.TryGetValue(msg.MessageId, out AutoResetEvent evt);
-                    evt.Set();
+                    evt.Release();
+                    return true;
                 }
-            }
-            
 
+                return false;
+            }
         }
         
         public void RespondReadStream(Guid networkMessageId, byte[] readData)
