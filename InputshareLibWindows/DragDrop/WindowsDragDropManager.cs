@@ -157,7 +157,7 @@ namespace InputshareLibWindows.DragDrop
 
         public void WriteToFile(Guid fileId, byte[] data)
         {
-            throw new NotImplementedException();
+            //This method is only used for compatibility with the windows service version.
         }
     }
 }

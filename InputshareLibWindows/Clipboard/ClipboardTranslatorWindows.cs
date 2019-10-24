@@ -24,12 +24,12 @@ namespace InputshareLibWindows.Clipboard
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public static InputshareDataObject ConvertToWindows(ClipboardDataBase data)
+        public static InputshareDataObject ConvertToWindows(ClipboardDataBase data, Guid operationId)
         {
             if (data is ClipboardVirtualFileData fd)
             {
                 List<FileAttributes> files = fd.AllFiles;
-                InputshareDataObject o = new InputshareDataObject(files);
+                InputshareDataObject o = new InputshareDataObject(files, operationId);
                 return o;
             }
             else if (data is ClipboardImageData imgData)
@@ -39,7 +39,7 @@ namespace InputshareLibWindows.Clipboard
                     using (MemoryStream ms = new MemoryStream(imgData.ImageData))
                     {
                         Image bmp = Image.FromStream(ms);
-                        return new InputshareDataObject(bmp);
+                        return new InputshareDataObject(bmp, operationId);
                     }
                 }
                 catch (Exception ex)
@@ -50,7 +50,7 @@ namespace InputshareLibWindows.Clipboard
             }
             else if (data is ClipboardTextData textData)
             {
-                return new InputshareDataObject(textData);
+                return new InputshareDataObject(textData, operationId);
             }
 
             throw new ArgumentException("Unrecognized data type " + data.GetType().FullName);

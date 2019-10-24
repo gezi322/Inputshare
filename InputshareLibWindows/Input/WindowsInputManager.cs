@@ -376,7 +376,7 @@ namespace InputshareLibWindows.Input
         #region clipboard
         public override void SetClipboardData(ClipboardDataBase cbData)
         {
-            hookWnd.SetClipboardData(ClipboardTranslatorWindows.ConvertToWindows(cbData));
+            hookWnd.SetClipboardData(ClipboardTranslatorWindows.ConvertToWindows(cbData, Guid.Empty));
         }
 
         #endregion

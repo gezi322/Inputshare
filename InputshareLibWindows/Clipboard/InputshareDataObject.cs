@@ -15,38 +15,42 @@ namespace InputshareLibWindows.Clipboard
     public class InputshareDataObject : DataObject, System.Runtime.InteropServices.ComTypes.IDataObject, IAsyncOperation
     {
         public event EventHandler DropSuccess;
-        public event EventHandler<Guid> DropComplete;
-
-        bool reportedSuccess = false;
-        public ClipboardDataType objectType { get; private set; }
+        public event EventHandler DropComplete;
 
         
+        public ClipboardDataType objectType { get; private set; }
+
+        public Guid OperationGuid { get; private set; }
+
+        bool reportedSuccess = false;
+
         private Int32 m_lindex;
 
         private List<ClipboardVirtualFileData.FileAttributes> operationFiles;
         private MemoryStream fileDescriptorStream;
         private List<ManagedRemoteIStream> streams = new List<ManagedRemoteIStream>();
 
-
-        public InputshareDataObject(ClipboardTextData text)
+        public InputshareDataObject(ClipboardTextData text, Guid operationId)
         {
             objectType = ClipboardDataType.Text;
+            OperationGuid = operationId;
             SetData(DataFormats.Text, text.Text);
         }
 
-        public InputshareDataObject(Image image)
+        public InputshareDataObject(Image image, Guid operationId)
         {
             objectType = ClipboardDataType.Image;
+            OperationGuid = operationId;
             SetImage(image);
         }
 
-        public InputshareDataObject(List<ClipboardVirtualFileData.FileAttributes> files)
+        public InputshareDataObject(List<ClipboardVirtualFileData.FileAttributes> files, Guid operationId)
         {
             objectType = ClipboardDataType.File;
+            OperationGuid = operationId;
             fileDescriptorStream = GetFileDescriptor(files);
             foreach (var file in files)
             {
-                //ISLogger.Write("Creating remote file stream for " + file.FileName);
                 ManagedRemoteIStream str = new ManagedRemoteIStream(file);
                 streams.Add(str);
             }
@@ -259,7 +263,7 @@ namespace InputshareLibWindows.Clipboard
             if (!completeSent)
             {
                 completeSent = true;
-                DropComplete?.Invoke(this, operationFiles[0].FileOperationId);
+                DropComplete?.Invoke(this, null);
             }
         }
 

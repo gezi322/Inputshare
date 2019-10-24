@@ -78,7 +78,7 @@ namespace InputshareLibWindows.DragDrop
                     registeredDrop = true;
 
                     Guid operationId = (Guid)dropObject.GetData("InputshareData");
-                    ISLogger.Write("Dataobject operation id = " + operationId);
+
                     Dropping = true;
                     Ole32.DoDragDrop(dropObject, this, (int)DragDropEffects.All, droppedValue);
                     Dropping = false;
@@ -129,13 +129,13 @@ namespace InputshareLibWindows.DragDrop
             InputshareDataObject nativeObject = null;
             try
             {
-                nativeObject = ClipboardTranslatorWindows.ConvertToWindows(data);
+                nativeObject = ClipboardTranslatorWindows.ConvertToWindows(data, operationId);
                 reportedSuccess = false;
                 nativeObject.SetData("InputshareData", operationId);
                 dropQueue.Enqueue(nativeObject);
 
                 nativeObject.DropComplete += NativeObject_DropComplete;
-                nativeObject.DropSuccess += (object s, EventArgs e) => NativeObject_DropSuccess(s, operationId);
+                nativeObject.DropSuccess += NativeObject_DropSuccess;
 
             }
             catch(Exception ex)
@@ -162,19 +162,21 @@ namespace InputshareLibWindows.DragDrop
                 }));
             });
         }
-        private void NativeObject_DropSuccess(object sender, Guid operationId)
+        private void NativeObject_DropSuccess(object sender, EventArgs e)
         {
             if (!reportedSuccess)
             {
+                InputshareDataObject obj = (InputshareDataObject)sender;
+
                 reportedSuccess = true;
-                DragDropSuccess?.Invoke(this, operationId);
+                DragDropSuccess?.Invoke(this, obj.OperationGuid);
             }
             
         }
 
-        private void NativeObject_DropComplete(object sender, Guid operationId)
+        private void NativeObject_DropComplete(object sender, EventArgs e)
         {
-            DragDropComplete?.Invoke(this, operationId);
+            DragDropComplete?.Invoke(this, ((InputshareDataObject)sender).OperationGuid);
         }
 
         private void WindowsDragSource_Load(object sender, EventArgs e)

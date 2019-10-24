@@ -43,6 +43,7 @@ Release32/
 Release64/
 Publish32/
 publish32fd/
+BuildsLinux
 
 #installer files
 installer/

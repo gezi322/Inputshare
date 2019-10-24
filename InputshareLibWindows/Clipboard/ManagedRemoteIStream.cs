@@ -178,26 +178,20 @@ namespace InputshareLibWindows.Clipboard
         //  Delete On Release 
         internal const int STGM_DELETEONRELEASE = 0x04000000; // Not Currently Supported
 
-        // Seek constants
         internal const int STREAM_SEEK_SET = 0;
         internal const int STREAM_SEEK_CUR = 1;
         internal const int STREAM_SEEK_END = 2;
 
-        // ::Stat flag
-        //internal const int STATFLAG_DEFAULT   = 0;  // this constant is not used anywhere in code, but is a valid value of a StatFlag
         internal const int STATFLAG_NONAME = 1;
         internal const int STATFLAG_NOOPEN = 2;
 
-        // STATSTG type values
         internal const int STGTY_STORAGE = 1;
         internal const int STGTY_STREAM = 2;
         internal const int STGTY_LOCKBYTES = 3;
         internal const int STGTY_PROPERTY = 4;
 
-        // PROPSETFLAG enumeration.
         internal const uint PROPSETFLAG_ANSI = 2;
 
-        // Errors that we care about
         internal const int S_OK = 0;
         internal const int S_FALSE = 1;
         internal const int STG_E_FILENOTFOUND = -2147287038; //0x80030002;

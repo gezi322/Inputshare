@@ -14,7 +14,7 @@ namespace InputshareLibWindows.Clipboard
             InputshareDataObject obj = null;
             try
             {
-                obj = ClipboardTranslatorWindows.ConvertToWindows(data);
+                obj = ClipboardTranslatorWindows.ConvertToWindows(data, Guid.Empty);
             }
             catch(Exception ex)
             {
