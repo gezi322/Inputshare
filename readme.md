@@ -11,7 +11,7 @@ The goal of inputshare is to make using multiple computers at the same time easi
 
 
 
-## Demo ##
+## Demo (outdated) ##
 Quick demo:
 [![](http://img.youtube.com/vi/rlR89GpMeCE/0.jpg)](http://www.youtube.com/watch?v=rlR89GpMeCE "Inputshare demo")
 
