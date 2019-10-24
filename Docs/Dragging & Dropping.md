@@ -1,4 +1,4 @@
-## Detecting dragged files (windows)##
+## Detecting dragged files (windows) ##
 
 When the cursor hits the edge of the screen and there is a client assigned to that edge, the WindowsDragDropManager shows the WindowsDropTarget window under the the mouse cursor. The window then uses SendInput to release the left mouse button, which will allow any files that are being dragged to be dropped into the WindowsDropTarget window, which will detect dropped file/text/images with the Form_DragDrop event.
 
