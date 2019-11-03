@@ -11,13 +11,14 @@ namespace InputshareLib.Server.API
     /// </summary>
     public class ClientInfo
     {
-        public ClientInfo(string name, Guid id, DisplayConfig displayConf, Hotkey clientHotkey, IPEndPoint clientAddress)
+        public ClientInfo(string name, Guid id, DisplayConfig displayConf, Hotkey clientHotkey, IPEndPoint clientAddress, bool udpEnabled)
         {
             Name = name;
             Id = id;
             DisplayConf = displayConf;
             ClientHotkey = clientHotkey;
             ClientAddress = clientAddress;
+            UdpEnabled = udpEnabled;
         }
 
         public override string ToString()
@@ -35,7 +36,7 @@ namespace InputshareLib.Server.API
         public DisplayConfig DisplayConf { get; }
         public Hotkey ClientHotkey { get; }
         public IPEndPoint ClientAddress { get; }
-
-        public static ClientInfo None { get => new ClientInfo("None", Guid.NewGuid(), null, null, null); }
+        public bool UdpEnabled { get; }
+        public static ClientInfo None { get => new ClientInfo("None", Guid.NewGuid(), null, null, null, false); }
     }
 }
