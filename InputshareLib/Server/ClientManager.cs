@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net;
 
 namespace InputshareLib.Server
 {
@@ -21,7 +22,7 @@ namespace InputshareLib.Server
         /// Returns a read only list of all connected clients
         /// 
         /// </summary>
-        public ReadOnlyCollection<ISServerSocket> AllClients { get => new ReadOnlyCollection<ISServerSocket>(clients);}
+        public ReadOnlyCollection<ISServerSocket> AllClients { get => new ReadOnlyCollection<ISServerSocket>(clients); }
         private List<ISServerSocket> clients;
 
         public ClientManager(int maxClients)
@@ -98,6 +99,15 @@ namespace InputshareLib.Server
         {
             if (GetClientById(clientId) != null)
                 return GetClientById(clientId).ClientName;
+
+            return null;
+        }
+
+        public ISServerSocket GetClientFromUdpAddress(IPEndPoint udpAddress)
+        {
+            foreach (var client in AllClients.Where(c => !c.IsLocalhost))
+                if (client.UdpAddress != null && client.UdpAddress.Equals(udpAddress))
+                    return client;
 
             return null;
         }

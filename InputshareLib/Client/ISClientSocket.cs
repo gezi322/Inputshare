@@ -1,5 +1,6 @@
 ﻿using InputshareLib.Net;
 using InputshareLib.Net.Messages;
+using InputshareLib.Net.Udp;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -27,7 +28,7 @@ namespace InputshareLib.Client
         /// or when this client is the input client.
         /// </summary>
         public event EventHandler<bool> ActiveClientChanged;
-        
+
         /// <summary>
         /// Occurs when the server assigns a client at an edge of this
         /// client
@@ -50,6 +51,8 @@ namespace InputshareLib.Client
         /// Stores the name,guid and display config for this client
         /// </summary>
         private ConnectionInfo conInfo;
+
+        private ISUdpClient udpC;
 
         public bool AttemptingConnection { get; private set; }
         protected bool serverResponded = false;
@@ -85,6 +88,10 @@ namespace InputshareLib.Client
                 tcpSocket.Dispose();
 
             ServerAddress = new IPEndPoint(destAddr, port);
+
+            udpC = new ISUdpClient(ServerAddress);
+            udpC.InputReceived += UdpC_InputReceived;
+
             AttemptingConnection = true;
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
             {
@@ -93,10 +100,15 @@ namespace InputshareLib.Client
 
             serverResponded = false;
             errorHandled = false;
-           
+
             ISLogger.Write("Attempting to connect to {0}:{1} as {2}", destAddr, port, info.Name);
             tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, tcpSocket);
             serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
+        }
+
+        private void UdpC_InputReceived(object sender, byte[] input)
+        {
+            HandleInputData(input);
         }
 
         /// <summary>
@@ -120,6 +132,7 @@ namespace InputshareLib.Client
         public override void Close()
         {
             serverResponded = true;
+            udpC?.Dispose();
             serverReplyTimer?.Dispose();
             base.Close();
         }
@@ -144,7 +157,7 @@ namespace InputshareLib.Client
         /// <param name="clientId"></param>
         private void SendInitialInfo()
         {
-            SendMessage(new ClientInitialMessage(conInfo.Name, conInfo.Id, conInfo.DisplayConf, Settings.InputshareVersion));
+            SendMessage(new ClientInitialMessage(conInfo.Name, conInfo.Id, conInfo.DisplayConf, Settings.InputshareVersion, udpC.UdpBindAddress.Port));
         }
 
         /// <summary>
@@ -215,7 +228,7 @@ namespace InputshareLib.Client
             {
                 CancelAnyDragDrop?.Invoke(this, null);
             }
-                
+
         }
 
         /// <summary>
@@ -232,7 +245,7 @@ namespace InputshareLib.Client
                 ));
         }
 
-        
+
 
         private void HandleServerOK()
         {
@@ -252,7 +265,7 @@ namespace InputshareLib.Client
             serverResponded = true;
             ConnectionFailed?.Invoke(this, "The server declined the connection '" + message.Reason + "'");
             errorHandled = true;
-
+            udpC?.Dispose();
             ConnectionFailed?.Invoke(this, message.Reason);
 
             if (AutoReconnect)
@@ -268,6 +281,8 @@ namespace InputshareLib.Client
         {
             AttemptingConnection = false;
             serverResponded = true;
+            udpC?.Dispose();
+
             base.HandleConnectionClosed(error);
 
             if (AutoReconnect)
@@ -279,16 +294,17 @@ namespace InputshareLib.Client
 
         protected override void HandleConnectedFailed(string error)
         {
-            
             base.IsConnected = false;
             errorHandled = true;
 
             base.HandleConnectedFailed(error);
+
+            udpC?.Dispose();
             tcpSocket?.Dispose();
             ConnectionFailed?.Invoke(this, error);
             if (AutoReconnect)
             {
-                
+
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
                 Thread.Sleep(2000);
                 Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
@@ -297,10 +313,6 @@ namespace InputshareLib.Client
             {
                 AttemptingConnection = false;
             }
-            
-           
-
-            
         }
 
         protected override void OnConnected()

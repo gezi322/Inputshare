@@ -77,6 +77,10 @@ namespace InputshareLib.Server
         /// </summary>
         private Timer initialInfoTimeoutTimer;
 
+        public bool UdpConnected { get; set; }
+        public bool UdpEnabled { get; private set; }
+        public IPEndPoint UdpAddress { get; private set; }
+
         /// <summary>
         /// Set to true when the client sends valid initial info.
         /// This prevents the InitialInfoTimeoutTimer from closing
@@ -85,7 +89,7 @@ namespace InputshareLib.Server
         private bool initialInfoSent = false;
 
         public readonly bool IsLocalhost = false;
-       
+
         public ISServerSocket(Socket initSocket) : base(initSocket)
         {
             ClientEndpoint = initSocket.RemoteEndPoint as IPEndPoint;
@@ -268,7 +272,7 @@ namespace InputshareLib.Server
                     break;
             }
         }
-        
+
         /// <summary>
         /// Closes the socket and optionally notifies the client
         /// </summary>
@@ -306,6 +310,21 @@ namespace InputshareLib.Server
             }
         }
 
+        public void SetUdpEnabled(bool enable)
+        {
+            if (enable)
+            {
+                if (!UdpConnected)
+                {
+                    ISLogger.Write("Failed to enable UDP for client {0}: UDP not connected", this);
+                    return;
+                }
+            }
+
+            UdpEnabled = enable;
+            ISLogger.Write("{0}: Udp enabled = {1}", this, enable);
+        }
+
         /// <summary>
         /// Called when the client sends an edge hit message
         /// </summary>
@@ -337,16 +356,23 @@ namespace InputshareLib.Server
             ClientName = message.ClientName;
             ClientId = message.ClientId;
 
+            if (message.UdpPort != 0)
+            {
+                UdpAddress = new IPEndPoint(ClientEndpoint.Address, message.UdpPort);
+                ISLogger.Write("Client {0} UDP address: {1}", ClientName, UdpAddress);
+            }
+
             try
             {
                 DisplayConfiguration = new DisplayConfig(message.DisplayConfig);
-            }catch(Exception)
+            }
+            catch(Exception)
             {
                 HandleConnectionClosed("Invalid display data");
                 return;
             }
 
-            
+
             initialInfoSent = true;
             InitialInfoReceived?.Invoke(this, new InitialInfoReceivedArgs(message.ClientName, message.ClientId, message.DisplayConfig, message.Version));
         }
@@ -386,6 +412,4 @@ namespace InputshareLib.Server
             public string ClientVer { get; }
         }
     }
-
-    
 }

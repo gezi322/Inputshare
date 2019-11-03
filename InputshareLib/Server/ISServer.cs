@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using static InputshareLib.Displays.DisplayManagerBase;
 namespace InputshareLib.Server
 {
     public sealed class ISServer
@@ -42,6 +41,7 @@ namespace InputshareLib.Server
         private ISClientListener clientListener;
         private ClientManager clientMan;
 
+        private ISUdpServer udpHost;
 
         /// <summary>
         /// Timer used to prevent switching back and forth between clients insantly
@@ -98,6 +98,9 @@ namespace InputshareLib.Server
 
                 StartClientListener(new IPEndPoint(IPAddress.Any, port));
                 clientListener.ClientConnected += ClientListener_ClientConnected;
+
+                InitUdp(port);
+
                 StartInputManager();
                 StartDisplayManager();
                 StartCursorMonitor();
@@ -107,10 +110,22 @@ namespace InputshareLib.Server
                 clientMan.AddClient(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
                 Started?.Invoke(this, null);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Stop();
                 throw ex;
+            }
+        }
+
+        private void InitUdp(int port)
+        {
+            try
+            {
+                udpHost = new ISUdpServer(clientMan, port);
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to bind UDP! " + ex.Message);
             }
         }
 
@@ -123,7 +138,7 @@ namespace InputshareLib.Server
         {
             clientListener = new ISClientListener(bind.Port, bind.Address);
             BoundAddress = clientListener.BoundAddress;
-            
+
         }
 
         private void StartInputManager()
@@ -166,8 +181,8 @@ namespace InputshareLib.Server
         /// <exception cref="InvalidOperationException">Thrown if the server is not running</exception>"
         public void Stop()
         {
-          if (!Running)
-               throw new InvalidOperationException("Server not running");
+            if (!Running)
+                throw new InvalidOperationException("Server not running");
 
             ISLogger.Write("Server: Stopping server...");
 
@@ -196,9 +211,12 @@ namespace InputshareLib.Server
                 if (dragDropMan.Running)
                     dragDropMan.Stop();
 
+                udpHost?.Dispose();
+
                 ISLogger.Write("Server: server stopped.");
-                
-            }catch(Exception ex)
+
+            }
+            catch(Exception ex)
             {
                 ISLogger.Write("An error occurred while stopping server: " + ex.Message);
                 ISLogger.Write(ex.StackTrace);
@@ -208,7 +226,7 @@ namespace InputshareLib.Server
                 Running = false;
                 Stopped?.Invoke(this, null);
             }
-           
+
         }
 
         /// <summary>
@@ -268,7 +286,7 @@ namespace InputshareLib.Server
 
             ISServerSocket oldClient = inputClient;
             inputClient = ISServerSocket.Localhost;
-            
+
             //enable local input
             inputMan.SetInputBlocked(false);
 
@@ -313,7 +331,10 @@ namespace InputshareLib.Server
             {
                 if (inputClient.IsConnected)
                 {
-                    inputClient.SendInputData(input.ToBytes());
+                    if (inputClient.UdpEnabled)
+                        udpHost.SendInput(input, inputClient);
+                    else
+                        inputClient.SendInputData(input.ToBytes());
                 }
             }
         }
@@ -335,7 +356,7 @@ namespace InputshareLib.Server
                 ISServerSocket.Localhost.SetClientAtEdge(e, null);
                 return;
             }
-            
+
             if (target != null && target.IsConnected)
                 SwitchToClientInput(target.ClientId);
             else
@@ -353,7 +374,8 @@ namespace InputshareLib.Server
             if (e == Hotkeyfunction.StopServer)
             {
                 Stop();
-            }else if(e == Hotkeyfunction.SendSas)
+            }
+            else if(e == Hotkeyfunction.SendSas)
             {
                 if(!inputClient.IsLocalhost)
                     inputClient.SendInputData(new ISInputData(ISInputCode.IS_SENDSAS, 0, 0).ToBytes());
@@ -423,6 +445,10 @@ namespace InputshareLib.Server
             CreateClientEventHandlers(client);
             client.DisplayConfiguration = new DisplayConfig(e.DisplayConfig);
             client.AcceptClient();
+
+            if(udpHost.SocketBound)
+                udpHost.InitClient(client);
+
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }
 
@@ -451,7 +477,7 @@ namespace InputshareLib.Server
             try
             {
                 var ddOperation = ddController.GetOperationFromToken(args.Token);
-                
+
                 //We need to check if this token is associated with the drag drop operation file token.
                 //If it is, and localhost is not the host of the operation, then we need to request the data from the host
                 if (ddOperation != null)
@@ -501,7 +527,8 @@ namespace InputshareLib.Server
             {
                 byte[] fileData = await host.RequestReadStreamAsync(token, fileId, readLen);
                 client.SendReadRequestResponse(networkMessageId, fileData);
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
                 //let the client know that the read failed
                 client.SendFileErrorResponse(networkMessageId, ex.Message);
@@ -610,7 +637,7 @@ namespace InputshareLib.Server
             }
             catch (Exception) { }
 
-            
+
             ISLogger.Write("Server: Connection error on {0}: {1}", client.ClientName, error);
 
             if (inputMan.GetClientHotkey(client.ClientId) != null)
@@ -672,7 +699,8 @@ namespace InputshareLib.Server
         {
             ClientInfo[] info = new ClientInfo[clientMan.ClientCount];
             int index = 0;
-            foreach(var client in clientMan.AllClients) {
+            foreach(var client in clientMan.AllClients)
+            {
                 info[index] = GenerateClientInfo(client, true);
                 index++;
             }
@@ -759,7 +787,7 @@ namespace InputshareLib.Server
             ClientHotkey hk = inputMan.GetClientHotkey(client.ClientId);
             DisplayConfig dConf = client.DisplayConfiguration;
 
-            ClientInfo info = new ClientInfo(client.ClientName, client.ClientId, dConf, hk, client.ClientEndpoint);
+            ClientInfo info = new ClientInfo(client.ClientName, client.ClientId, dConf, hk, client.ClientEndpoint, client.UdpEnabled);
             info.InputClient = inputClient == client;
 
             if (includeEdges)
@@ -769,12 +797,12 @@ namespace InputshareLib.Server
 
             return info;
         }
-        
+
         private ClientInfo GenerateLocalhostInfo()
         {
             ISServerSocket local = ISServerSocket.Localhost;
             ClientInfo info = new ClientInfo(local.ClientName, local.ClientId, local.DisplayConfiguration,
-                inputMan.GetClientHotkey(local.ClientId), new IPEndPoint(IPAddress.Parse("127.0.0.1"), BoundAddress.Port));
+                inputMan.GetClientHotkey(local.ClientId), new IPEndPoint(IPAddress.Parse("127.0.0.1"), BoundAddress.Port), local.UdpEnabled);
 
             info.InputClient = inputClient == local;
 
@@ -792,6 +820,16 @@ namespace InputshareLib.Server
                 info.RightClient = GenerateClientInfo(client.RightClient);
             if (client.LeftClient != null)
                 info.LeftClient = GenerateClientInfo(client.LeftClient);
+        }
+
+        public void SetClientUdpEnabled(ClientInfo client, bool udpEnabled)
+        {
+            var c = clientMan.GetClientFromInfo(client);
+
+            if (c == null)
+                throw new ArgumentException("Client " + client.Name + " not found");
+
+            c.SetUdpEnabled(udpEnabled);
         }
 
         private ClientInfo GetCurrentInputClient()

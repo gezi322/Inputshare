@@ -28,7 +28,7 @@ namespace InputshareLib.Net
         /// Occurs when an urecoverable connection error occurs
         /// </summary>
         public event EventHandler<string> ConnectionError;
-        
+
         /// <summary>
         /// Occurs when the client or server receives a clipboard data message
         /// </summary>
@@ -107,7 +107,7 @@ namespace InputshareLib.Net
 
         public NetworkSocket()
         {
-            
+
         }
 
         /// <summary>
@@ -135,23 +135,23 @@ namespace InputshareLib.Net
         public async Task<Guid> RequestFileTokenAsync(Guid fileGroupId)
         {
             ISLogger.Write("Sending token request");
-                NetworkMessage response = await SendRequestAsync(new RequestGroupTokenMessage(fileGroupId));
-                ISLogger.Write("Server responded to token request!");
+            NetworkMessage response = await SendRequestAsync(new RequestGroupTokenMessage(fileGroupId));
+            ISLogger.Write("Server responded to token request!");
 
-                switch (response.Type)
-                {
-                    case MessageType.RequestFileGroupTokenReponse:
-                        RequestGroupTokenResponseMessage resp = response as RequestGroupTokenResponseMessage;
-                        return resp.Token;
+            switch (response.Type)
+            {
+                case MessageType.RequestFileGroupTokenReponse:
+                    RequestGroupTokenResponseMessage resp = response as RequestGroupTokenResponseMessage;
+                    return resp.Token;
                 case MessageType.RemoteFileError:
                     FileErrorMessage err = response as FileErrorMessage;
                     ISLogger.Write("File token request returned error: " + err.ErrorMessage);
                     return Guid.Empty;
 
-                    default:
-                        ISLogger.Write("Debug: Server sent unexpected reply when requesting file access token");
-                        return Guid.Empty;
-                }
+                default:
+                    ISLogger.Write("Debug: Server sent unexpected reply when requesting file access token");
+                    return Guid.Empty;
+            }
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace InputshareLib.Net
         {
             SendMessage(new FileErrorMessage(errorMessage, networkMessageId));
         }
-        
+
         /// <summary>
         /// Responds to a filestream read request.
         /// </summary>
@@ -304,7 +304,7 @@ namespace InputshareLib.Net
                 if (IsConnected)
                 {
                     tcpSocket.Shutdown(SocketShutdown.Both);
-                } 
+                }
             }
             finally
             {
@@ -323,7 +323,7 @@ namespace InputshareLib.Net
         {
             try
             {
-               
+
                 byte[] data = message.ToBytes();
                 if (data.Length > Settings.NetworkMessageChunkSize)
                 {
@@ -333,11 +333,12 @@ namespace InputshareLib.Net
 
                 if (tcpSocket != null && tcpSocket.Connected)
                     tcpSocket.BeginSend(data, 0, data.Length, SocketFlags.None, TcpSocket_SendCallback, tcpSocket);
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
                 ISLogger.Write("Sendmessage error: " + ex.Message);
             }
-            
+
         }
 
         /// <summary>
@@ -371,7 +372,7 @@ namespace InputshareLib.Net
             });
         }
 
-        
+
         /// <summary>
         /// Callback from an async thread when a send operation succeeds or fails
         /// </summary>
@@ -482,12 +483,12 @@ namespace InputshareLib.Net
                 source = data;
 
             MessageType type = (MessageType)source[4];
-            
+
             if(type == MessageType.InputData)
             {
                 byte[] input = new byte[5];
                 Buffer.BlockCopy(source, 5, input, 0, 5);
-                InputDataReceived?.Invoke(this, input);
+                HandleInputData(input);
                 return;
             }
             else if(type == MessageType.MessagePart)
@@ -498,6 +499,12 @@ namespace InputshareLib.Net
 
             HandleMessage(source);
         }
+
+        protected void HandleInputData(byte[] input)
+        {
+            InputDataReceived?.Invoke(this, input);
+        }
+
         /// <summary>
         /// Called when a dragdrop message is received
         /// </summary>
@@ -595,7 +602,7 @@ namespace InputshareLib.Net
                 return false;
             }
         }
-        
+
         public void RespondReadStream(Guid networkMessageId, byte[] readData)
         {
             SendMessage(new FileStreamReadResponseMessage(readData, networkMessageId));
@@ -618,7 +625,7 @@ namespace InputshareLib.Net
             }
 
             handler.Write(message.MessageData);
-           
+
             if (handler.FullyReceived)
             {
                 byte[] data = handler.ReadAndClose();
@@ -626,7 +633,7 @@ namespace InputshareLib.Net
                 HandleReceivedMessage(message.MessageSize, data);
             }
         }
-        
+
         /// <summary>
         /// Sends a raw byte array to the server/client. The byte array
         /// must start with an integer as the first 4 bytes that are set to the
@@ -638,11 +645,12 @@ namespace InputshareLib.Net
             try
             {
                 tcpSocket.BeginSend(data, 0, data.Length, 0, TcpSocket_SendCallback, tcpSocket);
-            }catch(SocketException ex)
+            }
+            catch(SocketException ex)
             {
                 HandleConnectionClosed(ex.Message);
             }
-            
+
         }
 
         /// <summary>
@@ -673,7 +681,7 @@ namespace InputshareLib.Net
                 tcpSocket.Shutdown(SocketShutdown.Both);
             }
             catch (Exception) { }
-            
+
             ConnectionError?.Invoke(this, error);
         }
 
@@ -698,7 +706,7 @@ namespace InputshareLib.Net
         {
             public RemoteFileStreamReadFailedException(string message) : base(message)
             {
-   
+
             }
         }
 
@@ -760,7 +768,7 @@ namespace InputshareLib.Net
             public int ReadLen { get; }
         }
 
-        
+
         public class DragDropDataReceivedArgs : EventArgs
         {
             public DragDropDataReceivedArgs(byte[] rawData, Guid operationId)
@@ -776,7 +784,7 @@ namespace InputshareLib.Net
 
 
         #region IDisposable Support
-        private bool disposedValue = false; 
+        private bool disposedValue = false;
 
         protected virtual void Dispose(bool disposing)
         {
