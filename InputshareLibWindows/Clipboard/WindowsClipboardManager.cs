@@ -22,7 +22,10 @@ namespace InputshareLibWindows.Clipboard
             }
 
             if(obj != null)
+            {
                 cbHookWindow.SetClipboardData(obj);
+                ISLogger.Write("WindowsClipboardManager: Set clipboard type {0}", data.DataType);
+            }
         }
 
         private void HookWnd_ClipboardCallback(System.Windows.Forms.IDataObject data)
@@ -37,6 +40,7 @@ namespace InputshareLibWindows.Clipboard
                     return;
                 }
 
+                ISLogger.Write("WindowsClipboardManager: Copied type {0}", cb.DataType);
                 OnClipboardDataChanged(cb);
             }catch(ClipboardTranslatorWindows.ClipboardTranslationException ex)
             {

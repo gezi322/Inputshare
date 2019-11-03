@@ -55,8 +55,8 @@ namespace InputshareSP
             
 
             clipMan = new WindowsClipboardManager();
-            clipMan.ClipboardContentChanged += ClipMan_ClipboardContentChanged;
             clipMan.Start();
+            clipMan.ClipboardContentChanged += ClipMan_ClipboardContentChanged;
 
             Console.ReadLine();
 
