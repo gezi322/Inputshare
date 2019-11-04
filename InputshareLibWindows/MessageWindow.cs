@@ -1,4 +1,5 @@
 ﻿using InputshareLib;
+using InputshareLibWindows.Clipboard;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Windows;
 using static InputshareLibWindows.Native.User32;
 using static InputshareLibWindows.Native.WindowMessages;
 
@@ -70,7 +72,7 @@ namespace InputshareLibWindows
             cancelToken.Cancel();
         }
        
-        public virtual void SetClipboardData(System.Windows.Forms.DataObject data)
+        public virtual void SetClipboardData(InputshareDataObject data)
         {
             if (Closed)
                 throw new InvalidOperationException("Window has been closed");
@@ -82,7 +84,12 @@ namespace InputshareLibWindows
                     try
                     {
                         ignoreCbChange = true;
-                        System.Windows.Forms.Clipboard.SetDataObject(data, false);
+                        if(data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Text)
+                            System.Windows.Clipboard.SetDataObject(data, true);
+                        else if (data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Image)
+                            System.Windows.Clipboard.SetDataObject(data, false);
+                        else
+                            System.Windows.Clipboard.SetDataObject(data, false);
                         GC.Collect();
                         return;
                     }catch
