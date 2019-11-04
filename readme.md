@@ -53,7 +53,7 @@ To allow the service to automatically start on boot, add 'start= auto' to the en
 
 **Important: Enter the command into CMD as administrator (not powershell as sc is a different command)**
 
-#### Enabling Alt+Ctrl+Delete #### 
+### Enabling Alt+Ctrl+Delete ###
 To allow windows services to trigger alt+ctrl+delete, the key SoftwareSASGeneration must be set to true.
 
 Create the DWORD key SoftwareSASGeneration in HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System and set the value to 1.
