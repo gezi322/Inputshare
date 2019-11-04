@@ -156,6 +156,8 @@ namespace InputshareLibWindows.IPC
                 {
                     ISLogger.Write("IpcBase: An error occurred while handling message: " + ex.Message);
                     ISLogger.Write(ex.StackTrace);
+                    Thread.Sleep(2000);
+                    Process.GetCurrentProcess().Kill();
                 }
 
                 //Reset buffer size if changed

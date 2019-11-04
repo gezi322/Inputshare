@@ -20,6 +20,7 @@ namespace InputshareSP
         {
             hookWnd = new HookWindow("ISWndHook");
             hookWnd.HandleCreated += HookWnd_HandleCreated;
+            hookWnd.InitWindow();
             Monitoring = true;
         }
 

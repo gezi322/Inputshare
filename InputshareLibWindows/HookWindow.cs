@@ -6,6 +6,9 @@ using static InputshareLibWindows.Native.User32;
 
 namespace InputshareLibWindows
 {
+    /// <summary>
+    /// Manages a message only window used for hooking purposes.
+    /// </summary>
     public sealed class HookWindow : MessageWindow
     {
         public event EventHandler DesktopSwitchEvent;
@@ -199,7 +202,7 @@ namespace InputshareLibWindows
                 throw new Win32Exception();
 
             MonitoringDesktop = true;
-            ISLogger.Write("Listening for desktop switches");
+            ISLogger.Write("{0}: Listening for desktop switches", WindowName);
         }
 
         private void StopDesktopHook()

@@ -83,6 +83,9 @@ namespace InputshareLib.Server
 
         private void SendMessage(UdpMessageType message, ISServerSocket client)
         {
+            if (client.UdpAddress == null)
+                return;
+
             udpSocket.SendTo(new byte[] { (byte)message }, client.UdpAddress);
         }
 

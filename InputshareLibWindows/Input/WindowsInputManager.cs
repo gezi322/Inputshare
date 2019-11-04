@@ -52,6 +52,7 @@ namespace InputshareLibWindows.Input
             hookWnd = new HookWindow("Inputmanager window");
             hookWnd.HandleCreated += HookWnd_HandleCreated;
             hookWnd.WindowDestroyed += HookWnd_WindowDestroyed;
+            hookWnd.InitWindow();
             inputTranslateQueue = new BlockingCollection<NativeInputData>();
             cancelSource = new CancellationTokenSource();
             inputTranslateTask = new Task(InputTranslateLoop, cancelSource.Token);

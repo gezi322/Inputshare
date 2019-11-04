@@ -15,6 +15,8 @@ namespace InputshareLibWindows
     /// <summary>
     /// Represents a message only window. Used for keyboard, mouse and clipboard event hooks.
     /// Hooks should only be installed after the HandleCreated event has been fired
+    /// 
+    /// InitWindow must be called before calling any public methods.
     /// </summary>
     public class MessageWindow
     {
@@ -36,12 +38,20 @@ namespace InputshareLibWindows
 
         protected bool ignoreCbChange = false;
         protected IntPtr Handle { get; private set; }
-
         protected string WindowName { get; }
 
         public MessageWindow(string wndName)
         {
             WindowName = wndName;
+        }
+
+        private bool initCalled = false;
+        public void InitWindow()
+        {
+            if (initCalled)
+                return;
+
+            initCalled = true;
             cancelToken = new CancellationTokenSource();
             wndThread = new Thread(() =>
             {
@@ -185,6 +195,7 @@ namespace InputshareLibWindows
 
         protected virtual void OnHandleCreated()
         {
+            ISLogger.Write("created window '{0}'", WindowName);
             HandleCreated?.Invoke(this, null);
         }
 
@@ -197,7 +208,14 @@ namespace InputshareLibWindows
                 {
                     invokeQueue.TryDequeue(out Action invoke);
 
-                    invoke?.Invoke();
+                    try
+                    {
+                        invoke?.Invoke();
+                    }catch(Exception ex)
+                    {
+                        ISLogger.Write("{0}: {1}", WindowName, ex.Message);
+                    }
+                    
                 }
 
                 return IntPtr.Zero;

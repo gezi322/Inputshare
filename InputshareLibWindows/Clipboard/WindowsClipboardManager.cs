@@ -56,11 +56,13 @@ namespace InputshareLibWindows.Clipboard
 
             cbHookWindow = new HookWindow("ClipboardManager window");
             cbHookWindow.HandleCreated += CbHookWindow_HandleCreated;
+            cbHookWindow.InitWindow();
             Running = true;
         }
 
         private void CbHookWindow_HandleCreated(object sender, EventArgs e)
         {
+            ISLogger.Write("clipboard man: WINDOW CREATED");
             cbHookWindow.InstallClipboardMonitor(HookWnd_ClipboardCallback);
         }
 
