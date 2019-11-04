@@ -84,16 +84,11 @@ namespace InputshareLibWindows.Clipboard
                 }
                 else if (data.GetDataPresent(DataFormats.FileDrop))
                 {
-                    ClipboardVirtualFileData fd = ReadFileDrop(data);
-                    return fd;
+                    return ReadFileDrop(data);
                 }
 
                 else
                 {
-                    ISLogger.Write("Could not translate clipboard data... possible formats:");
-                    foreach (var format in data.GetFormats())
-                        ISLogger.Write(format);
-
                     throw new ClipboardTranslationException("Dataobject not implemented");
                 }
             }
@@ -111,20 +106,6 @@ namespace InputshareLibWindows.Clipboard
             }
         }
 
-        private static ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
-
-            foreach (ImageCodecInfo codec in codecs)
-            {
-                if (codec.FormatID == format.Guid)
-                {
-                    return codec;
-                }
-            }
-
-            return null;
-        }
         private static ClipboardVirtualFileData ReadFileDrop(System.Windows.Forms.IDataObject data)
         {
             string[] files = (string[])data.GetData(DataFormats.FileDrop);

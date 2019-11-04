@@ -2,9 +2,11 @@
 using InputshareLib.Net.Udp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace InputshareLib.Server
 {
@@ -17,13 +19,25 @@ namespace InputshareLib.Server
 
         private byte[] readBuff = new byte[4096];
         private EndPoint _recvAddrBuffer = new IPEndPoint(IPAddress.Any, 0);
+
+        private Timer udpCheckTimer;
         internal ISUdpServer(ClientManager clientManager, int bindPort)
         {
             clientMan = clientManager;
             udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             udpSocket.Bind(new IPEndPoint(IPAddress.Any, bindPort));
             udpSocket.BeginReceiveFrom(readBuff, 0, readBuff.Length, 0, ref _recvAddrBuffer, SocketReceiveFromCallback, null);
+            udpCheckTimer = new Timer(UdpCheckTimerCallback, null, 0, 4000);
             SocketBound = true;
+        }
+
+        private void UdpCheckTimerCallback(object sync)
+        {
+            //Checks for any client that we have not had a UDP response from. incase the first response packet got lost.
+            foreach(var client in clientMan.AllClients.Where(c =>!c.IsLocalhost && !c.UdpConnected && c.UdpAddress != null))
+            {
+                SendMessage(UdpMessageType.HostOK, client);
+            }
         }
 
          private void SocketReceiveFromCallback(IAsyncResult ar)
@@ -109,6 +123,7 @@ namespace InputshareLib.Server
             {
                 if (disposing)
                 {
+                    udpCheckTimer?.Dispose();
                     udpSocket?.Dispose();
                     SocketBound = false;
                 }

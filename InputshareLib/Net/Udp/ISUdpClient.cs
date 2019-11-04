@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace InputshareLib.Net.Udp
 {
@@ -37,7 +38,7 @@ namespace InputshareLib.Net.Udp
                 int bytesIn = udpSocket.EndReceiveFrom(ar, ref _ep);
 
                 //Check that the packet was from the server
-                if (receivedFromAddress.ToString() != serverUdpEndPoint.ToString())
+                if (!receivedFromAddress.Equals(serverUdpEndPoint))
                 {
                     udpSocket.BeginReceiveFrom(readBuff, 0, readBuff.Length, 0, ref _ep, SocketReceiveFromCallback, null);
                     return;
@@ -45,6 +46,7 @@ namespace InputshareLib.Net.Udp
 
                 byte[] dg = new byte[bytesIn];
                 Buffer.BlockCopy(readBuff, 1, dg, 0, bytesIn);
+
                 HandleDatagram((UdpMessageType)readBuff[0], dg);
                 
                 udpSocket.BeginReceiveFrom(readBuff, 0, readBuff.Length, 0, ref _ep, SocketReceiveFromCallback, null);

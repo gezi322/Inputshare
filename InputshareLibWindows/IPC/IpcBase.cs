@@ -106,9 +106,12 @@ namespace InputshareLibWindows.IPC
                 try
                 {
                     byte[] data = writeQueue.Take();
-                    writeStream.Write(BitConverter.GetBytes(data.Length));
-                    writeStream.Write(data);
-                }catch(Exception ex)
+                    byte[] p = new byte[data.Length + 4];
+                    Buffer.BlockCopy(BitConverter.GetBytes(data.Length), 0, p, 0, 4);
+                    Buffer.BlockCopy(data, 0, p, 4, data.Length);
+                    writeStream.Write(p);
+                }
+                catch(Exception ex)
                 {
                     OnError(ex);
                 }
@@ -403,8 +406,10 @@ namespace InputshareLibWindows.IPC
             {
                 try
                 {
-                    writeStream.Write(BitConverter.GetBytes(data.Length));
-                    writeStream.Write(data);
+                    byte[] p = new byte[data.Length + 4];
+                    Buffer.BlockCopy(BitConverter.GetBytes(data.Length), 0, p, 0, 4);
+                    Buffer.BlockCopy(data, 0, p, 4, data.Length);
+                    writeStream.Write(p);
                 }catch(Exception ex)
                 {
                     OnError(ex);

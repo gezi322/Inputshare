@@ -18,7 +18,7 @@ namespace InputshareSP
 
         public DesktopMonitor()
         {
-            hookWnd = new HookWindow("ISWndHook");
+            hookWnd = new HookWindow("ISWndHook window");
             hookWnd.HandleCreated += HookWnd_HandleCreated;
             hookWnd.InitWindow();
             Monitoring = true;
