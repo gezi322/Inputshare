@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
+using InputshareLib.Input.Keys;
 using InputshareLib.Net;
 using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Cursor;
@@ -13,6 +14,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 namespace InputshareLib.Server
 {
@@ -90,27 +92,25 @@ namespace InputshareLib.Server
 
         public void Start(int port)
         {
+            if (Running)
+                throw new InvalidOperationException("Server already running");
+
             try
             {
-                if (Running)
-                    throw new InvalidOperationException("Server already running");
-
+                Running = true;
                 clientSwitchTimer.Restart();
-
                 ISLogger.Write("Server: Starting server...");
 
                 StartClientListener(new IPEndPoint(IPAddress.Any, port));
                 clientListener.ClientConnected += ClientListener_ClientConnected;
 
                 InitUdp(port);
-
-                cbManager.Start();
-                StartInputManager();
+                //Race condition between cursor and display managers
                 StartDisplayManager();
+                StartInputManager();
                 StartCursorMonitor();
+                dragDropMan.Start();
 
-
-                Running = true;
                 clientMan.AddClient(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
                 Started?.Invoke(this, null);
@@ -143,7 +143,9 @@ namespace InputshareLib.Server
 
         private void StartInputManager()
         {
-            inputMan.Start();
+            ISLogger.Write("Inputmanager running: " + inputMan.Running);
+            if(!inputMan.Running)
+                inputMan.Start();
 
             HotkeyModifiers mods = HotkeyModifiers.Alt | HotkeyModifiers.Ctrl | HotkeyModifiers.Shift;
             inputMan.AddUpdateFunctionHotkey(new Input.Hotkeys.FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
@@ -450,6 +452,8 @@ namespace InputshareLib.Server
 
             if (udpHost.SocketBound)
                 udpHost.InitClient(client);
+
+            SetClientEdge(client, Edge.Left, ISServerSocket.Localhost);
 
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }

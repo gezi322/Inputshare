@@ -5,14 +5,13 @@
     <UseWindowsForms>True</UseWindowsForms>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <Platforms>x86;x64</Platforms>
-
-    <Version>1.0.1</Version>
+    
     <Company>Sbarrac1</Company>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
     <Authors>Sam Barraclough</Authors>
-    <Configurations>WindowsRelease;WindowsDebug</Configurations>
+    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
     
   </PropertyGroup>
 

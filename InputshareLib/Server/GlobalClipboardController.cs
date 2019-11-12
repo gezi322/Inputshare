@@ -24,6 +24,8 @@ namespace InputshareLib.Server
             fileController = faController;
             clientMan = clientManager;
 
+            cbMan.Start();
+
             cbManager.ClipboardContentChanged += OnLocalClipboardDataCopied;
         }
 

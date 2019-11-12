@@ -4,14 +4,12 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <Platforms>x86;x64</Platforms>
     <RootNamespace>InputshareLib</RootNamespace>
-    <SignAssembly>false</SignAssembly>
-    <Version>1.0.1</Version>
     <Authors>Sam Barraclough</Authors>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
     <Company>Sbarrac1</Company>
-    <Configurations>WindowsRelease;WindowsDebug</Configurations>
+    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
@@ -32,6 +30,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
     <OutputPath>..\builds_windows\debug64</OutputPath>
   </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='LinuxDebug|x64'">
+    <OutputPath>..\builds_linux\debug64</OutputPath>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.6.0" />
@@ -40,10 +42,6 @@
 
   <ItemGroup>
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.6.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Output\" />
   </ItemGroup>
 
 </Project>

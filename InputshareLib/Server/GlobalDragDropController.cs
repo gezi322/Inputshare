@@ -27,9 +27,6 @@ namespace InputshareLib.Server
             fileController = fileAccessController;
             ddManager = dropManager;
 
-            if (!ddManager.Running)
-                ddManager.Start();
-
             ddManager.DataDropped += DdManager_DataDropped;
             ddManager.DragDropCancelled += DdManager_DragDropCancelled;
             ddManager.DragDropComplete += DdManager_DragDropComplete;

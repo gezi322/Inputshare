@@ -1,6 +1,7 @@
 ﻿using InputshareLib;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
+using InputshareLib.Input.Keys;
 using InputshareLib.PlatformModules.Input;
 using System;
 using System.Collections.Concurrent;
@@ -45,7 +46,6 @@ namespace InputshareLibWindows.PlatformModules.Input
         protected override void OnStart()
         {
             SetProcessDPIAware();
-            base.Start();
             hookWnd = new HookWindow("Inputmanager window");
             hookWnd.HandleCreated += HookWnd_HandleCreated;
             hookWnd.WindowDestroyed += HookWnd_WindowDestroyed;
@@ -55,6 +55,8 @@ namespace InputshareLibWindows.PlatformModules.Input
             inputTranslateTask = new Task(InputTranslateLoop, cancelSource.Token);
             inputTranslateTask.Start();
             mPosUpdateTimer = new Timer(MousePosUpdateCallback, 0, 250, 250);
+
+            SetMouseInputMode(MouseInputMode.Realtime);
         }
 
         protected override void OnStop()

@@ -23,7 +23,7 @@ namespace InputshareLib.PlatformModules.Cursor
 
         protected virtual void HandleEdgeHit(Edge edge)
         {
-            if (monitorStopwatch.ElapsedMilliseconds > 200)
+            if (monitorStopwatch.ElapsedMilliseconds > 100)
             {
                 EdgeHit?.Invoke(this, edge);
                 monitorStopwatch.Restart();

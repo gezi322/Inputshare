@@ -1,4 +1,6 @@
-﻿namespace InputshareLib.Input.Hotkeys
+﻿using InputshareLib.Input.Keys;
+
+namespace InputshareLib.Input.Hotkeys
 {
     public class FunctionHotkey : Hotkey
     {

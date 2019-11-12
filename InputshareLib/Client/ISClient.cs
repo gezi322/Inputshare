@@ -10,6 +10,7 @@ using InputshareLib.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace InputshareLib.Client
@@ -70,7 +71,7 @@ namespace InputshareLib.Client
         private FileAccessController fileController = new FileAccessController();
         private LocalDragDropController ddController;
 
-        public ISClient(ClientDependencies dependencies)
+        public ISClient(ISClientDependencies dependencies)
         {
             displayMan = dependencies.displayManager;
             curMon = dependencies.cursorMonitor;
@@ -111,6 +112,9 @@ namespace InputshareLib.Client
             displayMan.DisplayConfigChanged += OnLocalDisplayConfigChange;
             displayMan.UpdateConfigManual();
             curMon.EdgeHit += OnLocalEdgeHit;
+            curMon.Start();
+            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
+           
             clipboardMan.Start();
             clipboardMan.ClipboardContentChanged += OnLocalClipboardChange;
             dragDropMan.Start();
@@ -180,6 +184,8 @@ namespace InputshareLib.Client
 
         private void OnLocalDisplayConfigChange(object sender, DisplayConfig config)
         {
+            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
+
             if (socket != null && socket.IsConnected)
             {
                 socket.SendDisplayConfig(config.ToBytes());

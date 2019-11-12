@@ -14,7 +14,7 @@
     <ApplicationIcon />
     <StartupObject />
     <Platforms>x86;x64</Platforms>
-    <Configurations>WindowsRelease;WindowsDebug</Configurations>
+    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

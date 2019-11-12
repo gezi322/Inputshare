@@ -31,9 +31,9 @@ namespace InputshareLibWindows
             };
         }
 
-        public static ClientDependencies GetClientDependencies()
+        public static ISClientDependencies GetClientDependencies()
         {
-            return new ClientDependencies
+            return new ISClientDependencies
             {
                 clipboardManager = new WindowsClipboardManager(),
                 cursorMonitor = new WindowsCursorMonitor(),
@@ -43,9 +43,9 @@ namespace InputshareLibWindows
             };
         }
 
-        public static ClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
+        public static ISClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
         {
-            return new ClientDependencies
+            return new ISClientDependencies
             {
                 clipboardManager = new ServiceClipboardManager(mainHost),
                 cursorMonitor = new ServiceCursorMonitor(mainHost),

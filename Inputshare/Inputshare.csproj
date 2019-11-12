@@ -2,22 +2,64 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <Configurations>WindowsRelease;WindowsDebug</Configurations>
+    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
     <Platforms>x86; x64</Platforms>
-
+    <Authors>Sam Barraclough</Authors>
+    <Product>Inputshare</Product>
+    <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
+    <Company>Sbarrac1</Company>
+    
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64' or '$(Configuration)|$(Platform)'=='WindowsDebug|x86' or '$(Configuration)|$(Platform)'=='WindowsRelease|x64' or '$(Configuration)|$(Platform)'=='WindowsRelease|x86'">true</IsWindows>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='LinuxDebug|x64' or '$(Configuration)|$(Platform)'=='LinuxRelease|x64'">true</IsLinux> 
   </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(IsWindows)'=='true'">
+    <DefineConstants>TRACE;DEBUG;WindowsBuild</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsLinux)'=='true'">
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsLinux)'=='true'">
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsLinux)'=='true'">
+    <DefineConstants>LinuxBuild</DefineConstants>
+  </PropertyGroup>
+  
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
     <OutputPath>..\builds_windows\debug64</OutputPath>
+    <Optimize>false</Optimize>
   </PropertyGroup>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x86'">
     <OutputPath>..\builds_windows\debug32</OutputPath>
   </PropertyGroup>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x86'">
     <OutputPath>..\builds_windows\release32</OutputPath>
   </PropertyGroup>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x64'">
     <OutputPath>..\builds_windows\release64</OutputPath>
   </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='LinuxDebug|x64'">
+    <OutputPath>..\builds_linux\debug64</OutputPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='LinuxRelease|x64'">
+    <OutputPath>..\builds_linux\release64</OutputPath>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Condition="'$(IsWindows)'=='true'" Include="..\InputshareLibWindows\InputshareLibWindows.csproj" />
+    <ProjectReference Include="..\InputshareLib\InputshareLib.csproj" />
+  </ItemGroup>
 </Project>
