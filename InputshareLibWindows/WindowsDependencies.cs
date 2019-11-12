@@ -24,7 +24,8 @@ namespace InputshareLibWindows
                 CursorMonitor = new WindowsCursorMonitor(),
                 DragDropManager = new WindowsDragDropManager(),
                 InputManager = new WindowsInputManager(),
-                OutputManager = new WindowsOutputManager()
+                OutputManager = new WindowsOutputManager(),
+                ClipboardManager = new WindowsClipboardManager()
             };
         }
 

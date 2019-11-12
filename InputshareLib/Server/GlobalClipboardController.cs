@@ -1,4 +1,5 @@
-﻿ using InputshareLib.Clipboard.DataTypes;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Net;
 using System;
 using System.Collections.Generic;
@@ -9,21 +10,21 @@ namespace InputshareLib.Server
 {
     internal class GlobalClipboardController
     {
-        public delegate void SetClipboardDataDelegate(ClipboardDataBase cbData);
         public event EventHandler<ClipboardOperation> GlobalCLipboardChanged;
 
-        private SetClipboardDataDelegate SetLocalClipboardData;
         private ClientManager clientMan;
         private FileAccessController fileController;
-
+        private ClipboardManagerBase cbManager;
         private Dictionary<Guid, ClipboardOperation> previousOperationDictionary = new Dictionary<Guid, ClipboardOperation>();
         public ClipboardOperation currentOperation { get; private set; }
 
-        public GlobalClipboardController(ClientManager clientManager, FileAccessController faController, SetClipboardDataDelegate setcb)
+        public GlobalClipboardController(ClientManager clientManager, FileAccessController faController, ClipboardManagerBase cbMan)
         {
+            cbManager = cbMan;
             fileController = faController;
-            SetLocalClipboardData = setcb;
             clientMan = clientManager;
+
+            cbManager.ClipboardContentChanged += OnLocalClipboardDataCopied;
         }
 
         public void OnLocalClipboardDataCopied(object sender, ClipboardDataBase cbData)
@@ -181,7 +182,7 @@ namespace InputshareLib.Server
             //only set local clipboard if localhost is not the data host
             if (!currentOperation.Host.IsLocalhost)
             {
-                SetLocalClipboardData(currentOperation.Data);
+                cbManager.SetClipboardData(currentOperation.Data);
             }
             
         }

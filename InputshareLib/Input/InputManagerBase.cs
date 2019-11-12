@@ -1,5 +1,4 @@
-﻿using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.Input.Hotkeys;
+﻿using InputshareLib.Input.Hotkeys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +13,6 @@ namespace InputshareLib.Input
 
         public abstract bool LeftMouseDown { get; }
         public abstract bool InputBlocked { get; protected set; }
-        public abstract event EventHandler<ClipboardDataBase> ClipboardDataChanged;
         public abstract bool Running { get; protected set; }
         public abstract MouseInputMode MouseRecordMode { get; protected set; }
 
@@ -157,8 +155,5 @@ namespace InputshareLib.Input
             hotkeys = new List<Hotkey>();
         }
         public abstract void Stop();
-
-        public abstract void SetClipboardData(ClipboardDataBase cbData);
-
     }
 }

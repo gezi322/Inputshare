@@ -1,4 +1,5 @@
-﻿using InputshareLib.Cursor;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Cursor;
 using InputshareLib.Displays;
 using InputshareLib.DragDrop;
 using InputshareLib.Input;
@@ -15,7 +16,7 @@ namespace InputshareLib.Server
         public InputManagerBase InputManager { get; set; }
         public CursorMonitorBase CursorMonitor { get; set; }
         public IDragDropManager DragDropManager { get; set; }
-        
         public IOutputManager OutputManager { get; set; }
+        public ClipboardManagerBase ClipboardManager { get; set; }
     }
 }

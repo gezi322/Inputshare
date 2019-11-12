@@ -1,8 +1,6 @@
 ﻿using InputshareLib;
-using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
-using InputshareLibWindows.Clipboard;
 using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
@@ -23,7 +21,6 @@ namespace InputshareLibWindows.Input
         public override bool LeftMouseDown { get => (GetAsyncKeyState(System.Windows.Forms.Keys.LButton) & 0x8000) != 0; }
 
         public override event EventHandler<ISInputData> InputReceived;
-        public override event EventHandler<ClipboardDataBase> ClipboardDataChanged;
 
         private HookWindow hookWnd;
         private readonly IntPtr hookBlockValue = new IntPtr(-1);
@@ -139,8 +136,6 @@ namespace InputshareLibWindows.Input
                 hookWnd.InstallKeyboardHook(KeyboardCallback);
                 hookWnd.InstallMouseHook(MouseCallback);
             }
-
-            hookWnd.InstallClipboardMonitor(ClipboardContentChangedCallback);
         }
 
         public override void Stop()
@@ -159,30 +154,6 @@ namespace InputshareLibWindows.Input
         }
 
         #region callbacks
-
-        private void ClipboardContentChangedCallback(System.Windows.Forms.IDataObject data)
-        {
-            try
-            {
-                //This callback still running on the window thread, as otherwise we could not access 
-                //the dataobject
-                ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
-                Task.Run(() =>
-                {
-                    if(cb.DataType == ClipboardDataType.File)
-                    {
-                        ISLogger.Write("Copying/Pasting files currently disabled. Ignoring clipboard data");
-                        return;
-                    }
-
-                    ClipboardDataChanged?.Invoke(this, cb);
-                });
-            }
-            catch (Exception ex)
-            {
-                ISLogger.Write("Failed to convert clipboard data: " + ex.Message);
-            }
-        }
 
         private readonly MSLLHOOKSTRUCT mouseData = new MSLLHOOKSTRUCT();
         private POINT lastMousePos = new POINT();
@@ -370,14 +341,6 @@ namespace InputshareLibWindows.Input
                 else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
                     currentActiveModifiers &= InputshareLib.Input.Hotkeys.HotkeyModifiers.Windows;
             }
-        }
-
-        #endregion
-
-        #region clipboard
-        public override void SetClipboardData(ClipboardDataBase cbData)
-        {
-            hookWnd.SetClipboardData(ClipboardTranslatorWindows.ConvertToWindows(cbData, Guid.Empty));
         }
 
         #endregion

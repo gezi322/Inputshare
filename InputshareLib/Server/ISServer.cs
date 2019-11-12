@@ -1,4 +1,5 @@
-﻿using InputshareLib.Clipboard.DataTypes;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Displays;
 using InputshareLib.DragDrop;
 using InputshareLib.Input;
@@ -37,6 +38,7 @@ namespace InputshareLib.Server
         private readonly Cursor.CursorMonitorBase curMon;
         private readonly IDragDropManager dragDropMan;
         private readonly IOutputManager outMan;
+        private ClipboardManagerBase cbManager;
 
         private ISClientListener clientListener;
         private ClientManager clientMan;
@@ -67,18 +69,17 @@ namespace InputshareLib.Server
             curMon = dependencies.CursorMonitor;
             dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
-
+            cbManager = dependencies.ClipboardManager;
+            
             fileController = new FileAccessController();
             clientMan = new ClientManager(12);
             ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
-            cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
+            cbController = new GlobalClipboardController(clientMan, fileController, cbManager);
 
             cbController.GlobalCLipboardChanged += (object o, GlobalClipboardController.ClipboardOperation data) =>
             {
                 GlobalClipboardContentChanged?.Invoke(this, GetGlobalClipboardData());
             };
-
-            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
 
             AssignEvents();
         }
@@ -101,6 +102,7 @@ namespace InputshareLib.Server
 
                 InitUdp(port);
 
+                cbManager.Start();
                 StartInputManager();
                 StartDisplayManager();
                 StartCursorMonitor();
@@ -127,11 +129,6 @@ namespace InputshareLib.Server
             {
                 ISLogger.Write("Failed to bind UDP! " + ex.Message);
             }
-        }
-
-        private void SetClipboardData(ClipboardDataBase cbData)
-        {
-            inputMan.SetClipboardData(cbData);
         }
 
         private void StartClientListener(IPEndPoint bind)
@@ -210,6 +207,8 @@ namespace InputshareLib.Server
                     curMon.StopMonitoring();
                 if (dragDropMan.Running)
                     dragDropMan.Stop();
+                if (cbManager.Running)
+                    cbManager.Stop();
 
                 udpHost?.Dispose();
 

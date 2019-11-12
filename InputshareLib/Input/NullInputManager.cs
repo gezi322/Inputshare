@@ -15,12 +15,7 @@ namespace InputshareLib.Input
 
 #pragma warning disable CS0067
         public override event EventHandler<ISInputData> InputReceived;
-        public override event EventHandler<ClipboardDataBase> ClipboardDataChanged;
 #pragma warning restore CS0067
-        public override void SetClipboardData(ClipboardDataBase cbData)
-        {
-
-        }
 
         public override void SetInputBlocked(bool block)
         {
