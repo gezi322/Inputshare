@@ -13,7 +13,7 @@ namespace InputshareLib
         /// <summary>
         /// Max size  at which packets are split up before being sent
         /// </summary>
-        public const int NetworkMessageChunkSize = 1024*256; //256KB
+        public const int NetworkMessageChunkSize = 1024 * 256; //256KB
 
         /// <summary>
         /// Max size of a network message chunk ignoring size,type and ID bytes
@@ -33,6 +33,6 @@ namespace InputshareLib
         public const int SocketBufferSize = 1024 * 260; //260KB
 
         public static bool DEBUG_SPCONSOLEENABLED = false;
-        
+
     }
 }

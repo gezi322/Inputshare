@@ -1,6 +1,6 @@
 ﻿using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.DragDrop;
 using InputshareLib.Net;
+using InputshareLib.PlatformModules.DragDrop;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -12,11 +12,11 @@ namespace InputshareLib.Client
         internal DragDropOperation CurrentOperation { get; private set; }
 
         private readonly FileAccessController fileController;
-        private readonly IDragDropManager ddManager;
+        private readonly DragDropManagerBase ddManager;
         public ISClientSocket Server { get; set; }
         private Dictionary<Guid, DragDropOperation> previousOperations = new Dictionary<Guid, DragDropOperation>();
 
-        internal LocalDragDropController(FileAccessController fc, IDragDropManager dragDropManager)
+        internal LocalDragDropController(FileAccessController fc, DragDropManagerBase dragDropManager)
         {
             ddManager = dragDropManager;
             fileController = fc;
@@ -32,7 +32,7 @@ namespace InputshareLib.Client
         {
             ddManager.CancelDrop();
 
-            if(operationId == CurrentOperation.OperationId)
+            if (operationId == CurrentOperation.OperationId)
             {
                 fileController.DeleteToken(CurrentOperation.AssociatedAccessToken);
             }
@@ -128,7 +128,7 @@ namespace InputshareLib.Client
 
 
             ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
-            
+
 
             //We need to setup the virtual files if this is a file drop
             if (cbData is ClipboardVirtualFileData cbFiles)

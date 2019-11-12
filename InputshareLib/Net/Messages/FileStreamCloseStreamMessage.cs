@@ -19,7 +19,7 @@ namespace InputshareLib.Net.Messages
         {
             byte[] data = WritePacketInfo(this, 32);
             Buffer.BlockCopy(Token.ToByteArray(), 0, data, 21, 16);
-            Buffer.BlockCopy(FileId.ToByteArray(), 0, data, 21+16, 16);
+            Buffer.BlockCopy(FileId.ToByteArray(), 0, data, 21 + 16, 16);
             return data;
         }
 

@@ -2,7 +2,6 @@
 using InputshareLib.Input.Hotkeys;
 using System;
 using System.Net;
-using static InputshareLib.Displays.DisplayManagerBase;
 
 namespace InputshareLib.Server.API
 {

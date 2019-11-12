@@ -3,6 +3,7 @@ using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.IPC.AnonIpc;
+using InputshareLibWindows.PlatformModules.Clipboard;
 using System;
 using System.Diagnostics;
 using System.Text;

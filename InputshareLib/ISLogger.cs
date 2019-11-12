@@ -26,7 +26,7 @@ namespace InputshareLib
         private readonly static BlockingCollection<LogMessage> logWriteQueue;
         private readonly static object queueLock = new object();
         public static string LogFolder { get => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\sbarrac1\inputshare\"; }
-        
+
         static ISLogger()
         {
             SetLogFileName("Inputshare.log");
@@ -52,8 +52,9 @@ namespace InputshareLib
                     File.Create(LogFolder + fName).Dispose();
                 }
 
-                LogFilePath = LogFolder + "\\"+  fName;
-            }catch(Exception ex)
+                LogFilePath = LogFolder + "\\" + fName;
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine("ISLogger: Failed to set log file path: " + ex.Message);
             }
@@ -79,10 +80,10 @@ namespace InputshareLib
                         logWriteQueue.Add(new LogMessage(string.Format(message, args)));
                     }
                 }
-                
+
             }
             catch { logWriteQueue.Add(new LogMessage(message)); };
-            
+
         }
 
         private static void LogWriteLoop()
@@ -113,30 +114,31 @@ namespace InputshareLib
                     LogCount++;
 
                     if (EnableLogFile && LogFilePath != null)
-                        File.AppendAllText(LogFilePath, message+"\n");
+                        File.AppendAllText(LogFilePath, message + "\n");
 
-                    
+
 
                     LogMessageOut?.Invoke(null, message);
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
                 }
-               
+
             }
         }
 
         private static string GenerateParamaterString(ParameterInfo[] info)
         {
-            if(info == null || info.Length == 0)
+            if (info == null || info.Length == 0)
                 return "()";
 
             string paramsStr = "(";
-            for(int i = 0; i < info.Length; i++)
+            for (int i = 0; i < info.Length; i++)
             {
                 ParameterInfo current = info[i];
 
-                if(i == info.Length-1)
+                if (i == info.Length - 1)
                 {
                     paramsStr = paramsStr + current.ParameterType + " " + current.Name + ")";
                 }

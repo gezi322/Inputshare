@@ -26,9 +26,9 @@ namespace InputshareLib.Net.Messages
         public override byte[] ToBytes()
         {
             int msgLen = Encoding.UTF8.GetByteCount(ErrorMessage);
-            byte[] data = WritePacketInfo(this, 4+msgLen);
+            byte[] data = WritePacketInfo(this, 4 + msgLen);
             Buffer.BlockCopy(BitConverter.GetBytes(msgLen), 0, data, 21, 4);
-            Buffer.BlockCopy(Encoding.UTF8.GetBytes(ErrorMessage), 0, data, 21+4, msgLen);
+            Buffer.BlockCopy(Encoding.UTF8.GetBytes(ErrorMessage), 0, data, 21 + 4, msgLen);
             return data;
         }
         public string ErrorMessage { get; }

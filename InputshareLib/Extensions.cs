@@ -11,7 +11,7 @@ namespace InputshareLib
             if (!Directory.Exists(rootDir))
                 Directory.CreateDirectory(rootDir);
 
-            foreach(var rootFolder in data.RootDirectory.SubFolders)
+            foreach (var rootFolder in data.RootDirectory.SubFolders)
             {
                 if (!Directory.Exists(Path.Combine(rootDir, rootFolder.Name)))
                     Directory.CreateDirectory(Path.Combine(rootDir, rootFolder.Name));
@@ -20,7 +20,7 @@ namespace InputshareLib
                 {
                     File.Create(Path.Combine(rootDir, rootFolder.Name, file.FileName)).Dispose();
                 }
-                
+
             }
 
             WriteRecursive(data.RootDirectory, rootDir);
@@ -28,7 +28,7 @@ namespace InputshareLib
 
         private static void WriteRecursive(ClipboardVirtualFileData.DirectoryAttributes folder, string rootDir)
         {
-            foreach(var sub in folder.SubFolders)
+            foreach (var sub in folder.SubFolders)
             {
                 try
                 {
@@ -39,7 +39,8 @@ namespace InputshareLib
                         File.Create(Path.Combine(rootDir, file.RelativePath)).Dispose();
                         ISLogger.Write("Reading file " + file.RelativePath);
                     }
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     ISLogger.Write("Error writing folder " + sub.RelativePath + ": " + ex.Message);
                 }
@@ -47,8 +48,8 @@ namespace InputshareLib
                 {
                     WriteRecursive(sub, rootDir);
                 }
-                
-                
+
+
             }
         }
 
@@ -87,7 +88,8 @@ namespace InputshareLib
             Buffer.BlockCopy(BitConverter.GetBytes(insert), 0, data, index, 4);
         }
 
-        public static int ParseInt(this byte[] data, int index) {
+        public static int ParseInt(this byte[] data, int index)
+        {
             return BitConverter.ToInt32(data, index);
         }
 

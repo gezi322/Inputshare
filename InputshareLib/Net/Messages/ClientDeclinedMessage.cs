@@ -20,7 +20,7 @@ namespace InputshareLib.Net.Messages
         public override byte[] ToBytes()
         {
             int rLen = Settings.NetworkMessageTextEncoder.GetByteCount(Reason);
-            byte[] data = WritePacketInfo(this, rLen+4);
+            byte[] data = WritePacketInfo(this, rLen + 4);
             Buffer.BlockCopy(BitConverter.GetBytes(rLen), 0, data, 21, 4);
             Buffer.BlockCopy(Settings.NetworkMessageTextEncoder.GetBytes(Reason), 0, data, 25, rLen);
             return data;

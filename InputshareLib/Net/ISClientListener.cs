@@ -60,7 +60,8 @@ namespace InputshareLib.Net
             }
             catch (ObjectDisposedException)
             {
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("ISClientListener-> An error occurred while accepting client socket: {0}", ex.Message);
                 listener.BeginAcceptSocket(Listener_AcceptSocketCallback, null);
@@ -72,7 +73,7 @@ namespace InputshareLib.Net
             ISServerSocket client = sender as ISServerSocket;
             client.ConnectionError -= ClientSocket_ConnectionError;
             client.InitialInfoReceived -= ClientSoc_InitialInfoReceived;
-            if(e.ClientVer != Settings.InputshareVersion)
+            if (e.ClientVer != Settings.InputshareVersion)
             {
                 ISLogger.Write("Declining connection from {0}: version mismatch (server is running {1} | client is running {2}", e.Name, Settings.InputshareVersion, e.ClientVer);
                 client.DeclineClient(ISServerSocket.ClientDeclinedReason.VersionMismatch, e.ClientVer);
@@ -91,7 +92,7 @@ namespace InputshareLib.Net
             client.Dispose();
             client.ConnectionError -= ClientSocket_ConnectionError;
         }
-        
+
         public class ClientConnectedArgs
         {
             public ClientConnectedArgs(string clientName, Guid clientId, byte[] displayConfig, ISServerSocket socket)

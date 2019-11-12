@@ -6,8 +6,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using static InputshareLib.Displays.DisplayManagerBase;
-
 namespace InputshareLib.Server
 {
     /// <summary>
@@ -251,7 +249,8 @@ namespace InputshareLib.Server
         /// <param name="clientVer"></param>
         public void DeclineClient(ClientDeclinedReason reason, string clientVer = null)
         {
-            switch (reason) {
+            switch (reason)
+            {
                 case ClientDeclinedReason.DuplicateGuid:
                     SendMessage(new ClientDeclinedMessage("Guid in use"));
                     break;
@@ -296,15 +295,15 @@ namespace InputshareLib.Server
             base.HandleMessage(data);
             MessageType type = (MessageType)data[4];
 
-            if(type == MessageType.ClientInitialInfo)
+            if (type == MessageType.ClientInitialInfo)
             {
                 HandleInitialInfoMessage(new ClientInitialMessage(data));
             }
-            else if(type == MessageType.DisplayConfig)
+            else if (type == MessageType.DisplayConfig)
             {
                 HandleDisplayConfigMessage(new DisplayConfigMessage(data));
             }
-            else if(type >= MessageType.EdgeHitTop && type <= MessageType.EdgeHitLeft)
+            else if (type >= MessageType.EdgeHitTop && type <= MessageType.EdgeHitLeft)
             {
                 HandleEdgeHit(type);
             }
@@ -331,7 +330,8 @@ namespace InputshareLib.Server
         /// <param name="type"></param>
         private void HandleEdgeHit(MessageType type)
         {
-            switch (type){
+            switch (type)
+            {
                 case MessageType.EdgeHitLeft:
                     EdgeHit?.Invoke(this, Edge.Left);
                     break;
@@ -366,7 +366,7 @@ namespace InputshareLib.Server
             {
                 DisplayConfiguration = new DisplayConfig(message.DisplayConfig);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 HandleConnectionClosed("Invalid display data");
                 return;

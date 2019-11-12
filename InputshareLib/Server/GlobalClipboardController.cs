@@ -1,6 +1,6 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Clipboard.DataTypes;
+﻿using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Net;
+using InputshareLib.PlatformModules.Clipboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,11 +57,12 @@ namespace InputshareLib.Server
                 }
 
                 GlobalCLipboardChanged?.Invoke(this, currentOperation);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("Failed to set global clipboard data: " + ex.Message);
             }
-            
+
         }
 
         private async void SetClipboardFiles(ClipboardVirtualFileData cbFiles, ISServerSocket host, Guid operationId)
@@ -69,7 +70,7 @@ namespace InputshareLib.Server
             if (currentOperation != null && currentOperation.DataType == ClipboardDataType.File)
                 previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);
 
-            if(currentOperation != null && currentOperation.LocalhostAccessToken != Guid.Empty)
+            if (currentOperation != null && currentOperation.LocalhostAccessToken != Guid.Empty)
                 fileController.DeleteToken(currentOperation.LocalhostAccessToken);
 
             currentOperation = new ClipboardOperation(operationId, cbFiles.DataType, cbFiles, host);
@@ -95,7 +96,8 @@ namespace InputshareLib.Server
                 try
                 {
                     currentOperation.LocalhostAccessToken = await currentOperation.Host.RequestFileTokenAsync(operationId);
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     ISLogger.Write("GlobalClipboardController: Failed to get access token for clipboard content: " + ex.Message);
                     return;
@@ -109,7 +111,7 @@ namespace InputshareLib.Server
         {
             ClipboardOperation op = GetOperationFromId(operationId);
 
-            if(op == null)
+            if (op == null)
             {
                 ISLogger.Write("GlobalClipboardController: Error generating access token: operation not found");
                 return Guid.Empty;
@@ -126,7 +128,8 @@ namespace InputshareLib.Server
                 try
                 {
                     id = await op.Host.RequestFileTokenAsync(op.OperationId);
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     ISLogger.Write("GlobalClipboardController: Failed to get access token for operation: " + ex.Message);
                     return Guid.Empty;
@@ -137,7 +140,7 @@ namespace InputshareLib.Server
             return id;
         }
 
-        
+
         public ClipboardOperation GetOperationFromId(Guid operationId)
         {
             if (currentOperation?.OperationId == operationId)
@@ -174,7 +177,7 @@ namespace InputshareLib.Server
         {
 
             //All clients that are not localhost or the clipboard data host
-            foreach(var client in clientMan.AllClients.Where(i => i != currentOperation.Host && i != ISServerSocket.Localhost))
+            foreach (var client in clientMan.AllClients.Where(i => i != currentOperation.Host && i != ISServerSocket.Localhost))
             {
                 client.SendClipboardData(currentOperation.Data.ToBytes(), currentOperation.OperationId);
             }
@@ -184,10 +187,10 @@ namespace InputshareLib.Server
             {
                 cbManager.SetClipboardData(currentOperation.Data);
             }
-            
+
         }
 
-        
+
         private Guid GenerateLocalAccessTokenForOperation(ClipboardOperation operation)
         {
             if (operation.DataType != ClipboardDataType.File)

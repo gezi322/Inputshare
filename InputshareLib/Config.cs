@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Text;
 
 namespace InputshareLib
 {
@@ -16,11 +14,12 @@ namespace InputshareLib
             {
                 config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
                 config.Save();
-            }catch(ConfigurationErrorsException ex)
+            }
+            catch (ConfigurationErrorsException ex)
             {
                 ISLogger.Write("Config error: " + ex.Message);
             }
-            
+
         }
 
         public static string Read(ConfigProperty property)
@@ -44,8 +43,8 @@ namespace InputshareLib
                     return "";
                 }
             }
-           
-            
+
+
         }
 
         public static void Write(ConfigProperty property, string value)
@@ -65,8 +64,8 @@ namespace InputshareLib
                     ISLogger.Write("Config: Failed to write to config: " + ex.Message);
                 }
             }
-            
-            
+
+
         }
 
         public enum ConfigProperty

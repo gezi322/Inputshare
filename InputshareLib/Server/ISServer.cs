@@ -1,11 +1,13 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.Displays;
-using InputshareLib.DragDrop;
+﻿using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Net;
-using InputshareLib.Output;
+using InputshareLib.PlatformModules.Clipboard;
+using InputshareLib.PlatformModules.Cursor;
+using InputshareLib.PlatformModules.Displays;
+using InputshareLib.PlatformModules.DragDrop;
+using InputshareLib.PlatformModules.Input;
+using InputshareLib.PlatformModules.Output;
 using InputshareLib.Server.API;
 using System;
 using System.Diagnostics;
@@ -33,11 +35,11 @@ namespace InputshareLib.Server
 
 
         //OS dependant classes/interfaces
-        private readonly Displays.DisplayManagerBase displayMan;
+        private readonly DisplayManagerBase displayMan;
         private readonly InputManagerBase inputMan;
-        private readonly Cursor.CursorMonitorBase curMon;
-        private readonly IDragDropManager dragDropMan;
-        private readonly IOutputManager outMan;
+        private readonly CursorMonitorBase curMon;
+        private readonly DragDropManagerBase dragDropMan;
+        private readonly OutputManagerBase outMan;
         private ClipboardManagerBase cbManager;
 
         private ISClientListener clientListener;
@@ -70,7 +72,7 @@ namespace InputshareLib.Server
             dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
             cbManager = dependencies.ClipboardManager;
-            
+
             fileController = new FileAccessController();
             clientMan = new ClientManager(12);
             ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
@@ -125,7 +127,8 @@ namespace InputshareLib.Server
             try
             {
                 udpHost = new ISUdpServer(clientMan, port);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("Failed to bind UDP! " + ex.Message);
             }
@@ -151,14 +154,15 @@ namespace InputshareLib.Server
 
         private void StartCursorMonitor()
         {
-            curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
+            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
+            curMon.Start();
         }
 
         private void StartDisplayManager()
         {
             displayMan.UpdateConfigManual();
             ISServerSocket.Localhost.DisplayConfiguration = displayMan.CurrentConfig;
-            displayMan.StartMonitoring();
+            displayMan.Start();
         }
 
         private void AssignEvents()
@@ -202,9 +206,9 @@ namespace InputshareLib.Server
                 if (inputMan.Running)
                     inputMan.Stop();
                 if (displayMan.Running)
-                    displayMan.StopMonitoring();
+                    displayMan.Stop();
                 if (curMon.Running)
-                    curMon.StopMonitoring();
+                    curMon.Stop();
                 if (dragDropMan.Running)
                     dragDropMan.Stop();
                 if (cbManager.Running)
@@ -215,7 +219,7 @@ namespace InputshareLib.Server
                 ISLogger.Write("Server: server stopped.");
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ISLogger.Write("An error occurred while stopping server: " + ex.Message);
                 ISLogger.Write(ex.StackTrace);
@@ -241,7 +245,7 @@ namespace InputshareLib.Server
 
             ISServerSocket client = clientMan.GetClientById(targetClient);
 
-            if(client == null)
+            if (client == null)
             {
                 ISLogger.Write("Server: Failed to switch to client: client not found");
                 return;
@@ -254,7 +258,7 @@ namespace InputshareLib.Server
 
             //We dont care where the local cursor position is 
             if (curMon.Running)
-                curMon.StopMonitoring();
+                curMon.Stop();
 
             client.NotifyActiveClient(true);
             inputClient = client;
@@ -289,8 +293,7 @@ namespace InputshareLib.Server
             //enable local input
             inputMan.SetInputBlocked(false);
 
-            if (!curMon.Running)
-                curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
+            StartCursorMonitor();
 
 
             clientSwitchTimer.Restart();
@@ -310,7 +313,7 @@ namespace InputshareLib.Server
             if (clientA == null || clientB == null)
                 throw new ArgumentNullException("client was null");
 
-            if(clientA.ClientName == clientB.ClientName)
+            if (clientA.ClientName == clientB.ClientName)
             {
                 throw new ArgumentException("Cannot set X sideof X");
             }
@@ -326,7 +329,7 @@ namespace InputshareLib.Server
 
         private void InputMan_InputReceived(object sender, ISInputData input)
         {
-            if(inputClient != ISServerSocket.Localhost)
+            if (inputClient != ISServerSocket.Localhost)
             {
                 if (inputClient.IsConnected)
                 {
@@ -374,9 +377,9 @@ namespace InputshareLib.Server
             {
                 Stop();
             }
-            else if(e == Hotkeyfunction.SendSas)
+            else if (e == Hotkeyfunction.SendSas)
             {
-                if(!inputClient.IsLocalhost)
+                if (!inputClient.IsLocalhost)
                     inputClient.SendInputData(new ISInputData(ISInputCode.IS_SENDSAS, 0, 0).ToBytes());
             }
         }
@@ -445,7 +448,7 @@ namespace InputshareLib.Server
             client.DisplayConfiguration = new DisplayConfig(e.DisplayConfig);
             client.AcceptClient();
 
-            if(udpHost.SocketBound)
+            if (udpHost.SocketBound)
                 udpHost.InitClient(client);
 
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
@@ -492,7 +495,7 @@ namespace InputshareLib.Server
                     //if localhost is not the host of the dragdrop operation, we need to get data from whichever client has the files
                     if (!ddOperation.Host.IsLocalhost)
                     {
-                        await ReplyWithExternalFileDataAsync(client, ddOperation.Host, args.NetworkMessageId , args.Token, args.File, args.ReadLen);
+                        await ReplyWithExternalFileDataAsync(client, ddOperation.Host, args.NetworkMessageId, args.Token, args.File, args.ReadLen);
                         return;
                     }
                 }
@@ -504,7 +507,7 @@ namespace InputshareLib.Server
                 Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
                 client.SendReadRequestResponse(args.NetworkMessageId, resizedBuffer);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 client.SendFileErrorResponse(args.NetworkMessageId, ex.Message);
             }
@@ -527,7 +530,7 @@ namespace InputshareLib.Server
                 byte[] fileData = await host.RequestReadStreamAsync(token, fileId, readLen);
                 client.SendReadRequestResponse(networkMessageId, fileData);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 //let the client know that the read failed
                 client.SendFileErrorResponse(networkMessageId, ex.Message);
@@ -541,7 +544,7 @@ namespace InputshareLib.Server
         /// <param name="args"></param>
         private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs args)
         {
-            if(!fileController.CloseStream(args.Token, args.File))
+            if (!fileController.CloseStream(args.Token, args.File))
             {
                 //If the filecontroller can't find the file ID, dragdropcontroller needs to check 
                 //if an external client owns the access token
@@ -559,17 +562,17 @@ namespace InputshareLib.Server
             ISServerSocket client = sender as ISServerSocket;
 
             //If the specified operation is the current dragdrop operation
-            if(args.FileGroupId == ddController.CurrentOperation?.OperationId)
+            if (args.FileGroupId == ddController.CurrentOperation?.OperationId)
             {
                 //If operation host is localhost
-                if(ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && ddController.CurrentOperation.Host.IsLocalhost)
+                if (ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && ddController.CurrentOperation.Host.IsLocalhost)
                 {
                     client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
                     ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
                     return;
                 }
                 //If the operation host is another client
-                else if(ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && !ddController.CurrentOperation.Host.IsLocalhost)
+                else if (ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && !ddController.CurrentOperation.Host.IsLocalhost)
                 {
                     client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
                     ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
@@ -581,7 +584,7 @@ namespace InputshareLib.Server
                 //check if the operation a clipboard file operation
                 var cbOperation = cbController.GetOperationFromId(args.FileGroupId);
 
-                if(cbOperation == null)
+                if (cbOperation == null)
                 {
                     ISLogger.Write("Server: Denied {0} request to access files that are not part of an operation", client.ClientName);
                     client.SendFileErrorResponse(args.NetworkMessageId, "Operation not found");
@@ -590,7 +593,7 @@ namespace InputshareLib.Server
 
                 Guid token = await cbController.GenerateAccessToken(cbOperation.OperationId);
 
-                if(token == Guid.Empty)
+                if (token == Guid.Empty)
                 {
                     client.SendFileErrorResponse(args.NetworkMessageId, "Failed to generate token");
                     return;
@@ -648,7 +651,7 @@ namespace InputshareLib.Server
 
         private void RemoveClientFromEdges(ISServerSocket client)
         {
-            foreach(var c in clientMan.AllClients.ToArray())
+            foreach (var c in clientMan.AllClients.ToArray())
             {
                 if (c == client)
                     continue;
@@ -698,7 +701,7 @@ namespace InputshareLib.Server
         {
             ClientInfo[] info = new ClientInfo[clientMan.ClientCount];
             int index = 0;
-            foreach(var client in clientMan.AllClients)
+            foreach (var client in clientMan.AllClients)
             {
                 info[index] = GenerateClientInfo(client, true);
                 index++;
@@ -778,7 +781,7 @@ namespace InputshareLib.Server
 
         private ClientInfo GenerateClientInfo(ISServerSocket client, bool includeEdges = false)
         {
-            if(client == ISServerSocket.Localhost)
+            if (client == ISServerSocket.Localhost)
             {
                 return GenerateLocalhostInfo();
             }

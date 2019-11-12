@@ -1,9 +1,9 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Cursor;
-using InputshareLib.Displays;
-using InputshareLib.DragDrop;
-using InputshareLib.Input;
-using InputshareLib.Output;
+﻿using InputshareLib.PlatformModules.Clipboard;
+using InputshareLib.PlatformModules.Cursor;
+using InputshareLib.PlatformModules.Displays;
+using InputshareLib.PlatformModules.DragDrop;
+using InputshareLib.PlatformModules.Input;
+using InputshareLib.PlatformModules.Output;
 
 namespace InputshareLib.Server
 {
@@ -15,8 +15,8 @@ namespace InputshareLib.Server
         public DisplayManagerBase DisplayManager { get; set; }
         public InputManagerBase InputManager { get; set; }
         public CursorMonitorBase CursorMonitor { get; set; }
-        public IDragDropManager DragDropManager { get; set; }
-        public IOutputManager OutputManager { get; set; }
+        public DragDropManagerBase DragDropManager { get; set; }
+        public OutputManagerBase OutputManager { get; set; }
         public ClipboardManagerBase ClipboardManager { get; set; }
     }
 }

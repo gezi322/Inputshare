@@ -31,10 +31,10 @@ namespace InputshareLib.Net.Messages
 
         public override byte[] ToBytes()
         {
-            byte[] data = WritePacketInfo(this, 16 +16+ 4);
+            byte[] data = WritePacketInfo(this, 16 + 16 + 4);
             Buffer.BlockCopy(Token.ToByteArray(), 0, data, 21, 16);
-            Buffer.BlockCopy(FileRequestId.ToByteArray(), 0, data, 21+16, 16);
-            Buffer.BlockCopy(BitConverter.GetBytes(ReadSize), 0, data, 21+16 + 16, 4);
+            Buffer.BlockCopy(FileRequestId.ToByteArray(), 0, data, 21 + 16, 16);
+            Buffer.BlockCopy(BitConverter.GetBytes(ReadSize), 0, data, 21 + 16 + 16, 4);
             return data;
         }
     }

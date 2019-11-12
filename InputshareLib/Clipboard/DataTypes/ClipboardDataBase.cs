@@ -14,7 +14,8 @@ namespace InputshareLib.Clipboard.DataTypes
         {
             ClipboardDataType type = (ClipboardDataType)data[0];
 
-            switch (type) {
+            switch (type)
+            {
                 case ClipboardDataType.File:
                     return new ClipboardVirtualFileData(data);
                 case ClipboardDataType.Image:
@@ -24,7 +25,7 @@ namespace InputshareLib.Clipboard.DataTypes
                 default:
                     throw new ArgumentException("Invalid clipboard data");
             }
-            
+
         }
     }
 }

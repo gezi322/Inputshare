@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 
 namespace InputshareLib
 {
@@ -9,7 +6,7 @@ namespace InputshareLib
     {
         public static void PrintMemoryUsage()
         {
-            
+
             using (Process proc = Process.GetCurrentProcess())
             {
                 using (PerformanceCounter pc = new PerformanceCounter())
@@ -17,7 +14,7 @@ namespace InputshareLib
                     pc.CategoryName = "Process";
                     pc.CounterName = "Working Set - Private";
                     pc.InstanceName = proc.ProcessName;
-                    ISLogger.Write("Memory usage: " + proc.WorkingSet64/1024/1024 + "MB");
+                    ISLogger.Write("Memory usage: " + proc.WorkingSet64 / 1024 / 1024 + "MB");
                 }
             }
         }

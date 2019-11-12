@@ -1,16 +1,18 @@
 ﻿using InputshareLib.Client;
 using InputshareLib.Clipboard;
-using InputshareLib.Cursor;
 using InputshareLib.Displays;
-using InputshareLib.DragDrop;
 using InputshareLib.Server;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.Cursor;
 using InputshareLibWindows.Displays;
-using InputshareLibWindows.DragDrop;
-using InputshareLibWindows.Input;
 using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.Output;
+using InputshareLibWindows.PlatformModules.Clipboard;
+using InputshareLibWindows.PlatformModules.Cursor;
+using InputshareLibWindows.PlatformModules.Displays;
+using InputshareLibWindows.PlatformModules.DragDrop;
+using InputshareLibWindows.PlatformModules.Input;
+using InputshareLibWindows.PlatformModules.Output;
 
 namespace InputshareLibWindows
 {

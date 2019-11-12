@@ -27,7 +27,7 @@ namespace InputshareLib
 
             public AccessToken(Guid tokenId, Guid[] allowedFiles, string[] allowedFileSources, int timeout)
             {
-                if(timeout != 0)
+                if (timeout != 0)
                 {
                     timeoutValue = timeout;
                     timeoutStopwatch = new Stopwatch();
@@ -39,12 +39,12 @@ namespace InputshareLib
                     readTimeoutTimer.Start();
                 }
 
-                
+
 
                 TokenId = tokenId;
                 AllowedFiles = allowedFiles;
 
-                for(int i = 0; i < allowedFiles.Length; i++)
+                for (int i = 0; i < allowedFiles.Length; i++)
                 {
                     fileSourceDictionary.Add(allowedFiles[i], allowedFileSources[i]);
                 }
@@ -53,7 +53,7 @@ namespace InputshareLib
             private void ReadTimeoutTimer_Elapsed(object sender, ElapsedEventArgs e)
             {
                 //If this token has not been access in the past 10 seconds, close all streams.
-                if(timeoutStopwatch.ElapsedMilliseconds > timeoutValue)
+                if (timeoutStopwatch.ElapsedMilliseconds > timeoutValue)
                 {
                     CloseAllStreams();
                 }
@@ -61,7 +61,7 @@ namespace InputshareLib
 
             public void CloseAllStreams()
             {
-                foreach(var stream in openFileStreams)
+                foreach (var stream in openFileStreams)
                 {
                     stream.Value.Dispose();
                 }
@@ -88,14 +88,14 @@ namespace InputshareLib
                 {
                     int read = stream.Read(buffer, offset, readLen);
 
-                    if(stream.Position == stream.Length)
+                    if (stream.Position == stream.Length)
                         CloseStream(file);
 
                     return read;
                 }
                 else
                 {
-                    if(fileSourceDictionary.TryGetValue(file, out string source))
+                    if (fileSourceDictionary.TryGetValue(file, out string source))
                     {
                         FileStream fs = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
                         //ISLogger.Write("Debug: Filestream created for " + source);
@@ -123,10 +123,10 @@ namespace InputshareLib
                 }
                 else
                 {
-                    if(fileSourceDictionary.TryGetValue(file, out string source))
+                    if (fileSourceDictionary.TryGetValue(file, out string source))
                     {
                         FileStream fs = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-                       // ISLogger.Write("Debug: Filestream created for " + source);
+                        // ISLogger.Write("Debug: Filestream created for " + source);
                         openFileStreams.Add(file, fs);
                         return fs.Seek(offset, origin);
                     }
@@ -178,7 +178,8 @@ namespace InputshareLib
 
         public int ReadStream(Guid token, Guid file, byte[] buffer, int offset, int readLen)
         {
-            if(currentAccessTokens.TryGetValue(token, out AccessToken access)){
+            if (currentAccessTokens.TryGetValue(token, out AccessToken access))
+            {
                 int r = access.ReadFile(file, buffer, offset, readLen);
                 return r;
             }
@@ -187,7 +188,7 @@ namespace InputshareLib
                 ISLogger.Write("FileAccessController: Token not found");
                 throw new TokenNotFoundException();
             }
-            
+
         }
 
         public long SeekStream(Guid token, Guid file, SeekOrigin origin, long offset)
@@ -209,7 +210,7 @@ namespace InputshareLib
 
         public bool CloseStream(Guid token, Guid file)
         {
-            if(currentAccessTokens.TryGetValue(token, out AccessToken access))
+            if (currentAccessTokens.TryGetValue(token, out AccessToken access))
             {
                 access.CloseStream(file);
                 return true;
@@ -224,7 +225,7 @@ namespace InputshareLib
             {
                 currentAccessTokens.TryGetValue(token, out AccessToken access);
 
-                if(access == null)
+                if (access == null)
                 {
                     ISLogger.Write("FileAccessController: Could not delete access token: Access token was null");
                     return;

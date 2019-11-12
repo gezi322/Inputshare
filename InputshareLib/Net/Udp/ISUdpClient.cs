@@ -1,10 +1,6 @@
-﻿using InputshareLib.Input;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 
 namespace InputshareLib.Net.Udp
 {
@@ -48,7 +44,7 @@ namespace InputshareLib.Net.Udp
                 Buffer.BlockCopy(readBuff, 1, dg, 0, bytesIn);
 
                 HandleDatagram((UdpMessageType)readBuff[0], dg);
-                
+
                 udpSocket.BeginReceiveFrom(readBuff, 0, readBuff.Length, 0, ref _ep, SocketReceiveFromCallback, null);
             }
             catch (Exception ex)

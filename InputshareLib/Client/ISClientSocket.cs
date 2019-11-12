@@ -217,14 +217,17 @@ namespace InputshareLib.Client
             {
                 ActiveClientChanged?.Invoke(this, true);
                 return;
-            }else if(type == MessageType.ClientInactive)
+            }
+            else if (type == MessageType.ClientInactive)
             {
                 ActiveClientChanged?.Invoke(this, false);
                 return;
-            }else if(type == MessageType.ClientEdgeStates)
+            }
+            else if (type == MessageType.ClientEdgeStates)
             {
                 HandleEdgesChangedMessage(new ClientEdgesStateMessage(data));
-            }else if(type == MessageType.CancelAnyDragDrop)
+            }
+            else if (type == MessageType.CancelAnyDragDrop)
             {
                 CancelAnyDragDrop?.Invoke(this, null);
             }

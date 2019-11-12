@@ -24,8 +24,8 @@ namespace InputshareLib.Net.Messages
 
         public override byte[] ToBytes()
         {
-            byte[] data = WritePacketInfo(this, 16 + 4+ReadData.Length);
-            Buffer.BlockCopy(BitConverter.GetBytes(ReadData.Length), 0, data, 21 , 4);
+            byte[] data = WritePacketInfo(this, 16 + 4 + ReadData.Length);
+            Buffer.BlockCopy(BitConverter.GetBytes(ReadData.Length), 0, data, 21, 4);
             Buffer.BlockCopy(ReadData, 0, data, 21 + 4, ReadData.Length);
             return data;
         }

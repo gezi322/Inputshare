@@ -13,7 +13,7 @@
 
         public override bool Equals(object obj)
         {
-            if(obj is Hotkey hk)
+            if (obj is Hotkey hk)
                 return (hk.Key == Key && hk.Modifiers == Modifiers);
             else
                 return false;

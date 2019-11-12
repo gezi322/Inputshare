@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <Configurations>WindowsRelease;WindowsDebug</Configurations>
+    <Platforms>x86; x64</Platforms>
+
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
+    <OutputPath>..\builds_windows\debug64</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x86'">
+    <OutputPath>..\builds_windows\debug32</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x86'">
+    <OutputPath>..\builds_windows\release32</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x64'">
+    <OutputPath>..\builds_windows\release64</OutputPath>
+  </PropertyGroup>
+</Project>

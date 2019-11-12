@@ -1,5 +1,6 @@
 ﻿using InputshareLib;
 using InputshareLibWindows.Clipboard;
+using InputshareLibWindows.PlatformModules.Clipboard;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
