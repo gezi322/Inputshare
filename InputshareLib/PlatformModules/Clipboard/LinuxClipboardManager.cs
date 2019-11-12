@@ -15,8 +15,6 @@ namespace InputshareLib.PlatformModules.Clipboard
     {
         private ClipboardDataBase copiedData;
 
-        private X11ErrorDelegate errorHandler;
-
         private byte[] incrBuff;
         private int incrBuffIndex = 0;
 
@@ -40,7 +38,6 @@ namespace InputshareLib.PlatformModules.Clipboard
         public LinuxClipboardManager(SharedXConnection xCon)
         {
             xConnection = xCon;
-
         }
 
         private void XConnection_EventArrived(XEvent evt)

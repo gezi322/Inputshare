@@ -24,11 +24,11 @@ namespace InputshareLib.Server
         {
             return new ISServerDependencies()
             {
-                ClipboardManager = new NullClipboardManager(),
+                ClipboardManager = new LinuxClipboardManager(xCon),
                 CursorMonitor = new LinuxCursorMonitor(xCon),
                 DisplayManager = new LinuxDisplayManager(xCon),
                 DragDropManager = new NullDragDropManager(),
-                InputManager = new NullInputManager(),
+                InputManager = new LinuxInputManager(xCon),
                 OutputManager = new LinuxOutputManager(xCon),
             };
         }

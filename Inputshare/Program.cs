@@ -11,7 +11,7 @@ namespace Inputshare
 {
     class Program
     {
-        private const string address = "192.168.0.12";
+        private const string address = "192.168.0.8";
         private const int port = 4441;
         private const string clientName = "LinuxDevTest";
 
