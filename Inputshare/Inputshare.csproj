@@ -10,7 +10,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
     <OutputPath>..\builds_windows\debug64</OutputPath>
-    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x86'">
     <OutputPath>..\builds_windows\debug32</OutputPath>

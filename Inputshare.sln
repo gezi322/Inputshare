@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLib", "Inputshare
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLibWindows", "InputshareLibWindows\InputshareLibWindows.csproj", "{46921911-92C7-407B-8CC2-9248CACABC62}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareWindows", "InputshareWindows\InputshareWindows.csproj", "{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareService", "InputshareService\InputshareService.csproj", "{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareSP", "InputshareSP\InputshareSP.csproj", "{282F2139-D231-4350-B447-4B6A4B73539E}"
@@ -39,14 +37,6 @@ Global
 		{46921911-92C7-407B-8CC2-9248CACABC62}.WindowsRelease|x64.Build.0 = WindowsRelease|x64
 		{46921911-92C7-407B-8CC2-9248CACABC62}.WindowsRelease|x86.ActiveCfg = WindowsRelease|x86
 		{46921911-92C7-407B-8CC2-9248CACABC62}.WindowsRelease|x86.Build.0 = WindowsRelease|x86
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsDebug|x64.ActiveCfg = WindowsDebug|x64
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsDebug|x64.Build.0 = WindowsDebug|x64
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsDebug|x86.ActiveCfg = WindowsDebug|x86
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsDebug|x86.Build.0 = WindowsDebug|x86
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsRelease|x64.ActiveCfg = WindowsRelease|x64
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsRelease|x64.Build.0 = WindowsRelease|x64
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsRelease|x86.ActiveCfg = WindowsRelease|x86
-		{A6E5A0FF-BA2D-4C90-85FB-3C94A7776EDB}.WindowsRelease|x86.Build.0 = WindowsRelease|x86
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.WindowsDebug|x64.ActiveCfg = WindowsDebug|x64
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.WindowsDebug|x64.Build.0 = WindowsDebug|x64
 		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.WindowsDebug|x86.ActiveCfg = WindowsDebug|x86
