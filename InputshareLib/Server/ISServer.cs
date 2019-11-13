@@ -4,7 +4,6 @@ using InputshareLib.Input.Hotkeys;
 using InputshareLib.Input.Keys;
 using InputshareLib.Net;
 using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Cursor;
 using InputshareLib.PlatformModules.Displays;
 using InputshareLib.PlatformModules.DragDrop;
 using InputshareLib.PlatformModules.Input;
@@ -39,7 +38,6 @@ namespace InputshareLib.Server
         //OS dependant classes/interfaces
         private readonly DisplayManagerBase displayMan;
         private readonly InputManagerBase inputMan;
-        private readonly CursorMonitorBase curMon;
         private readonly DragDropManagerBase dragDropMan;
         private readonly OutputManagerBase outMan;
         private ClipboardManagerBase cbManager;
@@ -70,7 +68,6 @@ namespace InputshareLib.Server
         {
             displayMan = dependencies.DisplayManager;
             inputMan = dependencies.InputManager;
-            curMon = dependencies.CursorMonitor;
             dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
             cbManager = dependencies.ClipboardManager;
@@ -105,10 +102,8 @@ namespace InputshareLib.Server
                 clientListener.ClientConnected += ClientListener_ClientConnected;
 
                 InitUdp(port);
-                //Race condition between cursor and display managers
                 StartDisplayManager();
                 StartInputManager();
-                StartCursorMonitor();
                 dragDropMan.Start();
 
                 clientMan.AddClient(ISServerSocket.Localhost);
@@ -154,12 +149,6 @@ namespace InputshareLib.Server
             ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
         }
 
-        private void StartCursorMonitor()
-        {
-            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
-            curMon.Start();
-        }
-
         private void StartDisplayManager()
         {
             displayMan.UpdateConfigManual();
@@ -170,7 +159,7 @@ namespace InputshareLib.Server
         private void AssignEvents()
         {
             displayMan.DisplayConfigChanged += DisplayMan_DisplayConfigChanged;
-            curMon.EdgeHit += CurMon_EdgeHit;
+            displayMan.EdgeHit += DisplayMan_EdgeHit;
             inputMan.InputReceived += InputMan_InputReceived;
             inputMan.ClientHotkeyPressed += InputMan_ClientHotkeyPressed;
             inputMan.FunctionHotkeyPressed += InputMan_FunctionHotkeyPressed;
@@ -209,12 +198,12 @@ namespace InputshareLib.Server
                     inputMan.Stop();
                 if (displayMan.Running)
                     displayMan.Stop();
-                if (curMon.Running)
-                    curMon.Stop();
                 if (dragDropMan.Running)
                     dragDropMan.Stop();
                 if (cbManager.Running)
                     cbManager.Stop();
+                if (outMan.Running)
+                    outMan.Stop();
 
                 udpHost?.Dispose();
 
@@ -258,10 +247,6 @@ namespace InputshareLib.Server
             //from localhost
             ISServerSocket oldClient = inputClient;
 
-            //We dont care where the local cursor position is 
-            if (curMon.Running)
-                curMon.Stop();
-
             client.NotifyActiveClient(true);
             inputClient = client;
 
@@ -294,9 +279,6 @@ namespace InputshareLib.Server
 
             //enable local input
             inputMan.SetInputBlocked(false);
-
-            StartCursorMonitor();
-
 
             clientSwitchTimer.Restart();
             ddController.HandleClientSwitch(inputClient, oldClient);
@@ -348,7 +330,7 @@ namespace InputshareLib.Server
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void CurMon_EdgeHit(object sender, Edge e)
+        private void DisplayMan_EdgeHit(object sender, Edge e)
         {
             if (inputClient != ISServerSocket.Localhost)
                 return;

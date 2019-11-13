@@ -12,10 +12,18 @@ namespace InputshareLib.PlatformModules.Displays
 
         public event EventHandler<DisplayConfig> DisplayConfigChanged;
 
+        public event EventHandler<Edge> EdgeHit;
+
         protected void OnConfigUpdated(DisplayConfig newConfig)
         {
             ISLogger.Write("DisplayManagerBase: Display config updated. ({0})", newConfig.VirtualBounds);
             DisplayConfigChanged?.Invoke(this, newConfig);
+        }
+
+        protected void OnEdgeHit(Edge edge)
+        {
+            ISLogger.Write("{0}: Edge {1} hit", ModuleName, edge);
+            EdgeHit?.Invoke(this, edge);
         }
 
         public static byte[] NullConfig

@@ -88,9 +88,7 @@ namespace InputshareLib.PlatformModules.Clipboard
         protected override void OnStart()
         {
             InitWindow();
-            xConnection.EventArrived += XConnection_EventArrived;
-            ISLogger.Write("{0}: Window created! {1}", ModuleName, xWindow.ToString());
-        }
+            xConnection.EventArrived += XConnection_EventArrived;        }
 
         protected override void OnStop()
         {
@@ -138,11 +136,9 @@ namespace InputshareLib.PlatformModules.Clipboard
                 ISLogger.Write("Owner set");
         }
 
-        int p = 0;
+
         private void InitWindow()
         {
-            Random r = new Random();
-            p = r.Next(0, int.MaxValue);
             InitAtoms();
             xWindow = XCreateSimpleWindow(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
             XFlush(xConnection.XDisplay);
@@ -151,7 +147,6 @@ namespace InputshareLib.PlatformModules.Clipboard
             XSelectInput(xConnection.XDisplay, xWindow, EventMask.PropertyChangeMask);
             XFlush(xConnection.XDisplay);
             XStoreName(xConnection.XDisplay, xWindow, "InputshareWindow");
-            ISLogger.Write("{0}: Window created! {1} ({2})", ModuleName, xWindow.ToString(), p);
         }
 
         private void HandlePropertyChange(XPropertyEvent evt)

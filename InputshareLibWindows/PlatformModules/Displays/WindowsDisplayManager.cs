@@ -1,4 +1,5 @@
-﻿using InputshareLib.Displays;
+﻿using InputshareLib;
+using InputshareLib.Displays;
 using InputshareLib.PlatformModules.Displays;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace InputshareLibWindows.PlatformModules.Displays
     {
         private byte[] currentRawConfig = new byte[0];
         private System.Threading.Timer displayUpdateTimer;
-
+        private System.Threading.Timer cursorUpdateTimer;
         public WindowsDisplayManager()
         {
             UpdateConfigManual();
@@ -23,16 +24,32 @@ namespace InputshareLibWindows.PlatformModules.Displays
         protected override void OnStart()
         {
             displayUpdateTimer = new System.Threading.Timer(UpdateTimerCallback, null, 0, 1500);
+            cursorUpdateTimer = new System.Threading.Timer(CursorTimerCallback, null, 0, 50);
         }
 
         protected override void OnStop()
         {
+            cursorUpdateTimer?.Dispose();
             displayUpdateTimer.Dispose();
         }
 
         private void UpdateTimerCallback(object sync)
         {
             CheckForUpdate();
+        }
+
+        private void CursorTimerCallback(object state)
+        {
+            GetCursorPos(out POINT ptn);
+
+            if (ptn.X == CurrentConfig.VirtualBounds.Left)
+                OnEdgeHit(Edge.Left);
+            else if (ptn.X == CurrentConfig.VirtualBounds.Right - 1)
+                OnEdgeHit(Edge.Right);
+            else if (ptn.Y == CurrentConfig.VirtualBounds.Top)
+                OnEdgeHit(Edge.Top);
+            else if (ptn.Y == CurrentConfig.VirtualBounds.Bottom - 1)
+                OnEdgeHit(Edge.Bottom);
         }
 
         public void CheckForUpdate()

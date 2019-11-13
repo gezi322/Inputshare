@@ -154,6 +154,10 @@ namespace InputshareLib.Linux.Native
 
         [DllImport("libXtst.so.6")]
         public static extern int XTestFakeMotionEvent(IntPtr display, int screenNumber, int x, int y, uint delay);
+
+        [DllImport("libXtst.so.6")]
+        public static extern int XGrabKey(IntPtr display, int keyCode, uint mask, IntPtr window, bool owner_events, int pointerMode, int keyboardMode);
+
         [DllImport("libXtst.so.6")]
         public static extern int XGrabKeyboard(IntPtr display,
         IntPtr grab_window,

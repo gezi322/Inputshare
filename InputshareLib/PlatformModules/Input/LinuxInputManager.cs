@@ -37,7 +37,6 @@ namespace InputshareLib.PlatformModules.Input
         private bool _stopGrab = false;
 
         private SharedXConnection xConnection;
-        private IntPtr xWindow;
 
         private EventMask anyMotionMask = EventMask.Button1MotionMask | EventMask.Button2MotionMask | EventMask.Button3MotionMask | EventMask.Button4MotionMask
                 | EventMask.Button5MotionMask | EventMask.ButtonMotionMask | EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.PointerMotionMask;
@@ -60,35 +59,20 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnStart()
         {
-            wndThread = new Thread(WindowThread);
-            wndThread.Start();
-
-            if (!windowCreateEvent.WaitOne(2000))
-                throw new XLibException("Timed out waiting for window create event");
-
+            Init();
         }
 
         protected override void OnStop()
         {
-            XDestroyWindow(xConnection.XRootWindow, xWindow);
         }
 
-        private void WindowThread()
+        private void Init()
         {
             atomGrab = XInternAtom(xConnection.XDisplay, "ISGrab", false);
             atomUngrab = XInternAtom(xConnection.XDisplay, "ISUngrab", false);
             atomIgnoreNext = XInternAtom(xConnection.XDisplay, "ISIgnoreNext", false);
-            XSetWindowAttributes attribs = new XSetWindowAttributes();
-            attribs.event_mask = anyMotionMask | EventMask.PropertyChangeMask;
-            xWindow = XCreateWindow(xConnection.XDisplay, xConnection.XRootWindow, 0, 0, 100, 100, 0, 0, XWindowType.InputOnly, IntPtr.Zero, IntPtr.Zero, ref attribs);
-            XStoreName(xConnection.XDisplay, xWindow, "ISInputWindow");
-            //xWindow = XCreateSimpleWindow(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), 0, 0, 100, 100, 20, UIntPtr.Zero, UIntPtr.Zero);
-            //XFlush(xConnection.XDisplay);
 
-            XSelectInput(xConnection.XDisplay, xWindow, EventMask.PropertyChangeMask | anyMotionMask | EventMask.ExposureMask | EventMask.StructureNotifyMask);
-            ISLogger.Write("Window created");
-
-            windowCreateEvent.WaitOne();
+            XGrabKey(xConnection.XDisplay, (int)LinuxKeyCode.O, 0, xConnection.XRootWindow, false, 1, 1);
 
             xConnection.EventArrived += XConnection_EventArrived;
         }
@@ -169,8 +153,8 @@ namespace InputshareLib.PlatformModules.Input
             _evt.type = XEventName.ClientMessage;
             _evt.ClientMessageEvent.ptr1 = atomIgnoreNext;
             _evt.ClientMessageEvent.format = 32;
-            _evt.ClientMessageEvent.window = xWindow;
-            XSendEvent(xConnection.XDisplay, xWindow, true, 0, ref _evt);
+            _evt.ClientMessageEvent.window = xConnection.XRootWindow;
+            XSendEvent(xConnection.XDisplay, xConnection.XRootWindow, true, 0, ref _evt);
 
             XFlush(xConnection.XDisplay);
 
@@ -283,11 +267,17 @@ namespace InputshareLib.PlatformModules.Input
 
         private void InvokeGrabInput(bool grab)
         {
-            if (grab)
-                XChangeProperty(xConnection.XDisplay, xWindow, atomGrab, new IntPtr(4), 32, 0, new byte[0], 1);
-            else
-                XChangeProperty(xConnection.XDisplay, xWindow, atomUngrab, new IntPtr(4), 32, 0, new byte[0], 1);
+            ISLogger.Write("Invoke grab " + grab);
+            XEvent evt = new XEvent();
+            evt.type = XEventName.PropertyNotify;
+            evt.AnyEvent.window = xConnection.XRootWindow;
 
+            if (grab)
+                evt.PropertyEvent.atom = atomGrab;
+            else
+                evt.PropertyEvent.atom = atomUngrab;
+
+            xConnection.QueueLocalEvent(evt);
             XFlush(xConnection.XDisplay);
         }
 
@@ -298,40 +288,36 @@ namespace InputshareLib.PlatformModules.Input
 
             _stopGrab = false;
 
-            XQueryPointer(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), out _, out _, out storedX, out storedY, out _, out _, out int _);
+            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out storedX, out storedY, out _, out _, out int _);
 
-            if (!EnsureVisible())
-            {
-                ISLogger.Write("Failed to get window input focus!");
-                return;
-            }
+            
 
-            int ret = XGrabKeyboard(xConnection.XDisplay, xWindow, true, 1, 1, IntPtr.Zero);
+            int ret = XGrabKeyboard(xConnection.XDisplay, xConnection.XRootWindow, true, 1, 1, IntPtr.Zero);
 
             if (ret != 0)
             {
-                XUnmapWindow(xConnection.XDisplay, xWindow);
                 ISLogger.Write("{0}: XGrabKeyboard returned {1}", ModuleName, ret);
                 return;
             }
 
-            ret = XGrabPointer(xConnection.XDisplay, xWindow, true, anyMotionMask, 1, 1, xWindow, IntPtr.Zero, IntPtr.Zero);
+            ret = XGrabPointer(xConnection.XDisplay, xConnection.XRootWindow, true, anyMotionMask, 1, 1, xConnection.XRootWindow, IntPtr.Zero, IntPtr.Zero);
 
             if (ret != 0)
             {
                 XUngrabPointer(xConnection.XDisplay, IntPtr.Zero);
-                XUnmapWindow(xConnection.XDisplay, xWindow);
                 ISLogger.Write("{0}: XGrabPointer returned {1}", ModuleName, ret);
                 return;
             }
 
-            XSelectInput(xConnection.XDisplay, xWindow, EventMask.PropertyChangeMask | anyMotionMask);
+            ISLogger.Write("Grabbed from root window!");
+
+            XSelectInput(xConnection.XDisplay, xConnection.XRootWindow, EventMask.PropertyChangeMask | anyMotionMask);
             XFlush(xConnection.XDisplay);
 
-            XWarpPointer(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), xWindow, 0, 0, 0, 0, 50, 50);
+            XWarpPointer(xConnection.XDisplay, xConnection.XRootWindow, IntPtr.Zero, 0, 0, 0, 0, 50, 50);
             XFlush(xConnection.XDisplay);
             XCheckMaskEvent(xConnection.XDisplay, EventMask.PointerMotionMask | EventMask.PointerMotionHintMask, out XEvent evtB);
-            XQueryPointer(xConnection.XDisplay, xWindow, out _, out _, out lastX, out lastY, out _, out _, out _);
+            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out lastX, out lastY, out _, out _, out _);
             InputBlocked = true;
 
             ISLogger.Write("{0}: Input grabbed", ModuleName);
@@ -340,6 +326,7 @@ namespace InputshareLib.PlatformModules.Input
 
         private void UngrabInput()
         {
+            ISLogger.Write("UNGRABINPUT CALLED");
             if (!InputBlocked)
                 return;
             _stopGrab = true;
@@ -348,7 +335,6 @@ namespace InputshareLib.PlatformModules.Input
             XFlush(xConnection.XDisplay);
             XUngrabPointer(xConnection.XDisplay, IntPtr.Zero);
             XFlush(xConnection.XDisplay);
-            XUnmapWindow(xConnection.XDisplay, xWindow);
             ISLogger.Write("Restoring cursor to " + storedX + " + " + storedY);
             XWarpPointer(xConnection.XDisplay, IntPtr.Zero, XDefaultRootWindow(xConnection.XDisplay), 0, 0, 0, 0, storedX, storedY);
             XFlush(xConnection.XDisplay);
@@ -356,39 +342,6 @@ namespace InputshareLib.PlatformModules.Input
             ISLogger.Write("{0}: Input ungrabbed", ModuleName);
         }
 
-        private bool EnsureVisible()
-        {
 
-            ISLogger.Write("1");
-            XMapRaised(xConnection.XDisplay, xWindow);
-
-            for (int i = 0; i < 10; i++)
-            {
-                MapState state = GetMapState();
-
-                if (state == MapState.IsViewable)
-                {
-                    ISLogger.Write("Window now viewable!");
-                    return true;
-                }
-
-
-                ISLogger.Write("State = " + state);
-
-                XMapRaised(xConnection.XDisplay, xWindow);
-                XFlush(xConnection.XDisplay);
-                Thread.Sleep(150);
-            }
-
-            return false;
-        }
-
-        private MapState GetMapState()
-        {
-            ISLogger.Write("Getting state");
-            XGetWindowAttributes(xConnection.XDisplay, xWindow, out XWindowAttributes attribs);
-            ISLogger.Write("Got state");
-            return attribs.map_state;
-        }
     }
 }

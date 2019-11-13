@@ -42,7 +42,8 @@ namespace InputshareLib.Linux
         public void EventLoop()
         {
             ISLogger.Write("Now waiting for events from X server");
-            
+
+            XSelectInput(XDisplay, XRootWindow, EventMask.PropertyChangeMask);
 
             //TODO - poll raw socket properly.
             XEvent evt = new XEvent();
@@ -58,8 +59,9 @@ namespace InputshareLib.Linux
                 }
 
                 if (XPending(XDisplay) > 0)
-                {
+                {   
                     XNextEvent(XDisplay, ref evt);
+                    ISLogger.Write(evt.type);
                     EventArrived?.Invoke(evt);
                 }
                 else

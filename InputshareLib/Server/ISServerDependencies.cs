@@ -1,6 +1,5 @@
 ﻿using InputshareLib.Linux;
 using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Cursor;
 using InputshareLib.PlatformModules.Displays;
 using InputshareLib.PlatformModules.DragDrop;
 using InputshareLib.PlatformModules.Input;
@@ -15,7 +14,6 @@ namespace InputshareLib.Server
     {
         public DisplayManagerBase DisplayManager { get; set; }
         public InputManagerBase InputManager { get; set; }
-        public CursorMonitorBase CursorMonitor { get; set; }
         public DragDropManagerBase DragDropManager { get; set; }
         public OutputManagerBase OutputManager { get; set; }
         public ClipboardManagerBase ClipboardManager { get; set; }
@@ -25,7 +23,6 @@ namespace InputshareLib.Server
             return new ISServerDependencies()
             {
                 ClipboardManager = new LinuxClipboardManager(xCon),
-                CursorMonitor = new LinuxCursorMonitor(xCon),
                 DisplayManager = new LinuxDisplayManager(xCon),
                 DragDropManager = new NullDragDropManager(),
                 InputManager = new LinuxInputManager(xCon),

@@ -3,7 +3,6 @@ using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLib.Net;
 using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Cursor;
 using InputshareLib.PlatformModules.Displays;
 using InputshareLib.PlatformModules.DragDrop;
 using InputshareLib.PlatformModules.Output;
@@ -49,7 +48,6 @@ namespace InputshareLib.Client
         private readonly ClipboardManagerBase clipboardMan;
         private ISClientSocket socket = new ISClientSocket();
         private readonly DisplayManagerBase displayMan;
-        private readonly CursorMonitorBase curMon;
         private readonly DragDropManagerBase dragDropMan;
 
         public string ClientName { get; private set; } = Environment.MachineName;
@@ -74,7 +72,6 @@ namespace InputshareLib.Client
         public ISClient(ISClientDependencies dependencies)
         {
             displayMan = dependencies.displayManager;
-            curMon = dependencies.cursorMonitor;
             outMan = dependencies.outputManager;
             clipboardMan = dependencies.clipboardManager;
             dragDropMan = dependencies.dragDropManager;
@@ -87,12 +84,12 @@ namespace InputshareLib.Client
         {
             if (displayMan.Running)
                 displayMan.Stop();
-            if (curMon.Running)
-                curMon.Stop();
             if (dragDropMan.Running)
                 dragDropMan.Stop();
             if (clipboardMan.Running)
                 clipboardMan.Stop();
+            if (outMan.Running)
+                outMan.Stop();
 
             socket?.Close();
         }
@@ -111,10 +108,7 @@ namespace InputshareLib.Client
             displayMan.Start();
             displayMan.DisplayConfigChanged += OnLocalDisplayConfigChange;
             displayMan.UpdateConfigManual();
-            curMon.EdgeHit += OnLocalEdgeHit;
-            curMon.Start();
-            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
-           
+            displayMan.EdgeHit += OnLocalEdgeHit;
             clipboardMan.Start();
             clipboardMan.ClipboardContentChanged += OnLocalClipboardChange;
             dragDropMan.Start();
@@ -184,8 +178,6 @@ namespace InputshareLib.Client
 
         private void OnLocalDisplayConfigChange(object sender, DisplayConfig config)
         {
-            curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
-
             if (socket != null && socket.IsConnected)
             {
                 socket.SendDisplayConfig(config.ToBytes());
@@ -354,23 +346,7 @@ namespace InputshareLib.Client
         private void OnActiveClientChange(object sender, bool active)
         {
             ActiveClient = active;
-            if (active)
-            {
-                if (!curMon.Running)
-                {
-                    curMon.SetBounds(displayMan.CurrentConfig.VirtualBounds);
-                    curMon.Start();
-                }
-
-                outMan.ResetKeyStates();
-            }
-            else
-            {
-                if (curMon.Running)
-                    curMon.Stop();
-
-                outMan.ResetKeyStates();
-            }
+            outMan.ResetKeyStates();
             ActiveClientChanged?.Invoke(this, ActiveClient);
         }
 
@@ -397,10 +373,6 @@ namespace InputshareLib.Client
         {
             ISLogger.Write("Connection error: " + reason);
             ConnectionError?.Invoke(this, reason);
-
-            if (curMon.Running)
-                curMon.Stop();
-
         }
 
         private void OnConnected(object sender, EventArgs e)

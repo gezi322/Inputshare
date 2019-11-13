@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareService", "Inputs
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareSP", "InputshareSP\InputshareSP.csproj", "{282F2139-D231-4350-B447-4B6A4B73539E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inputshare", "Inputshare\Inputshare.csproj", "{7A2D07F8-A024-4F06-A877-4D8A2ABC76EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare", "Inputshare\Inputshare.csproj", "{7A2D07F8-A024-4F06-A877-4D8A2ABC76EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

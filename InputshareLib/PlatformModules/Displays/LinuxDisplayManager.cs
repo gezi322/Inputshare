@@ -14,6 +14,8 @@ namespace InputshareLib.PlatformModules.Displays
 
         private byte[] currentRawConfig = new byte[0];
         private Timer displayUpdateTimer;
+        private Timer positionUpdateTimer;
+
 
         public LinuxDisplayManager(SharedXConnection xCon)
         {
@@ -23,10 +25,12 @@ namespace InputshareLib.PlatformModules.Displays
         protected override void OnStart()
         {
             displayUpdateTimer = new Timer(TimerCallback, null, 0, 1000);
+            positionUpdateTimer = new Timer(PositionUpdateTimerCallback, null, 0, 50);
         }
 
         protected override void OnStop()
         {
+            positionUpdateTimer?.Dispose();
             displayUpdateTimer?.Dispose();
         }
 
@@ -40,7 +44,19 @@ namespace InputshareLib.PlatformModules.Displays
                 currentRawConfig = CurrentConfig.ToBytes();
                 OnConfigUpdated(conf);
             }
+        }
 
+        private void PositionUpdateTimerCallback(object sync)
+        {
+            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out int posX, out int posY, out _, out _, out int keys);
+            if (posY == CurrentConfig.VirtualBounds.Bottom - 1)
+                OnEdgeHit(Edge.Bottom);
+            if (posY == CurrentConfig.VirtualBounds.Top)
+                OnEdgeHit(Edge.Top);
+            if (posX == CurrentConfig.VirtualBounds.Left)
+                OnEdgeHit(Edge.Left);
+            if (posX == CurrentConfig.VirtualBounds.Right - 1)
+                OnEdgeHit(Edge.Right);
         }
 
         private DisplayConfig GetXDisplayConfig()

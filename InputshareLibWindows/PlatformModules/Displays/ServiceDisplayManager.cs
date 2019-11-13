@@ -17,6 +17,7 @@ namespace InputshareLibWindows.Displays
             host = hostMain;
             host.host.DisplayConfigUpdated += Host_DisplayConfigUpdated;
             host.HandleUpdated += Host_HandleUpdated;
+            host.host.EdgeHit += (object _, Edge e) => { OnEdgeHit(e); };
         }
         protected override void OnStart()
         {
