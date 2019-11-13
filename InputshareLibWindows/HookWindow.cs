@@ -245,6 +245,7 @@ namespace InputshareLibWindows
             }
             try
             {
+                currentObject?.Dispose();
                 var obj = System.Windows.Forms.Clipboard.GetDataObject();
                 if (obj == null)
                 {

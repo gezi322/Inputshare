@@ -13,6 +13,11 @@ namespace InputshareLib.PlatformModules.Clipboard
         public event EventHandler<ClipboardDataBase> ClipboardContentChanged;
         public abstract void SetClipboardData(ClipboardDataBase data);
 
+        public virtual void ClearData()
+        {
+
+        }
+
         protected void OnClipboardDataChanged(ClipboardDataBase data)
         {
             ClipboardContentChanged?.Invoke(this, data);

@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Security.Permissions;
 using System.Windows.Forms;
+using static InputshareLibWindows.Native.Gdi32;
 
 namespace InputshareLibWindows.PlatformModules.Clipboard
 {
@@ -30,6 +31,8 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
         private MemoryStream fileDescriptorStream;
         private List<ManagedRemoteIStream> streams = new List<ManagedRemoteIStream>();
 
+        public Bitmap xImage;
+
         public InputshareDataObject(ClipboardTextData text, Guid operationId)
         {
             objectType = ClipboardDataType.Text;
@@ -41,7 +44,39 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
         {
             objectType = ClipboardDataType.Image;
             OperationGuid = operationId;
+            xImage = (Bitmap)image;
             SetImage(image);
+        }
+
+        ~InputshareDataObject()
+        {
+            Dispose();
+        }
+
+        private bool disposedValue = false;
+        public void Dispose()
+        {
+            if (disposedValue)
+                return;
+
+            disposedValue = false;
+            DeleteImage();
+        }
+
+        private void DeleteImage()
+        {
+            if (objectType == ClipboardDataType.Image)
+            {
+                try
+                {
+                    xImage.Dispose();
+                    GC.Collect(2, GCCollectionMode.Forced, false, true);
+                }
+                catch (Exception ex)
+                {
+                    ISLogger.Write("InputshareDataObject deleteimage error: " + ex.Message);
+                }
+            }
         }
 
         public InputshareDataObject(List<ClipboardVirtualFileData.FileAttributes> files, Guid operationId)

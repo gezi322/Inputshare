@@ -63,9 +63,7 @@ namespace InputshareLib.Client
 
 
         private DataOperation currentClipboardOperation = new DataOperation();
-        private DataOperation currentDragDropOperation = new DataOperation();
 
-        private Dictionary<Guid, DataOperation> previousOperations = new Dictionary<Guid, DataOperation>();
         private FileAccessController fileController = new FileAccessController();
         private LocalDragDropController ddController;
 
@@ -145,9 +143,6 @@ namespace InputshareLib.Client
 
                 //create GUID and file tokens
                 Guid operationId = Guid.NewGuid();
-
-                if (currentDragDropOperation.OperationId != Guid.Empty)
-                    previousOperations.Add(currentClipboardOperation.OperationId, currentClipboardOperation);
 
                 currentClipboardOperation = new DataOperation(operationId, data);
                 socket.SendClipboardData(data.ToBytes(), operationId);

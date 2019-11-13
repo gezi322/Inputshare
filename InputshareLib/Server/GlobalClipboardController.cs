@@ -15,7 +15,6 @@ namespace InputshareLib.Server
         private ClientManager clientMan;
         private FileAccessController fileController;
         private ClipboardManagerBase cbManager;
-        private Dictionary<Guid, ClipboardOperation> previousOperationDictionary = new Dictionary<Guid, ClipboardOperation>();
         public ClipboardOperation currentOperation { get; private set; }
 
         public GlobalClipboardController(ClientManager clientManager, FileAccessController faController, ClipboardManagerBase cbMan)
@@ -69,8 +68,9 @@ namespace InputshareLib.Server
 
         private async void SetClipboardFiles(ClipboardVirtualFileData cbFiles, ISServerSocket host, Guid operationId)
         {
+            /*
             if (currentOperation != null && currentOperation.DataType == ClipboardDataType.File)
-                previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);
+                previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);*/
 
             if (currentOperation != null && currentOperation.LocalhostAccessToken != Guid.Empty)
                 fileController.DeleteToken(currentOperation.LocalhostAccessToken);
@@ -148,9 +148,10 @@ namespace InputshareLib.Server
             if (currentOperation?.OperationId == operationId)
                 return currentOperation;
 
+            /*
             foreach (var op in previousOperationDictionary)
                 if (op.Value.OperationId == operationId)
-                    return op.Value;
+                    return op.Value;*/
 
             return null;
         }
@@ -168,8 +169,9 @@ namespace InputshareLib.Server
 
         private void SetClipboardTextOrImage(ClipboardDataBase cbData, ISServerSocket host, Guid operationId)
         {
+            /*
             if (currentOperation != null && currentOperation.DataType == ClipboardDataType.File)
-                previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);
+                previousOperationDictionary.Add(currentOperation.OperationId, currentOperation);*/
 
             currentOperation = new ClipboardOperation(operationId, cbData.DataType, cbData, host);
             BroadcastCurrentOperation();

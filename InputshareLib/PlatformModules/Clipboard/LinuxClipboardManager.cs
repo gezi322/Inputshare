@@ -70,14 +70,13 @@ namespace InputshareLib.PlatformModules.Clipboard
 
         public override void SetClipboardData(ClipboardDataBase data)
         {
-
             if (data.DataType == ClipboardDataType.Text)
             {
                 SetClipboardText(((ClipboardTextData)data).Text);
             }
             else if (data.DataType == ClipboardDataType.Image)
             {
-                SetClipboardImage(((ClipboardImageData)data).ImageData);
+                SetClipboardImage(data as ClipboardImageData);
             }
             else
             {
@@ -125,9 +124,9 @@ namespace InputshareLib.PlatformModules.Clipboard
                 ISLogger.Write("Owner set");
         }
 
-        private void SetClipboardImage(byte[] imageData)
+        private void SetClipboardImage(ClipboardImageData data)
         {
-            copiedData = new ClipboardImageData(imageData, true);
+            copiedData = data;
             XSetSelectionOwner(xConnection.XDisplay, atomClipboard, xWindow);
 
             XSync(xConnection.XDisplay, false);
@@ -212,16 +211,12 @@ namespace InputshareLib.PlatformModules.Clipboard
             if (cbOwner == xWindow)
                 return;
 
-            ISLogger.Write("Clipboard owner = " + GetWindowName(cbOwner));
-
             //We want a list of TARGET atoms so that we know what type of data the owner holds
             RequestTargets(cbOwner);
         }
 
         private void HandleSelectionNotify(XSelectionEvent evt)
         {
-            ISLogger.Write("Received notify {0}", GetAtomName(evt.property));
-
             if (evt.property == atomTargets)
                 HandleReceivedTargets(evt);
             else if (evt.property == atomTextReturn)
@@ -297,8 +292,6 @@ namespace InputshareLib.PlatformModules.Clipboard
                 return;
             }
 
-            ISLogger.Write("Received clipboard text as format {0}", GetAtomName(returned_type));
-
             string text = Marshal.PtrToStringUTF8(prop_return, nItems);
             OnClipboardDataChanged(new ClipboardTextData(text));
         }
@@ -306,8 +299,6 @@ namespace InputshareLib.PlatformModules.Clipboard
         private void HandleReceivedTargets(XSelectionEvent evt)
         {
             IntPtr owner = evt.requestor;
-
-            ISLogger.Write("Received clipboard target list");
 
             //Get the size in bytes of the return data. 
             XGetWindowProperty(xConnection.XDisplay, owner, atomTargets, 0, 0, false, new IntPtr(0), out _, out _, out _, out int dataSize, out IntPtr _);
@@ -354,9 +345,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             ev.SelectionRequestEvent.selection = atomClipboard;
             ev.SelectionRequestEvent.target = dataType;
 
-            XConvertSelection(xConnection.XDisplay, atomClipboard, dataType, returnAtom, xWindow, new IntPtr(0));
-            ISLogger.Write("Sent request for clipboard as {0}", GetAtomName(dataType));
-        }
+            XConvertSelection(xConnection.XDisplay, atomClipboard, dataType, returnAtom, xWindow, new IntPtr(0));        }
 
         /// <summary>
         /// Requests a window to sent supported clipboard formats
@@ -373,16 +362,10 @@ namespace InputshareLib.PlatformModules.Clipboard
             evt.SelectionRequestEvent.property = atomTargets;
             evt.SelectionRequestEvent.target = atomTargets;
 
-            XSendEvent(xConnection.XDisplay, window, true, 0, ref evt);
-            ISLogger.Write("Requested clipboard targets from window {0}", GetWindowName(window));
-        }
+            XSendEvent(xConnection.XDisplay, window, true, 0, ref evt);        }
 
         private void HandleSelectionRequest(XSelectionRequestEvent evt)
         {
-            ISLogger.Write("Window {0} requesting selection {1}", GetWindowName(evt.requestor), GetAtomName(evt.selection));
-            ISLogger.Write("Target = {0}", GetAtomName(evt.target));
-            ISLogger.Write("Property = {0}\n", GetAtomName(evt.property));
-
             XEvent retEvent = new XEvent();
             retEvent.type = XEventName.SelectionNotify;
             retEvent.SelectionEvent.display = evt.display;
@@ -414,7 +397,6 @@ namespace InputshareLib.PlatformModules.Clipboard
 
             ClipboardTextData data = (ClipboardTextData)copiedData;
             XChangeProperty(xConnection.XDisplay, evt.requestor, evt.property, atomUtf8String, 8, 0, Encoding.UTF8.GetBytes(data.Text), data.Text.Length);
-            ISLogger.Write("Sent clipboard data as type {0}", GetAtomName(atomUtf8String));
         }
 
         private void HandleRequestImage(XSelectionRequestEvent evt)
@@ -427,13 +409,10 @@ namespace InputshareLib.PlatformModules.Clipboard
 
             ClipboardImageData data = (ClipboardImageData)copiedData;
             XChangeProperty(xConnection.XDisplay, evt.requestor, evt.property, atomImagePng, 8, 0, data.ImageData, data.ImageData.Length);
-            ISLogger.Write("Sent clipboard data as type {0}", GetAtomName(atomImagePng));
         }
 
         private void HandleTargetRequest(XSelectionRequestEvent evt)
         {
-            ISLogger.Write("Handling target request...");
-
             if (copiedData == null)
             {
                 ISLogger.Write("Ignoring target request... no data is copied");

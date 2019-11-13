@@ -43,6 +43,8 @@ namespace InputshareLibWindows
         protected IntPtr Handle { get; private set; }
         protected string WindowName { get; }
 
+        protected InputshareDataObject currentObject;
+
         public MessageWindow(string wndName)
         {
             WindowName = wndName;
@@ -80,18 +82,27 @@ namespace InputshareLibWindows
 
             InvokeAction(new Action(() => {
 
+                currentObject?.Dispose();
+
                 for(int i = 0; i < 10; i++)
                 {
                     try
                     {
                         ignoreCbChange = true;
+
+                        if(data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Image)
+                        {
+                            System.Windows.Clipboard.SetData("Bitmap", data.xImage);
+                            currentObject = data;
+                            return;
+                        }
+
                         if(data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Text)
                             System.Windows.Clipboard.SetDataObject(data, true);
-                        else if (data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Image)
-                            System.Windows.Clipboard.SetDataObject(data, false);
                         else
                             System.Windows.Clipboard.SetDataObject(data, false);
-                        GC.Collect();
+
+                        currentObject = data;
                         return;
                     }catch
                     {
