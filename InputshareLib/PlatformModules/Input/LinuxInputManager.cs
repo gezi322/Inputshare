@@ -175,50 +175,29 @@ namespace InputshareLib.PlatformModules.Input
             XSendEvent(xConnection.XDisplay, xConnection.XRootWindow, true, 0, ref _evt);
         }
 
-        //TODO 
+
+        private EventMask[] buttonMasks = new EventMask[] {0, EventMask.Button1MotionMask, EventMask.Button2MotionMask, EventMask.Button3MotionMask,
+        EventMask.Button4MotionMask, EventMask.Button5MotionMask};
+
+        private ISInputCode[] buttonMaskInputCodes = new ISInputCode[] { 0, ISInputCode.IS_MOUSELDOWN, ISInputCode.IS_MOUSELDOWN, ISInputCode.IS_MOUSEMDOWN }; 
+
         private void CheckButtonStates(EventMask mask)
         {
-            if (mask.HasFlag(EventMask.Button1MotionMask))
+            for (int i = 1; i < 4; i++)
             {
-                if (!buttonStates[1])
+                if (mask.HasFlag(buttonMasks[i]))
                 {
-                    buttonStates[1] = true;
-                    OnInputReceived(new ISInputData(ISInputCode.IS_MOUSELDOWN, 0, 0));
+                    if (!buttonStates[i])
+                    {
+                        buttonStates[i] = true;
+                        OnInputReceived(new ISInputData(buttonMaskInputCodes[i], 0, 0));
+                    }
+                } else if (buttonStates[i])
+                {
+                    buttonStates[i] = false;
+                    OnInputReceived(new ISInputData(buttonMaskInputCodes[i], 0, 0));
                 }
             }
-            else if (buttonStates[1])
-            {
-                buttonStates[1] = false;
-                OnInputReceived(new ISInputData(ISInputCode.IS_MOUSELUP, 0, 0));
-            }
-
-            if (mask.HasFlag(EventMask.Button2MotionMask))
-            {
-                if (!buttonStates[2])
-                {
-                    buttonStates[2] = true;
-                    OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEMDOWN, 0, 0));
-                }
-            }
-            else if (buttonStates[2])
-            {
-                buttonStates[2] = false;
-                OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEMUP, 0, 0));
-            }
-            if (mask.HasFlag(EventMask.Button3MotionMask))
-            {
-                if (!buttonStates[3])
-                {
-                    buttonStates[3] = true;
-                    OnInputReceived(new ISInputData(ISInputCode.IS_MOUSERDOWN, 0, 0));
-                }
-            }
-            else if (buttonStates[3])
-            {
-                buttonStates[3] = false;
-                OnInputReceived(new ISInputData(ISInputCode.IS_MOUSERUP, 0, 0));
-            }
-
         }
 
 
@@ -229,8 +208,6 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnHotkeyAdded(Hotkey key)
         {
-            ISLogger.Write("{0}: Grabbing key {1}", ModuleName, key);
-
             LinuxKeyMask mask = ConvertMask(key.Modifiers);
             LinuxKeyCode lKey = KeyTranslator.WindowsToLinux(key.Key);
 
@@ -249,7 +226,6 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnHotkeyRemoved(Hotkey key)
         {
-            ISLogger.Write("{0}: Ungrabbing key {1}", ModuleName, key);
             LinuxKeyMask mask = ConvertMask(key.Modifiers);
             LinuxKeyCode lKey = KeyTranslator.WindowsToLinux(key.Key);
 
@@ -268,13 +244,10 @@ namespace InputshareLib.PlatformModules.Input
             if (evt.type != XEventName.KeyPress)
                 return false;
 
-            ISLogger.Write((LinuxKeyMask)evt.state);
-
             foreach(var hk in hotkeys)
             {
                 if(hk.Key == KeyTranslator.LinuxToWindows((LinuxKeyCode)evt.keycode) 
                     && ((LinuxKeyMask)evt.state).HasFlag(ConvertMask(hk.Modifiers))){
-
                     if (hk is FunctionHotkey fhk)
                         OnFunctionHotkeyPressed(fhk.Function);
                     else if (hk is ClientHotkey chk)
@@ -300,8 +273,6 @@ namespace InputshareLib.PlatformModules.Input
             if (mods.HasFlag(HotkeyModifiers.Windows))
                 mask |= LinuxKeyMask.WindowsMask;
 
-            ISLogger.Write("Returning mods " + mask);
-
             return mask;
         }
 
@@ -320,6 +291,12 @@ namespace InputshareLib.PlatformModules.Input
                     return;
                 case 3:
                     OnInputReceived(new ISInputData(ISInputCode.IS_MOUSERDOWN, 0, 0));
+                    return;
+                case 4:
+                    OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEYSCROLL, 120, 0));
+                    return;
+                case 5:
+                    OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEYSCROLL, -120, 0));
                     return;
                 case 8:
                     OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEXDOWN, 1, 0));
