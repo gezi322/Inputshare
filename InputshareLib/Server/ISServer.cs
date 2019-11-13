@@ -142,8 +142,8 @@ namespace InputshareLib.Server
             if(!inputMan.Running)
                 inputMan.Start();
 
-            HotkeyModifiers mods = HotkeyModifiers.Alt | HotkeyModifiers.Ctrl | HotkeyModifiers.Shift;
-            inputMan.AddUpdateFunctionHotkey(new Input.Hotkeys.FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
+            HotkeyModifiers mods = HotkeyModifiers.Ctrl | HotkeyModifiers.Alt | HotkeyModifiers.Shift;
+            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
             inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
             inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
             ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
@@ -435,7 +435,7 @@ namespace InputshareLib.Server
             if (udpHost.SocketBound)
                 udpHost.InitClient(client);
 
-            SetClientEdge(client, Edge.Left, ISServerSocket.Localhost);
+            SetClientEdge(client, Edge.Right, ISServerSocket.Localhost);
 
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }

@@ -96,7 +96,7 @@
         Numpad8 = 104,
         Numpad9 = 105,
         Multiply = 106,
-        Add = 107,
+        Add = 187, // TODO
         Separator = 108,
         Subtract = 109,
         Decimal = 110,

@@ -88,7 +88,8 @@ namespace InputshareLib.PlatformModules.Clipboard
         protected override void OnStart()
         {
             InitWindow();
-            xConnection.EventArrived += XConnection_EventArrived;        }
+            xConnection.EventArrived += XConnection_EventArrived;
+        }
 
         protected override void OnStop()
         {

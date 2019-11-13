@@ -32,7 +32,6 @@ namespace InputshareLib.PlatformModules.Output
 
         public override void Send(ISInputData input)
         {
-
             if (input.Code == ISInputCode.IS_MOUSEMOVERELATIVE)
                 XWarpPointer(xConnection.XDisplay, IntPtr.Zero, IntPtr.Zero, 0, 0, 0, 0, input.Param1, input.Param2);
             else if (input.Code == ISInputCode.IS_MOUSELDOWN)
@@ -85,6 +84,9 @@ namespace InputshareLib.PlatformModules.Output
                 try
                 {
                     uint key = ConvertKey((WindowsVirtualKey)input.Param1);
+
+                    if (input.Code == ISInputCode.IS_KEYDOWN && Settings.DEBUG_PRINTOUTPUTKEYS)
+                        ISLogger.Write("DEBUG: KEY {0}", XKeysymToString(XKeycodeToKeysym(xConnection.XDisplay, (int)key, 0)));
 
                     if (key < 1)
                         throw new Exception("Could not translate key " + (WindowsVirtualKey)input.Param1);

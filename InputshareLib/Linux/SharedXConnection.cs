@@ -43,7 +43,7 @@ namespace InputshareLib.Linux
         {
             ISLogger.Write("Now waiting for events from X server");
 
-            XSelectInput(XDisplay, XRootWindow, EventMask.PropertyChangeMask);
+            XSelectInput(XDisplay, XRootWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask);
 
             //TODO - poll raw socket properly.
             XEvent evt = new XEvent();
@@ -61,7 +61,7 @@ namespace InputshareLib.Linux
                 if (XPending(XDisplay) > 0)
                 {   
                     XNextEvent(XDisplay, ref evt);
-                    ISLogger.Write(evt.type);
+
                     EventArrived?.Invoke(evt);
                 }
                 else
@@ -97,6 +97,11 @@ namespace InputshareLib.Linux
         {
             ISLogger.Write("IO Error occurred on X server!");
             return 0;
+        }
+
+        ~SharedXConnection()
+        {
+            XCloseDisplay(XDisplay);
         }
     }
 }

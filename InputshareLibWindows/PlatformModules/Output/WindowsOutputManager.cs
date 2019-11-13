@@ -1,5 +1,6 @@
 ﻿using InputshareLib;
 using InputshareLib.Input;
+using InputshareLib.Input.Keys;
 using InputshareLib.PlatformModules.Output;
 using InputshareLibWindows.Native;
 using System;
@@ -20,6 +21,9 @@ namespace InputshareLibWindows.Output
                     break;
                 case ISInputCode.IS_KEYDOWN:
                     {
+                        if (Settings.DEBUG_PRINTOUTPUTKEYS)
+                            ISLogger.Write("DEBUG: VIRTUAL KEY {0} SCAN {1}", (WindowsVirtualKey)input.Param1, input.Param2);
+
                         short useKey = CheckKey(input, out bool useScan);
 
                         if (useScan)
@@ -120,6 +124,7 @@ namespace InputshareLibWindows.Output
                 return input.Param2;
             }
 
+            ISLogger.Write("Using scan code!");
             useScan = true;
             return input.Param2;
         }

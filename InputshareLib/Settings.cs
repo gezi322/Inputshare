@@ -32,7 +32,10 @@ namespace InputshareLib
         /// </summary>
         public const int SocketBufferSize = 1024 * 260; //260KB
 
-        public static bool DEBUG_SPCONSOLEENABLED = false;
+        public const bool DEBUG_SPCONSOLEENABLED = false;
+
+        public const bool DEBUG_PRINTINPUTKEYS = false;
+        public const bool DEBUG_PRINTOUTPUTKEYS = false;
 
     }
 }

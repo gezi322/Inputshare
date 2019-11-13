@@ -22,7 +22,6 @@ namespace InputshareLib.PlatformModules.Displays
 
         protected void OnEdgeHit(Edge edge)
         {
-            ISLogger.Write("{0}: Edge {1} hit", ModuleName, edge);
             EdgeHit?.Invoke(this, edge);
         }
 

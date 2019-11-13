@@ -84,7 +84,7 @@ namespace InputshareLib.Input
         Numpad8 = 80,
         Numpad9 = 81,
         Multiply = 63,
-        Add = 21,
+        Add = 86, // todo
         Subtract = 20,
         Decimal = 60,
         Divide = 106,
@@ -139,9 +139,6 @@ namespace InputshareLib.Input
         LaunchApplication1 = 156,
         LaunchApplication2 = 0,
 
-        //KP_delete
-        // Delete = 91,
-
         //These keys may be incorrect for non-UK keyboard layouts
         OEM1 = 47, //semi colon
         OEMPlus = 21,
@@ -158,5 +155,11 @@ namespace InputshareLib.Input
         Play = 207,
         Zoom = 0,
         OEMClear = 0,
+
+        //These values can't be mapped directly to windows keys
+        KPRETURN = 104,
+        KPDELETE = 91,
+        KPSUBTRACT = 82,
+        KPPLUS = 86,
     }
 }

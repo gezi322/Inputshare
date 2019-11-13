@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using InputshareLib.Clipboard;
 using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
+using InputshareLib.Input.Hotkeys;
 using InputshareLib.Input.Keys;
 using InputshareLib.Linux;
 using InputshareLib.PlatformModules.Input;
@@ -24,8 +25,6 @@ namespace InputshareLib.PlatformModules.Input
         public override MouseInputMode MouseRecordMode { get; protected set; }
 
         public override event EventHandler<ISInputData> InputReceived;
-
-        private Thread wndThread;
 
         private IntPtr atomGrab;
         private IntPtr atomUngrab;
@@ -64,6 +63,7 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnStop()
         {
+            xConnection.EventArrived -= XConnection_EventArrived;
         }
 
         private void Init()
@@ -71,8 +71,6 @@ namespace InputshareLib.PlatformModules.Input
             atomGrab = XInternAtom(xConnection.XDisplay, "ISGrab", false);
             atomUngrab = XInternAtom(xConnection.XDisplay, "ISUngrab", false);
             atomIgnoreNext = XInternAtom(xConnection.XDisplay, "ISIgnoreNext", false);
-
-            XGrabKey(xConnection.XDisplay, (int)LinuxKeyCode.O, 0, xConnection.XRootWindow, false, 1, 1);
 
             xConnection.EventArrived += XConnection_EventArrived;
         }
@@ -95,11 +93,11 @@ namespace InputshareLib.PlatformModules.Input
                 return;
             }
 
-            if (evt.type == XEventName.MotionNotify)
+            if (evt.type == XEventName.MotionNotify && InputBlocked)
                 HandleMotionEvent(evt.MotionEvent);
-            if (evt.type == XEventName.ButtonPress)
+            if (evt.type == XEventName.ButtonPress && InputBlocked)
                 HandleButtonPressEvent(evt.ButtonEvent);
-            else if (evt.type == XEventName.ButtonRelease)
+            else if (evt.type == XEventName.ButtonRelease && InputBlocked)
                 HandleButtonReleaseEvent(evt.ButtonEvent);
             else if (evt.type == XEventName.KeyPress || evt.type == XEventName.KeyRelease)
                 HandleKeyEvent(evt.KeyEvent);
@@ -107,11 +105,24 @@ namespace InputshareLib.PlatformModules.Input
                 HandleInvokeAtom(evt.PropertyEvent.atom);
         }
 
+
+
+
+
         private void HandleKeyEvent(XKeyEvent evt)
         {
             bool pressed = evt.type == XEventName.KeyPress;
 
+            if (Settings.DEBUG_PRINTINPUTKEYS)
+                ISLogger.Write("DEBUG: KEY {0} (raw {1})", (LinuxKeyCode)evt.keycode, evt.keycode);
+
+            //Raise a hotkey pressed event instead of an input event
+            if (pressed)
+                if (CheckForHotkey(evt))
+                    return;
+
             WindowsVirtualKey key = KeyTranslator.LinuxToWindows((LinuxKeyCode)evt.keycode);
+
 
             if (pressed)
                 OnInputReceived(new ISInputData(ISInputCode.IS_KEYDOWN, (short)key, 0));
@@ -129,7 +140,6 @@ namespace InputshareLib.PlatformModules.Input
 
         private int lastX = 0;
         private int lastY = 0;
-        private int motionNum = 0;
 
         XEvent _evt = new XEvent();
         private void HandleMotionEvent(XMotionEvent evt)
@@ -148,25 +158,24 @@ namespace InputshareLib.PlatformModules.Input
             //We need to put the cursor back to the middle of the window, but we also need to make sure that we don't 
             //read the event
             XTestFakeMotionEvent(xConnection.XDisplay, 0, lastX, lastY, 0);
+            SendIgnoreNext();
+            XFlush(xConnection.XDisplay);
 
+            OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEMOVERELATIVE, (short)relX, (short)relY));
+        }
+
+        private void SendIgnoreNext()
+        {
             _evt = new XEvent();
             _evt.type = XEventName.ClientMessage;
             _evt.ClientMessageEvent.ptr1 = atomIgnoreNext;
             _evt.ClientMessageEvent.format = 32;
             _evt.ClientMessageEvent.window = xConnection.XRootWindow;
+
             XSendEvent(xConnection.XDisplay, xConnection.XRootWindow, true, 0, ref _evt);
-
-            XFlush(xConnection.XDisplay);
-
-            OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEMOVERELATIVE, (short)relX, (short)relY));
-            motionNum++;
         }
 
-        private bool PredicateCallback(IntPtr display, ref XEvent evt, IntPtr _)
-        {
-            return !evt.type.HasFlag(XEventName.MotionNotify);
-        }
-
+        //TODO 
         private void CheckButtonStates(EventMask mask)
         {
             if (mask.HasFlag(EventMask.Button1MotionMask))
@@ -218,6 +227,85 @@ namespace InputshareLib.PlatformModules.Input
             InputReceived?.Invoke(this, input);
         }
 
+        protected override void OnHotkeyAdded(Hotkey key)
+        {
+            ISLogger.Write("{0}: Grabbing key {1}", ModuleName, key);
+
+            LinuxKeyMask mask = ConvertMask(key.Modifiers);
+            LinuxKeyCode lKey = KeyTranslator.WindowsToLinux(key.Key);
+
+            //We don't care if the num lock or scroll lock is on/off, so we need 
+            //to grab those seperate to ensure that we receive events regardless of the state of scroll/num lock
+
+            XGrabKey(xConnection.XDisplay, lKey, mask,
+                xConnection.XRootWindow, true, 1, 1);
+
+            XGrabKey(xConnection.XDisplay, lKey, mask | LinuxKeyMask.NumLockMask,
+               xConnection.XRootWindow, true, 1, 1);
+
+            XGrabKey(xConnection.XDisplay, lKey, mask | LinuxKeyMask.ScrollLockMask,
+              xConnection.XRootWindow, true, 1, 1);
+        }
+
+        protected override void OnHotkeyRemoved(Hotkey key)
+        {
+            ISLogger.Write("{0}: Ungrabbing key {1}", ModuleName, key);
+            LinuxKeyMask mask = ConvertMask(key.Modifiers);
+            LinuxKeyCode lKey = KeyTranslator.WindowsToLinux(key.Key);
+
+            XUngrabKey(xConnection.XDisplay, lKey, mask,
+                xConnection.XRootWindow);
+
+            XUngrabKey(xConnection.XDisplay, lKey, mask | LinuxKeyMask.NumLockMask,
+               xConnection.XRootWindow);
+
+            XUngrabKey(xConnection.XDisplay, lKey, mask | LinuxKeyMask.ScrollLockMask,
+               xConnection.XRootWindow);
+        }
+
+        private bool CheckForHotkey(XKeyEvent evt)
+        {
+            if (evt.type != XEventName.KeyPress)
+                return false;
+
+            ISLogger.Write((LinuxKeyMask)evt.state);
+
+            foreach(var hk in hotkeys)
+            {
+                if(hk.Key == KeyTranslator.LinuxToWindows((LinuxKeyCode)evt.keycode) 
+                    && ((LinuxKeyMask)evt.state).HasFlag(ConvertMask(hk.Modifiers))){
+
+                    if (hk is FunctionHotkey fhk)
+                        OnFunctionHotkeyPressed(fhk.Function);
+                    else if (hk is ClientHotkey chk)
+                        OnClientHotkeyPressed(chk.TargetClient);
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private LinuxKeyMask ConvertMask(HotkeyModifiers mods)
+        {
+            LinuxKeyMask mask = 0;
+
+            if (mods.HasFlag(HotkeyModifiers.Alt))
+                mask |= LinuxKeyMask.AltMask;
+            if (mods.HasFlag(HotkeyModifiers.Ctrl))
+                mask |= LinuxKeyMask.ControlMask;
+            if (mods.HasFlag(HotkeyModifiers.Shift))
+                mask |= LinuxKeyMask.ShiftMask;
+            if (mods.HasFlag(HotkeyModifiers.Windows))
+                mask |= LinuxKeyMask.WindowsMask;
+
+            ISLogger.Write("Returning mods " + mask);
+
+            return mask;
+        }
+
+        //TODO - button 4 & 5 for scroll
         private void HandleButtonPressEvent(XButtonEvent evt)
         {
             buttonStates[evt.button] = true;
@@ -267,7 +355,6 @@ namespace InputshareLib.PlatformModules.Input
 
         private void InvokeGrabInput(bool grab)
         {
-            ISLogger.Write("Invoke grab " + grab);
             XEvent evt = new XEvent();
             evt.type = XEventName.PropertyNotify;
             evt.AnyEvent.window = xConnection.XRootWindow;
@@ -287,15 +374,17 @@ namespace InputshareLib.PlatformModules.Input
                 return;
 
             _stopGrab = false;
-
             XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out storedX, out storedY, out _, out _, out int _);
 
-            
+            XWarpPointer(xConnection.XDisplay, xConnection.XRootWindow, xConnection.XRootWindow, 0, 0, 0, 0, 200, 200);
+            XFlush(xConnection.XDisplay);
+            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out lastX, out lastY, out _, out _, out _);
 
             int ret = XGrabKeyboard(xConnection.XDisplay, xConnection.XRootWindow, true, 1, 1, IntPtr.Zero);
 
             if (ret != 0)
             {
+
                 ISLogger.Write("{0}: XGrabKeyboard returned {1}", ModuleName, ret);
                 return;
             }
@@ -309,15 +398,9 @@ namespace InputshareLib.PlatformModules.Input
                 return;
             }
 
-            ISLogger.Write("Grabbed from root window!");
-
-            XSelectInput(xConnection.XDisplay, xConnection.XRootWindow, EventMask.PropertyChangeMask | anyMotionMask);
             XFlush(xConnection.XDisplay);
 
-            XWarpPointer(xConnection.XDisplay, xConnection.XRootWindow, IntPtr.Zero, 0, 0, 0, 0, 50, 50);
-            XFlush(xConnection.XDisplay);
-            XCheckMaskEvent(xConnection.XDisplay, EventMask.PointerMotionMask | EventMask.PointerMotionHintMask, out XEvent evtB);
-            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out lastX, out lastY, out _, out _, out _);
+            
             InputBlocked = true;
 
             ISLogger.Write("{0}: Input grabbed", ModuleName);
@@ -326,7 +409,6 @@ namespace InputshareLib.PlatformModules.Input
 
         private void UngrabInput()
         {
-            ISLogger.Write("UNGRABINPUT CALLED");
             if (!InputBlocked)
                 return;
             _stopGrab = true;

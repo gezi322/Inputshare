@@ -1,4 +1,6 @@
-﻿using System;
+﻿using InputshareLib.Input;
+using InputshareLib.Input.Keys;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -20,8 +22,14 @@ namespace InputshareLib.Linux.Native
             Button4Mask = (1 << 11),
             Button5Mask = (1 << 12),
         }
+        [DllImport("libX11.so.6")]
+        public static extern string XKeysymToString(int keySym);
 
+        [DllImport("libX11.so.6")]
+        public static extern int XKeycodeToKeysym(IntPtr display, int keycode, int index);
 
+        [DllImport("libX11.so.6")]
+        public static extern int XUngrabKey(IntPtr display, LinuxKeyCode key, LinuxKeyMask mask, IntPtr window);
 
         [DllImport("libX11.so.6")]
         public static extern int XSetIOErrorHandler(X11IOErrorDelegate handler);
@@ -156,7 +164,7 @@ namespace InputshareLib.Linux.Native
         public static extern int XTestFakeMotionEvent(IntPtr display, int screenNumber, int x, int y, uint delay);
 
         [DllImport("libXtst.so.6")]
-        public static extern int XGrabKey(IntPtr display, int keyCode, uint mask, IntPtr window, bool owner_events, int pointerMode, int keyboardMode);
+        public static extern int XGrabKey(IntPtr display, LinuxKeyCode key, LinuxKeyMask mask, IntPtr window, bool owner_events, int pointerMode, int keyboardMode);
 
         [DllImport("libXtst.so.6")]
         public static extern int XGrabKeyboard(IntPtr display,

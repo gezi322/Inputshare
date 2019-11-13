@@ -34,11 +34,14 @@ namespace InputshareLib.PlatformModules.Input
 
             if (GetClientHotkey(hotkey.TargetClient) != null)
             {
-                hotkeys.Remove(GetClientHotkey(hotkey.TargetClient));
+                Hotkey rem = GetClientHotkey(hotkey.TargetClient);
+                hotkeys.Remove(rem);
+                OnHotkeyRemoved(rem);
             }
 
             ISLogger.Write("Added client hotkey " + hotkey);
             hotkeys.Add(hotkey);
+            OnHotkeyAdded(hotkey);
         }
 
         public abstract void SetMouseInputMode(MouseInputMode mode, int interval = 0);
@@ -60,6 +63,17 @@ namespace InputshareLib.PlatformModules.Input
 
             ISLogger.Write("Assigned {0} to {1}", hotkey, hotkey.Function);
             hotkeys.Add(hotkey);
+            OnHotkeyAdded(hotkey);
+        }
+
+        protected virtual void OnHotkeyAdded(Hotkey key)
+        {
+
+        }
+
+        protected virtual void OnHotkeyRemoved(Hotkey key)
+        {
+
         }
 
         /// <summary>
@@ -75,6 +89,7 @@ namespace InputshareLib.PlatformModules.Input
                 throw new ArgumentException("Client hotkey not found");
 
             hotkeys.Remove(chk);
+            OnHotkeyRemoved(chk);
         }
 
         /// <summary>
@@ -112,6 +127,7 @@ namespace InputshareLib.PlatformModules.Input
                 throw new ArgumentNullException("Hotkey not found");
 
             hotkeys.Remove(fhk);
+            OnHotkeyRemoved(fhk);
         }
 
         /// <summary>

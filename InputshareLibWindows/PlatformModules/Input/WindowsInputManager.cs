@@ -290,6 +290,9 @@ namespace InputshareLibWindows.PlatformModules.Input
         {
             WindowsVirtualKey key = (WindowsVirtualKey)keyboardStruct.vkCode;
 
+            if (Settings.DEBUG_PRINTINPUTKEYS)
+                ISLogger.Write("DEBUG: VIRTUAL KEY {0} SCAN {1}", key, keyboardStruct.scanCode);
+
             ISInputCode translatedCode;
             if (code == WM_KEYDOWN || code == WM_SYSKEYDOWN)
                 translatedCode = ISInputCode.IS_KEYDOWN;
