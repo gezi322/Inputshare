@@ -13,9 +13,9 @@ namespace InputshareLibWindows.PlatformModules.Displays
 {
     public class WindowsDisplayManager : DisplayManagerBase
     {
-        private byte[] currentRawConfig = new byte[0];
         private System.Threading.Timer displayUpdateTimer;
         private System.Threading.Timer cursorUpdateTimer;
+
         public WindowsDisplayManager()
         {
             UpdateConfigManual();
@@ -56,12 +56,8 @@ namespace InputshareLibWindows.PlatformModules.Displays
         {
             DisplayConfig conf = GetDisplayConfig();
 
-            if (!conf.ToBytes().SequenceEqual(currentRawConfig))
-            {
-                CurrentConfig = conf;
-                currentRawConfig = CurrentConfig.ToBytes();
+            if (!conf.Equals(CurrentConfig))
                 OnConfigUpdated(conf);
-            }
         }
 
         private Display GetDisplay(int index)
@@ -124,14 +120,11 @@ namespace InputshareLibWindows.PlatformModules.Displays
             return new DisplayConfig(vBounds, displays);
         }
 
-
         public override void UpdateConfigManual()
         {
-            CurrentConfig = GetDisplayConfig();
-            currentRawConfig = CurrentConfig.ToBytes();
             OnConfigUpdated(CurrentConfig);
         }
 
-      
+
     }
 }

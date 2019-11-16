@@ -53,15 +53,15 @@ namespace InputshareLib.Client
         private ConnectionInfo conInfo;
 
         private ISUdpClient udpC;
-
+        private bool allowudp;
         public bool AttemptingConnection { get; private set; }
         protected bool serverResponded = false;
 
         public event EventHandler CancelAnyDragDrop;
 
-        public ISClientSocket()
+        public ISClientSocket(bool udpAllowed)
         {
-
+            allowudp = udpAllowed;
         }
 
         /// <summary>
@@ -89,8 +89,12 @@ namespace InputshareLib.Client
 
             ServerAddress = new IPEndPoint(destAddr, port);
 
-            udpC = new ISUdpClient(ServerAddress);
-            udpC.InputReceived += UdpC_InputReceived;
+            if (allowudp)
+            {
+                udpC = new ISUdpClient(ServerAddress);
+                udpC.InputReceived += UdpC_InputReceived;
+            }
+
 
             AttemptingConnection = true;
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
@@ -166,7 +170,7 @@ namespace InputshareLib.Client
         /// <param name="clientId"></param>
         private void SendInitialInfo()
         {
-            SendMessage(new ClientInitialMessage(conInfo.Name, conInfo.Id, conInfo.DisplayConf, Settings.InputshareVersion, udpC.UdpBindAddress.Port));
+            SendMessage(new ClientInitialMessage(conInfo.Name, conInfo.Id, conInfo.DisplayConf, Settings.InputshareVersion, allowudp ? udpC.UdpBindAddress.Port : 0));
         }
 
         /// <summary>

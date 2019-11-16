@@ -82,5 +82,36 @@ namespace InputshareLib.Displays
                 return ms.ToArray();
             }
         }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is DisplayConfig conf))
+                return false;
+
+            if (conf.VirtualBounds != VirtualBounds)
+                return false;
+
+            if (conf.Displays.Count != Displays.Count)
+                return false;
+
+            for (int i = 0; i < Displays.Count; i++)
+            {
+
+                if (Displays[i].Bounds != conf.Displays[i].Bounds)
+                    return false;
+
+                if (Displays[i].Index != conf.Displays[i].Index)
+                    return false;
+
+                if (Displays[i].Name != conf.Displays[i].Name)
+                    return false;
+
+                if (Displays[i].Primary != conf.Displays[i].Primary)
+                    return false;
+
+            }
+
+            return true;
+        }
     }
 }

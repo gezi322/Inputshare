@@ -36,6 +36,6 @@ namespace InputshareLib
 
         public const bool DEBUG_PRINTINPUTKEYS = false;
         public const bool DEBUG_PRINTOUTPUTKEYS = false;
-
+        public const int XServerPollRateMS = 1;
     }
 }

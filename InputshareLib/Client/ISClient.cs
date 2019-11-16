@@ -46,7 +46,7 @@ namespace InputshareLib.Client
         private ClientEdges edges;
         private readonly OutputManagerBase outMan;
         private readonly ClipboardManagerBase clipboardMan;
-        private ISClientSocket socket = new ISClientSocket();
+        private ISClientSocket socket;
         private readonly DisplayManagerBase displayMan;
         private readonly DragDropManagerBase dragDropMan;
 
@@ -67,15 +67,39 @@ namespace InputshareLib.Client
         private FileAccessController fileController = new FileAccessController();
         private LocalDragDropController ddController;
 
-        public ISClient(ISClientDependencies dependencies)
+        private StartOptions startArgs;
+
+        public ISClient(ISClientDependencies dependencies, StartOptions args)
         {
+            startArgs = args;
+
             displayMan = dependencies.displayManager;
             outMan = dependencies.outputManager;
-            clipboardMan = dependencies.clipboardManager;
-            dragDropMan = dependencies.dragDropManager;
+
+            if (args.HasArg(StartArguments.Verbose))
+                ISLogger.EnableConsole = true;
+
+            if (args.HasArg(StartArguments.NoClipboard))
+                clipboardMan = new NullClipboardManager();
+            else
+                clipboardMan = dependencies.clipboardManager;
+
+            if (args.HasArg(StartArguments.NoDragDrop))
+                dragDropMan = new NullDragDropManager();
+            else
+                dragDropMan = dependencies.dragDropManager;
+
+            socket = new ISClientSocket(!args.HasArg(StartArguments.NoUdp));
+
             ddController = new LocalDragDropController(fileController, dragDropMan);
             Init();
             CreateSocketEvents();
+
+            if (args.HasArg(StartArguments.Connect))
+                Connect(args.SpecifiedServer.Address.ToString(), args.SpecifiedServer.Port);
+
+            AutoReconnect = startArgs.HasArg(StartArguments.AutoReconnect);
+
         }
 
         public void Stop()

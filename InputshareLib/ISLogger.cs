@@ -109,7 +109,7 @@ namespace InputshareLib
                         Debug.WriteLine(message);
 
                     if (EnableConsole)
-                        Console.WriteLine(message);
+                        Console.WriteLine("Verbose: " + message);
 
                     LogCount++;
 

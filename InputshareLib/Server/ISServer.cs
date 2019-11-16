@@ -62,15 +62,29 @@ namespace InputshareLib.Server
         private FileAccessController fileController;
         private GlobalDragDropController ddController;
 
+        private StartOptions startArgs;
 
-
-        public ISServer(ISServerDependencies dependencies)
+        public ISServer(ISServerDependencies dependencies, StartOptions args)
         {
+            startArgs = args;
+
+            if (args.HasArg(StartArguments.Verbose))
+                ISLogger.EnableConsole = true;
+
             displayMan = dependencies.DisplayManager;
             inputMan = dependencies.InputManager;
-            dragDropMan = dependencies.DragDropManager;
             outMan = dependencies.OutputManager;
-            cbManager = dependencies.ClipboardManager;
+
+            if (args.HasArg(StartArguments.NoDragDrop))
+                dragDropMan = new NullDragDropManager();
+            else
+                dragDropMan = dependencies.DragDropManager;
+           
+
+            if (args.HasArg(StartArguments.NoClipboard))
+                cbManager = new NullClipboardManager();
+            else
+                cbManager = dependencies.ClipboardManager;
 
             fileController = new FileAccessController();
             clientMan = new ClientManager(12);
@@ -85,8 +99,6 @@ namespace InputshareLib.Server
             AssignEvents();
         }
 
-        #region init
-
         public void Start(int port)
         {
             if (Running)
@@ -95,13 +107,16 @@ namespace InputshareLib.Server
             try
             {
                 Running = true;
+
                 clientSwitchTimer.Restart();
                 ISLogger.Write("Server: Starting server...");
 
                 StartClientListener(new IPEndPoint(IPAddress.Any, port));
                 clientListener.ClientConnected += ClientListener_ClientConnected;
 
-                InitUdp(port);
+                if(!startArgs.HasArg(StartArguments.NoUdp))
+                    InitUdp(port);
+
                 StartDisplayManager();
                 StartInputManager();
                 dragDropMan.Start();
@@ -165,7 +180,6 @@ namespace InputshareLib.Server
             inputMan.FunctionHotkeyPressed += InputMan_FunctionHotkeyPressed;
         }
 
-        #endregion
 
         /// <summary>
         /// Stops the inputshare server
@@ -317,7 +331,7 @@ namespace InputshareLib.Server
             {
                 if (inputClient.IsConnected)
                 {
-                    if (inputClient.UdpEnabled)
+                    if (inputClient.UdpEnabled && udpHost != null)
                         udpHost.SendInput(input, inputClient);
                     else
                         inputClient.SendInputData(input.ToBytes());
@@ -429,12 +443,21 @@ namespace InputshareLib.Server
 
             ISLogger.Write("Server: {1} connected as {0}", e.ClientName, client.ClientEndpoint);
             CreateClientEventHandlers(client);
+
             client.DisplayConfiguration = new DisplayConfig(e.DisplayConfig);
             client.AcceptClient();
 
-            if (udpHost.SocketBound)
-                udpHost.InitClient(client);
-                
+            if (!startArgs.HasArg(StartArguments.NoUdp))
+            {
+                if (udpHost.SocketBound)
+                    udpHost.InitClient(client);
+            }
+            else
+            {
+                client.SetUdpEnabled(false);
+            }
+
+
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }
 
@@ -818,6 +841,12 @@ namespace InputshareLib.Server
 
             if (c == null)
                 throw new ArgumentException("Client " + client.Name + " not found");
+
+            if (startArgs.HasArg(StartArguments.NoUdp))
+            {
+                ISLogger.Write("Ignoring SetClientUdp: NoUdp arg was passed");
+                return;
+            }
 
             c.SetUdpEnabled(udpEnabled);
         }

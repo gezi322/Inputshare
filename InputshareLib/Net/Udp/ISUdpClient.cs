@@ -8,6 +8,9 @@ namespace InputshareLib.Net.Udp
     {
         public event EventHandler<byte[]> InputReceived;
 
+        /// <summary>
+        /// True if a response has been received from the server
+        /// </summary>
         public bool Connected { get; private set; }
 
         private Socket udpSocket;

@@ -11,11 +11,8 @@ namespace InputshareLib.PlatformModules.Displays
     public class LinuxDisplayManager : DisplayManagerBase
     {
         private SharedXConnection xConnection;
-
-        private byte[] currentRawConfig = new byte[0];
         private Timer displayUpdateTimer;
         private Timer positionUpdateTimer;
-
 
         public LinuxDisplayManager(SharedXConnection xCon)
         {
@@ -24,6 +21,7 @@ namespace InputshareLib.PlatformModules.Displays
 
         protected override void OnStart()
         {
+            UpdateConfigManual();
             displayUpdateTimer = new Timer(TimerCallback, null, 0, 1000);
             positionUpdateTimer = new Timer(PositionUpdateTimerCallback, null, 0, 50);
         }
@@ -38,12 +36,8 @@ namespace InputshareLib.PlatformModules.Displays
         {
             DisplayConfig conf = GetXDisplayConfig();
 
-            if (!conf.ToBytes().SequenceEqual(CurrentConfig.ToBytes()))
-            {
-                CurrentConfig = conf;
-                currentRawConfig = CurrentConfig.ToBytes();
+            if (!conf.Equals(CurrentConfig))
                 OnConfigUpdated(conf);
-            }
         }
 
         private void PositionUpdateTimerCallback(object sync)
@@ -68,8 +62,8 @@ namespace InputshareLib.PlatformModules.Displays
 
         public override void UpdateConfigManual()
         {
-            CurrentConfig = GetXDisplayConfig();
-            OnConfigUpdated(CurrentConfig);
+            DisplayConfig conf = GetXDisplayConfig();
+            OnConfigUpdated(conf);
         }
     }
 }

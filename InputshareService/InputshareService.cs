@@ -160,7 +160,7 @@ namespace InputshareService
             try
             {
                 LoadedConfiguration conf = LoadConfig();
-                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spDragDropHandle));
+                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spDragDropHandle), new StartOptions(new System.Collections.Generic.List<string>()));
                 
 
                 clientInstance.ConnectionError += ClientInstance_ConnectionError;
