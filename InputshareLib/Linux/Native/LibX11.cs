@@ -23,6 +23,9 @@ namespace InputshareLib.Linux.Native
             Button5Mask = (1 << 12),
         }
         [DllImport("libX11.so.6")]
+        public static extern int XConnectionNumber(IntPtr display);
+
+        [DllImport("libX11.so.6")]
         public static extern string XKeysymToString(int keySym);
 
         [DllImport("libX11.so.6")]
@@ -69,9 +72,6 @@ namespace InputshareLib.Linux.Native
 
         [DllImport("libX11.so.6")]
         public static extern void XStoreName(IntPtr display, IntPtr window, string window_name);
-
-        [DllImport("libX11.so.6")]
-        public static extern XImage XCreateImage(IntPtr display, IntPtr visual, int depth, int format, int offset, byte[] at, int width, int height, int bitmap_pad, int bytes_per_line);
 
         [DllImport("libX11.so.6")]
         public static extern void XGetErrorText(IntPtr display, int code, byte[] return_buffer, int len);

@@ -79,8 +79,10 @@ namespace InputshareLib.PlatformModules.Output
                 else
                     XTestFakeButtonEvent(xConnection.XDisplay, X11_XBUTTONBACK, false, 0);
             }
-            else if (input.Code == ISInputCode.IS_KEYDOWN)
+            else if (input.Code == ISInputCode.IS_KEYDOWN || input.Code == ISInputCode.IS_KEYUP)
             {
+                bool down = input.Code == ISInputCode.IS_KEYDOWN;
+
                 try
                 {
                     uint key = ConvertKey((WindowsVirtualKey)input.Param1);
@@ -91,30 +93,13 @@ namespace InputshareLib.PlatformModules.Output
                     if (key < 1)
                         throw new Exception("Could not translate key " + (WindowsVirtualKey)input.Param1);
 
-                    XTestFakeKeyEvent(xConnection.XDisplay, key, true, 0);
+                    XTestFakeKeyEvent(xConnection.XDisplay, key, down, 0);
                 }
                 catch (Exception ex)
                 {
                     ISLogger.Write("Failed to send key {0}: {1}", (WindowsVirtualKey)input.Param1, ex.Message);
                 }
             }
-            else if (input.Code == ISInputCode.IS_KEYUP)
-            {
-                try
-                {
-                    uint key = ConvertKey((WindowsVirtualKey)input.Param1);
-
-                    if (key < 1)
-                        throw new Exception("Could not translate key " + (WindowsVirtualKey)input.Param1);
-
-                    XTestFakeKeyEvent(xConnection.XDisplay, key, false, 0);
-                }
-                catch (Exception ex)
-                {
-                    ISLogger.Write("Failed to send key {0}: {1}", (WindowsVirtualKey)input.Param1, ex.Message);
-                }
-            }
-
 
             XFlush(xConnection.XDisplay);
         }

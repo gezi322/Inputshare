@@ -4,31 +4,18 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>True</UseWindowsForms>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <Platforms>x86;x64</Platforms>
+    <Platforms>AnyCPU</Platforms>
     
     <Company>Sbarrac1</Company>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
     <Authors>Sam Barraclough</Authors>
-    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
-    
-  </PropertyGroup>
+    <Configurations>Linux;Windows</Configurations>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x64'">
-    <OutputPath>..\builds_windows\release64</OutputPath>
-  </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x86'">
-    <OutputPath>..\builds_windows\release32</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x86'">
-    <OutputPath>..\builds_windows\debug32</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
-    <OutputPath>..\builds_windows\debug64</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

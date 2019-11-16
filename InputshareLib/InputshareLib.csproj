@@ -2,38 +2,33 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <Platforms>x86;x64</Platforms>
+    <Platforms>AnyCPU</Platforms>
     <RootNamespace>InputshareLib</RootNamespace>
     <Authors>Sam Barraclough</Authors>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
     <Company>Sbarrac1</Company>
-    <Configurations>WindowsRelease;WindowsDebug;LinuxDebug;LinuxRelease</Configurations>
+    <Configurations>Linux;Windows</Configurations>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">true</IsWindows>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">true</IsLinux>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x64'">
-    <OutputPath>..\builds_windows\release64</OutputPath>
+  <PropertyGroup Condition="'$(IsWindows)'=='true'">
+    <DefineConstants>WindowsBuild</DefineConstants>
+    <OutputPath>..\build_windows\</OutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsRelease|x86'">
-    <OutputPath>..\builds_windows\release32</OutputPath>
+  <PropertyGroup Condition="'$(IsLinux)'=='true'">
+    <DefineConstants>LinuxBuild</DefineConstants>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <OutputPath>..\build_linux\</OutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x86'">
-    <OutputPath>..\builds_windows\debug32</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WindowsDebug|x64'">
-    <OutputPath>..\builds_windows\debug64</OutputPath>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='LinuxDebug|x64'">
-    <OutputPath>..\builds_linux\debug64</OutputPath>
-  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.6.0" />

@@ -434,9 +434,7 @@ namespace InputshareLib.Server
 
             if (udpHost.SocketBound)
                 udpHost.InitClient(client);
-
-            SetClientEdge(client, Edge.Right, ISServerSocket.Localhost);
-
+                
             ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }
 
@@ -784,6 +782,10 @@ namespace InputshareLib.Server
             }
 
             return info;
+        }
+
+        public ClientInfo GetLocalhost(){
+            return GenerateLocalhostInfo();
         }
 
         private ClientInfo GenerateLocalhostInfo()

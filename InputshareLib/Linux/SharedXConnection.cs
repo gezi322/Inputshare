@@ -1,9 +1,12 @@
-﻿using System;
+﻿using InputshareLib.PlatformModules.Input;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using static InputshareLib.Linux.Native.LibX11;
 using static InputshareLib.Linux.Native.LibX11Events;
+using static InputshareLib.Linux.Native.Libc;
+using System.Runtime.InteropServices;
 
 namespace InputshareLib.Linux
 {
@@ -11,11 +14,9 @@ namespace InputshareLib.Linux
     {
         public IntPtr XDisplay { get; private set; }
         public IntPtr XRootWindow { get; private set; }
+        public IntPtr XWindow { get; private set; }
 
         public event Action<XEvent> EventArrived;
-
-        private Queue<XEvent> localEventQueue = new Queue<XEvent>();
-
         private X11ErrorDelegate errorHandler;
         private X11IOErrorDelegate ioErrorHandler;
 
@@ -25,7 +26,7 @@ namespace InputshareLib.Linux
             XDisplay = XOpenDisplay(0);
 
             if (XDisplay == IntPtr.Zero)
-                throw new XLibException("Failed to connect to X:");
+                throw new XLibException("Failed to connect to X");
 
             XRootWindow = XDefaultRootWindow(XDisplay);
 
@@ -38,47 +39,34 @@ namespace InputshareLib.Linux
             new Thread(() => { EventLoop(); }).Start();
         }
 
+        public void Close(){
+            XCloseDisplay(XDisplay);
+        }
+
 
         public void EventLoop()
         {
-            ISLogger.Write("Now waiting for events from X server");
+            XWindow = XCreateSimpleWindow(XDisplay, XRootWindow, 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
+            XFlush(XDisplay);
+            XSelectInput(XDisplay, XWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask | EventMask.PointerMotionMask);
 
-            XSelectInput(XDisplay, XRootWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask);
-
+            int timeout_usec = Settings.XServerPollRateMS * 1000;
+            
             //TODO - poll raw socket properly.
             XEvent evt = new XEvent();
             while (true)
             {
-                {
-                    if (localEventQueue.Count > 0)
-                        for (int i = 0; i < localEventQueue.Count; i++)
-                        {
-                            evt = localEventQueue.Dequeue();
-                            EventArrived?.Invoke(evt);
-                        }
-                }
+                timeval v = new timeval();
+                v.tv_usec = timeout_usec;
 
-                if (XPending(XDisplay) > 0)
-                {   
+                int num = select(0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref v);
+
+                while(XPending(XDisplay) > 0){
                     XNextEvent(XDisplay, ref evt);
 
                     EventArrived?.Invoke(evt);
                 }
-                else
-                {
-                    Thread.Sleep(5);
-                    continue;
-                }
             }
-        }
-
-        /// <summary>
-        /// Adds an event that will be processed without being sent to X
-        /// </summary>
-        /// <param name="evt"></param>
-        public void QueueLocalEvent(XEvent evt)
-        {
-            localEventQueue.Enqueue(evt);
         }
 
         private int HandleError(IntPtr display, ref XErrorEvent evt)

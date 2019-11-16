@@ -36,16 +36,18 @@ namespace InputshareLib.Server
         }
 
         public void OnClientClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
-        {
+        {   
             ISServerSocket client = sender as ISServerSocket;
             ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
             SetGlobalClipboard(cbData, client, args.OperationId);
+            args = null;
         }
 
         private void SetGlobalClipboard(ClipboardDataBase data, ISServerSocket host, Guid operationId)
         {
             try
             {
+                currentOperation = null;
                 ISLogger.Write("New clipboard operation. Type {0}, Host {1}, ID {2}", data.DataType, host.ClientName, operationId);
 
                 if (data.DataType == ClipboardDataType.File)

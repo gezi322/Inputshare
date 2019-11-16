@@ -63,7 +63,7 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnStop()
         {
-            xConnection.EventArrived -= XConnection_EventArrived;
+            xConnection.EventArrived -= ProcEvent;
         }
 
         private void Init()
@@ -72,27 +72,11 @@ namespace InputshareLib.PlatformModules.Input
             atomUngrab = XInternAtom(xConnection.XDisplay, "ISUngrab", false);
             atomIgnoreNext = XInternAtom(xConnection.XDisplay, "ISIgnoreNext", false);
 
-            xConnection.EventArrived += XConnection_EventArrived;
-        }
-
-        private void XConnection_EventArrived(XEvent evt)
-        {
-            if (evt.type == XEventName.ClientMessage)
-                if (evt.ClientMessageEvent.ptr1 == atomIgnoreNext)
-                {
-                    if (XPending(xConnection.XDisplay) > 0)
-                        XNextEvent(xConnection.XDisplay, ref evt);
-                }
-            ProcEvent(evt);
+            xConnection.EventArrived += ProcEvent;
         }
 
         private void ProcEvent(XEvent evt)
         {
-            if (evt.type == XEventName.MotionNotify && (evt.MotionEvent.x_root == lastX && evt.MotionEvent.y_root == lastY))
-            {
-                return;
-            }
-
             if (evt.type == XEventName.MotionNotify && InputBlocked)
                 HandleMotionEvent(evt.MotionEvent);
             if (evt.type == XEventName.ButtonPress && InputBlocked)
@@ -142,6 +126,10 @@ namespace InputshareLib.PlatformModules.Input
         private int lastY = 0;
 
         XEvent _evt = new XEvent();
+        XEvent _a = new XEvent();
+
+        private int backX;
+        private int backY;
         private void HandleMotionEvent(XMotionEvent evt)
         {
             if (_stopGrab)
@@ -149,57 +137,49 @@ namespace InputshareLib.PlatformModules.Input
                 return;
             }
 
-            EventMask m = (EventMask)evt.state;
-            CheckButtonStates(m);
             int relX = (evt.x_root - lastX);
             int relY = (evt.y_root - lastY);
 
+            lastX = evt.x_root;
+            lastY = evt.y_root;
+
+            if (evt.send_event)
+            {
+                do
+                {
+                    XMaskEvent(xConnection.XDisplay, EventMask.PointerMotionMask, out _a);
+                } while (!_a.AnyEvent.send_event);
+                return;
+            }
 
             //We need to put the cursor back to the middle of the window, but we also need to make sure that we don't 
             //read the event
-            XTestFakeMotionEvent(xConnection.XDisplay, 0, lastX, lastY, 0);
+
+            //After a lot of testing, this seems like the best possible solution. Before we warp the cursor we send an event, 
+            //which we can detect by checking the send_event flag, we then discard any pointer events until we detect the
+            //send_input event. Not a perfect solution but not too bad.
+
+            SendIgnoreNext();
+            //XTestFakeMotionEvent(xConnection.XDisplay, 0, lastX, lastY, 0);
+            XWarpPointer(xConnection.XDisplay, xConnection.XRootWindow, xConnection.XRootWindow, 0, 0, 0, 0, backX, backY);
             SendIgnoreNext();
             XFlush(xConnection.XDisplay);
 
             OnInputReceived(new ISInputData(ISInputCode.IS_MOUSEMOVERELATIVE, (short)relX, (short)relY));
+          
         }
 
         private void SendIgnoreNext()
         {
             _evt = new XEvent();
-            _evt.type = XEventName.ClientMessage;
-            _evt.ClientMessageEvent.ptr1 = atomIgnoreNext;
-            _evt.ClientMessageEvent.format = 32;
-            _evt.ClientMessageEvent.window = xConnection.XRootWindow;
-
-            XSendEvent(xConnection.XDisplay, xConnection.XRootWindow, true, 0, ref _evt);
+            _evt.type = XEventName.MotionNotify;
+            _evt.AnyEvent.send_event = true;
+            _evt.AnyEvent.window = xConnection.XWindow;
+            _evt.MotionEvent.x_root = backX;
+            _evt.MotionEvent.y_root = backY;
+            _evt.AnyEvent.display = xConnection.XDisplay;
+            XSendEvent(xConnection.XDisplay, xConnection.XWindow, false, EventMask.PointerMotionMask, ref _evt);
         }
-
-
-        private EventMask[] buttonMasks = new EventMask[] {0, EventMask.Button1MotionMask, EventMask.Button2MotionMask, EventMask.Button3MotionMask,
-        EventMask.Button4MotionMask, EventMask.Button5MotionMask};
-
-        private ISInputCode[] buttonMaskInputCodes = new ISInputCode[] { 0, ISInputCode.IS_MOUSELDOWN, ISInputCode.IS_MOUSELDOWN, ISInputCode.IS_MOUSEMDOWN }; 
-
-        private void CheckButtonStates(EventMask mask)
-        {
-            for (int i = 1; i < 4; i++)
-            {
-                if (mask.HasFlag(buttonMasks[i]))
-                {
-                    if (!buttonStates[i])
-                    {
-                        buttonStates[i] = true;
-                        OnInputReceived(new ISInputData(buttonMaskInputCodes[i], 0, 0));
-                    }
-                } else if (buttonStates[i])
-                {
-                    buttonStates[i] = false;
-                    OnInputReceived(new ISInputData(buttonMaskInputCodes[i], 0, 0));
-                }
-            }
-        }
-
 
         private void OnInputReceived(ISInputData input)
         {
@@ -341,7 +321,7 @@ namespace InputshareLib.PlatformModules.Input
             else
                 evt.PropertyEvent.atom = atomUngrab;
 
-            xConnection.QueueLocalEvent(evt);
+            XSendEvent(xConnection.XDisplay, xConnection.XWindow, true, 0, ref evt);
             XFlush(xConnection.XDisplay);
         }
 
@@ -351,23 +331,31 @@ namespace InputshareLib.PlatformModules.Input
                 return;
 
             _stopGrab = false;
+
+            //Store the position of the cursor so that we can put it back when the input is switched back to the server
             XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out storedX, out storedY, out _, out _, out int _);
 
+            //Move the cursor away from any edge, to allow it to move in all directions
             XWarpPointer(xConnection.XDisplay, xConnection.XRootWindow, xConnection.XRootWindow, 0, 0, 0, 0, 200, 200);
+
+            //We need to store where we put the cursor, so we can calculate relative movement
+            backX = 200;
+            backY = 200;
             XFlush(xConnection.XDisplay);
-            XQueryPointer(xConnection.XDisplay, xConnection.XRootWindow, out _, out _, out lastX, out lastY, out _, out _, out _);
 
-            int ret = XGrabKeyboard(xConnection.XDisplay, xConnection.XRootWindow, true, 1, 1, IntPtr.Zero);
 
+            lastX = backX;
+            lastY = backY;
+
+
+            int ret = XGrabKeyboard(xConnection.XDisplay, xConnection.XRootWindow, false, 1, 1, IntPtr.Zero);
             if (ret != 0)
             {
-
                 ISLogger.Write("{0}: XGrabKeyboard returned {1}", ModuleName, ret);
                 return;
             }
 
-            ret = XGrabPointer(xConnection.XDisplay, xConnection.XRootWindow, true, anyMotionMask, 1, 1, xConnection.XRootWindow, IntPtr.Zero, IntPtr.Zero);
-
+            ret = XGrabPointer(xConnection.XDisplay, xConnection.XRootWindow, false, anyMotionMask, 1, 1, xConnection.XRootWindow, IntPtr.Zero, IntPtr.Zero);
             if (ret != 0)
             {
                 XUngrabPointer(xConnection.XDisplay, IntPtr.Zero);
@@ -376,12 +364,9 @@ namespace InputshareLib.PlatformModules.Input
             }
 
             XFlush(xConnection.XDisplay);
-
-            
             InputBlocked = true;
 
             ISLogger.Write("{0}: Input grabbed", ModuleName);
-            XFlush(xConnection.XDisplay);
         }
 
         private void UngrabInput()
@@ -391,7 +376,6 @@ namespace InputshareLib.PlatformModules.Input
             _stopGrab = true;
 
             XUngrabKeyboard(xConnection.XDisplay, IntPtr.Zero);
-            XFlush(xConnection.XDisplay);
             XUngrabPointer(xConnection.XDisplay, IntPtr.Zero);
             XFlush(xConnection.XDisplay);
             ISLogger.Write("Restoring cursor to " + storedX + " + " + storedY);

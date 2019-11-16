@@ -21,6 +21,7 @@ namespace InputshareLib.PlatformModules.Clipboard
         //Common X11 atoms
         private IntPtr atomTargets;
         private IntPtr atomClipboard;
+        private IntPtr atomPrimary;
 
         private IntPtr atomUtf8String;
         private IntPtr atomText;
@@ -33,7 +34,6 @@ namespace InputshareLib.PlatformModules.Clipboard
         private IntPtr atomFileReturn;
 
         private SharedXConnection xConnection;
-        private IntPtr xWindow;
 
         public LinuxClipboardManager(SharedXConnection xCon)
         {
@@ -42,7 +42,7 @@ namespace InputshareLib.PlatformModules.Clipboard
 
         private void XConnection_EventArrived(XEvent evt)
         {
-            if (evt.type != XEventName.XFixesNotify && evt.AnyEvent.window != xWindow)
+            if (evt.type != XEventName.XFixesNotify && evt.AnyEvent.window != xConnection.XWindow)
             {
                 return;
             }
@@ -70,18 +70,16 @@ namespace InputshareLib.PlatformModules.Clipboard
 
         public override void SetClipboardData(ClipboardDataBase data)
         {
-            if (data.DataType == ClipboardDataType.Text)
-            {
-                SetClipboardText(((ClipboardTextData)data).Text);
-            }
-            else if (data.DataType == ClipboardDataType.Image)
-            {
-                SetClipboardImage(data as ClipboardImageData);
-            }
-            else
+            if(data.DataType == ClipboardDataType.File)
             {
                 ISLogger.Write("{0}: Data type {1} not supported", ModuleName, data.DataType);
+                return;
             }
+
+            copiedData = data;
+            XSetSelectionOwner(xConnection.XDisplay, atomClipboard, xConnection.XWindow);
+            if (XGetSelectionOwner(xConnection.XDisplay, atomClipboard) != xConnection.XWindow)
+                ISLogger.Write("{0}: Failed to set selection owner!", ModuleName);
         }
 
         protected override void OnStart()
@@ -93,7 +91,7 @@ namespace InputshareLib.PlatformModules.Clipboard
         protected override void OnStop()
         {
             xConnection.EventArrived -= XConnection_EventArrived;
-            XDestroyWindow(xConnection.XDisplay, xWindow);
+            XDestroyWindow(xConnection.XDisplay, xConnection.XWindow);
         }
 
         private int OnError(IntPtr display, ref XErrorEvent evt)
@@ -114,39 +112,19 @@ namespace InputshareLib.PlatformModules.Clipboard
             return sb.ToString();
         }
 
-        private void SetClipboardText(string text)
-        {
-            copiedData = new ClipboardTextData(text);
-            XSetSelectionOwner(xConnection.XDisplay, atomClipboard, xWindow); XSync(xConnection.XDisplay, false);
-            if (XGetSelectionOwner(xConnection.XDisplay, atomClipboard) != xWindow)
-                ISLogger.Write("Failed to set owner");
-            else
-                ISLogger.Write("Owner set");
-        }
-
-        private void SetClipboardImage(ClipboardImageData data)
-        {
-            copiedData = data;
-            XSetSelectionOwner(xConnection.XDisplay, atomClipboard, xWindow);
-
-            XSync(xConnection.XDisplay, false);
-            if (XGetSelectionOwner(xConnection.XDisplay, atomClipboard) != xWindow)
-                ISLogger.Write("Failed to set owner");
-            else
-                ISLogger.Write("Owner set");
-        }
-
-
         private void InitWindow()
         {
             InitAtoms();
-            xWindow = XCreateSimpleWindow(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
             XFlush(xConnection.XDisplay);
 
-            XFixesSelectSelectionInput(xConnection.XDisplay, XDefaultRootWindow(xConnection.XDisplay), atomClipboard, 1);
-            XSelectInput(xConnection.XDisplay, xWindow, EventMask.PropertyChangeMask);
+            XFixesSelectSelectionInput(xConnection.XDisplay, xConnection.XWindow, atomClipboard, 1);
+            //XFixesSelectSelectionInput(xConnection.XDisplay, xConnection.xConnection.XWindow, atomPrimary, 1); TODO - implement 'primary' selections (middle mouse paste)
+
+            //XSelectInput(xConnection.XDisplay, xConnection.XWindow, EventMask.PropertyChangeMask); 
+            //Because we are sharing one connection for all classes, using XSelectInput will break others.
+
             XFlush(xConnection.XDisplay);
-            XStoreName(xConnection.XDisplay, xWindow, "InputshareWindow");
+            XStoreName(xConnection.XDisplay, xConnection.XWindow, "InputshareWindow");
         }
 
         private void HandlePropertyChange(XPropertyEvent evt)
@@ -158,7 +136,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             }
             try
             {
-                int ret = XGetWindowProperty(xConnection.XDisplay, xWindow, evt.atom, 0, 0, true, new IntPtr(0), out IntPtr retType,
+                int ret = XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.atom, 0, 0, true, new IntPtr(0), out IntPtr retType,
                out int format, out int nItems, out int dataSize, out IntPtr prop_return);
                 XFree(prop_return);
                 int rem = incrBuff.Length - incrBuffIndex;
@@ -166,7 +144,7 @@ namespace InputshareLib.PlatformModules.Clipboard
                 if (rem < dataSize)
                     dataSize = rem;
 
-                XGetWindowProperty(xConnection.XDisplay, xWindow, evt.atom, 0, rem, false, new IntPtr(0), out IntPtr returned_type,
+                XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.atom, 0, rem, false, new IntPtr(0), out IntPtr returned_type,
                     out format, out nItems, out int remBytes, out prop_return);
 
                 if (dataSize == 0)
@@ -185,7 +163,7 @@ namespace InputshareLib.PlatformModules.Clipboard
                 Marshal.Copy(prop_return, incrBuff, incrBuffIndex, dataSize);
                 incrBuffIndex += dataSize;
                 ISLogger.Write("Complete: {0}/{1}", incrBuffIndex, incrBuff.Length);
-                XDeleteProperty(xConnection.XDisplay, xWindow, evt.atom);
+                XDeleteProperty(xConnection.XDisplay, xConnection.XWindow, evt.atom);
                 XFree(prop_return);
                 XFlush(xConnection.XDisplay);
                 if (incrBuff.Length == incrBuffIndex && incrBuff.Length > 0)
@@ -205,10 +183,16 @@ namespace InputshareLib.PlatformModules.Clipboard
 
         private void HandleXFixesNotify(XFixesSelectionNotifyEvent evt)
         {
+            if(evt.selection == atomPrimary){
+                ISLogger.Write("Primary selection changed");
+            }else{
+                ISLogger.Write("Clipboard selection changed");
+            }
+
             IntPtr cbOwner = XGetSelectionOwner(xConnection.XDisplay, atomClipboard);
 
             //Ignore the event if our window set the clipboard data
-            if (cbOwner == xWindow)
+            if (cbOwner == xConnection.XWindow)
                 return;
 
             //We want a list of TARGET atoms so that we know what type of data the owner holds
@@ -234,16 +218,12 @@ namespace InputshareLib.PlatformModules.Clipboard
         {
             try
             {
-                int ret = XGetWindowProperty(xConnection.XDisplay, xWindow, evt.property, 0, 0, false, new IntPtr(0), out IntPtr retType,
+                int ret = XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.property, 0, 0, false, new IntPtr(0), out IntPtr retType,
               out int format, out int nItems, out int dataSize, out IntPtr prop_return);
                 XFree(prop_return);
 
-                XGetWindowProperty(xConnection.XDisplay, xWindow, evt.property, 0, dataSize, false, new IntPtr(0), out IntPtr returned_type,
+                XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.property, 0, dataSize, false, new IntPtr(0), out IntPtr returned_type,
                     out format, out nItems, out int remBytes, out prop_return);
-
-                ISLogger.Write("Recieved image as {0}", GetAtomName(returned_type));
-                ISLogger.Write("format = " + format);
-                ISLogger.Write("Size = " + nItems);
 
                 if (returned_type == XInternAtom(xConnection.XDisplay, "INCR", false))
                 {
@@ -270,17 +250,17 @@ namespace InputshareLib.PlatformModules.Clipboard
             int size = Marshal.ReadInt32(prop_return);
             incrBuff = new byte[size];
             incrBuffIndex = 0;
-            XDeleteProperty(xConnection.XDisplay, xWindow, evt.property);
+            XDeleteProperty(xConnection.XDisplay, xConnection.XWindow, evt.property);
             ISLogger.Write("Property deleted");
         }
 
         private void HandleReceivedText(IntPtr property)
         {
-            int ret = XGetWindowProperty(xConnection.XDisplay, xWindow, property, 0, 0, false, new IntPtr(0), out IntPtr retType,
+            int ret = XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, property, 0, 0, false, new IntPtr(0), out IntPtr retType,
                 out int format, out int nItems, out int dataSize, out IntPtr prop_return);
             XFree(prop_return);
 
-            XGetWindowProperty(xConnection.XDisplay, xWindow, property, 0, dataSize, false, new IntPtr(0), out IntPtr returned_type,
+            XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, property, 0, dataSize, false, new IntPtr(0), out IntPtr returned_type,
                 out format, out nItems, out int remBytes, out prop_return);
 
             if (remBytes > 0)
@@ -341,11 +321,11 @@ namespace InputshareLib.PlatformModules.Clipboard
             ev.type = XEventName.SelectionRequest;
             ev.SelectionRequestEvent.display = xConnection.XDisplay;
             ev.SelectionRequestEvent.owner = ownerWindow;
-            ev.SelectionRequestEvent.requestor = xWindow;
+            ev.SelectionRequestEvent.requestor = xConnection.XWindow;
             ev.SelectionRequestEvent.selection = atomClipboard;
             ev.SelectionRequestEvent.target = dataType;
 
-            XConvertSelection(xConnection.XDisplay, atomClipboard, dataType, returnAtom, xWindow, new IntPtr(0));        }
+            XConvertSelection(xConnection.XDisplay, atomClipboard, dataType, returnAtom, xConnection.XWindow, new IntPtr(0));        }
 
         /// <summary>
         /// Requests a window to sent supported clipboard formats
@@ -358,7 +338,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             evt.SelectionRequestEvent.display = xConnection.XDisplay;
             evt.SelectionRequestEvent.owner = window;
             evt.SelectionRequestEvent.selection = atomClipboard;
-            evt.SelectionRequestEvent.requestor = xWindow;
+            evt.SelectionRequestEvent.requestor = xConnection.XWindow;
             evt.SelectionRequestEvent.property = atomTargets;
             evt.SelectionRequestEvent.target = atomTargets;
 
@@ -465,6 +445,7 @@ namespace InputshareLib.PlatformModules.Clipboard
         private void InitAtoms()
         {
             atomClipboard = XInternAtom(xConnection.XDisplay, "CLIPBOARD", false);
+            atomPrimary = XInternAtom(xConnection.XDisplay, "PRIMARY", false);
             atomTargets = XInternAtom(xConnection.XDisplay, "TARGETS", false);
 
             atomUtf8String = XInternAtom(xConnection.XDisplay, "UTF8_STRING", false);
