@@ -66,9 +66,9 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             dropHost.host.SendCheckForDrop();
         }
 
-        public override void DoDragDrop(ClipboardDataBase data, Guid operationId)
+        public override void DoDragDrop(ClipboardDataBase data)
         {
-            dropHost.host.SendDoDragDrop(data, operationId);
+            dropHost.host.SendDoDragDrop(data, Guid.Empty);
         }
 
         public override  void WriteToFile(Guid messageId, byte[] data)

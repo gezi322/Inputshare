@@ -64,7 +64,7 @@ namespace InputshareSP
 
             ClipboardDataBase data = ret.Item2;
 
-            dropMan.DoDragDrop(ret.Item2, ret.Item1);
+            dropMan.DoDragDrop(ret.Item2);
         }
         private async Task<byte[]> VirtualFile_ReadData(Guid token, Guid operationId, Guid fileId, int readLen)
         {

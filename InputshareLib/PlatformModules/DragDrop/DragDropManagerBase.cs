@@ -14,7 +14,7 @@ namespace InputshareLib.PlatformModules.DragDrop
 
         public abstract void CancelDrop();
         public abstract void CheckForDrop();
-        public abstract void DoDragDrop(ClipboardDataBase data, Guid operationId);
+        public abstract void DoDragDrop(ClipboardDataBase data);
         public abstract void WriteToFile(Guid fileId, byte[] data);
 
 

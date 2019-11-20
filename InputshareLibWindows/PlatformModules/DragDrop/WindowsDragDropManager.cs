@@ -100,7 +100,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             DragDropCancelled?.Invoke(this, null);
         }
 
-        public override void DoDragDrop(ClipboardDataBase data, Guid operationId)
+        public override void DoDragDrop(ClipboardDataBase data)
         {
             if(!Running)
                 throw new InvalidOperationException("DragDrop manager not running");
@@ -110,7 +110,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             if (dropSourceWindow.Dropping)
                 dropSourceWindow.CancelDrop();
 
-            dropSourceWindow.InvokeDoDragDrop(data, operationId);
+            dropSourceWindow.InvokeDoDragDrop(data);
         }
 
         private void DropForm_DataDropped(object sender, IDataObject data)

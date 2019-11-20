@@ -21,7 +21,7 @@ namespace InputshareLib.PlatformModules.DragDrop
         {
         }
 
-        public override void DoDragDrop(ClipboardDataBase data, Guid operationId)
+        public override void DoDragDrop(ClipboardDataBase data)
         {
 
         }

@@ -78,7 +78,7 @@ namespace InputshareLib.Client
             //Check if the received operation has previously been received
             if (CurrentOperation?.OperationGuid == args.OperationId)
             {
-                ddManager.DoDragDrop(CurrentOperation.Data, args.OperationId);
+                ddManager.DoDragDrop(CurrentOperation.Data);
                 return;
             }
 
@@ -97,7 +97,7 @@ namespace InputshareLib.Client
             }
 
             CurrentOperation = new ClientDataOperation(cbData, args.OperationId);
-            ddManager.DoDragDrop(cbData, args.OperationId);
+            ddManager.DoDragDrop(cbData);
         }
     }
 }

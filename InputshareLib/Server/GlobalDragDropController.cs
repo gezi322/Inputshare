@@ -124,7 +124,7 @@ namespace InputshareLib.Server
                 cbFiles.RequestTokenMethod = CurrentOperation.Host.RequestFileTokenAsync;
             }
 
-            ddManager.DoDragDrop(CurrentOperation.Data, CurrentOperation.OperationGuid);
+            ddManager.DoDragDrop(CurrentOperation.Data);
         }
 
         public void HandleClientSwitchAsync(ISServerSocket oldActiveClient, ISServerSocket newActiveClient)
