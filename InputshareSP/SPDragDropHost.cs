@@ -36,9 +36,8 @@ namespace InputshareSP
             iClient.Disconnected += IClient_Disconnected;
             iClient.Connected += IClient_Connected;
 
-            dropMan.DragDropComplete += (object s, Guid operation) => { iClient.SendDragDropComplete(operation); };
-            dropMan.DragDropCancelled += (object s, Guid operation) => { iClient.SendDragDropCancelled(operation); };
-            dropMan.DragDropSuccess += (object s, Guid operation) => { iClient.SendDragDropSuccess(operation); };
+            dropMan.DragDropCancelled += (object s, EventArgs e) => { iClient.SendDragDropCancelled(Guid.Empty); };
+            dropMan.DragDropSuccess += (object s, EventArgs e) => { iClient.SendDragDropSuccess(Guid.Empty); };
             dropMan.DataDropped += (object s, ClipboardDataBase data) => { iClient.SendDroppedData(data); };
 
             Console.Title = "SP dragdrop host";
@@ -65,16 +64,6 @@ namespace InputshareSP
 
             ClipboardDataBase data = ret.Item2;
 
-            //If we are dropping files, we need a way for the dataobject to communicate with host
-            if( data is ClipboardVirtualFileData files)
-            {
-                foreach (var file in files.AllFiles)
-                {
-                    file.ReadComplete += File_ReadComplete; ;
-                    file.ReadDelegate = VirtualFile_ReadData;
-                }
-            }
-
             dropMan.DoDragDrop(ret.Item2, ret.Item1);
         }
         private async Task<byte[]> VirtualFile_ReadData(Guid token, Guid operationId, Guid fileId, int readLen)
@@ -91,11 +80,6 @@ namespace InputshareSP
             }
 
             
-        }
-
-        private void File_ReadComplete(object sender, EventArgs e)
-        {
-
         }
 
         private void Exit()

@@ -22,9 +22,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             mainHost.HandleUpdated += MainHost_HandleUpdated;
             mainHost.host.LeftMouseStateUpdated += (object s, bool state) => { LeftMouseState = state; };
             dropHost.host.DataDropped += (object s, ClipboardDataBase data) => { DataDropped?.Invoke(this, data); };
-            dropHost.host.DragDropCancelled += (object s, Guid id) => { DragDropCancelled?.Invoke(this, id); };
-            dropHost.host.DragDropComplete += (object s, Guid id) => { DragDropComplete?.Invoke(this, id); };
-            dropHost.host.DragDropSuccess += (object s, Guid id) => { DragDropSuccess?.Invoke(this, id); };
+            dropHost.host.DragDropCancelled += (object s, Guid id) => { DragDropCancelled?.Invoke(this, null); };;
+            dropHost.host.DragDropSuccess += (object s, Guid id) => { DragDropSuccess?.Invoke(this, null); };
             dropHost.host.RequestedReadStream += (object s, AnonIpcHost.StreamReadRequestArgs args) => { FileDataRequested?.Invoke(this, new DragDropManagerBase.RequestFileDataArgs(args.MessageId, args.Token, args.FileId, args.ReadLen)); };
         }
 
@@ -46,16 +45,14 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         private void DropHost_HandleUpdated(object sender, EventArgs e)
         {
             dropHost.host.DataDropped += (object s, ClipboardDataBase data) => { ISLogger.Write("SP DROPPED DATA"); DataDropped?.Invoke(this, data); };
-            dropHost.host.DragDropCancelled += (object s, Guid id) => { DragDropCancelled?.Invoke(this, id); };
-            dropHost.host.DragDropComplete += (object s, Guid id) => { DragDropComplete?.Invoke(this, id); };
-            dropHost.host.DragDropSuccess += (object s, Guid id) => { DragDropSuccess?.Invoke(this, id); };
+            dropHost.host.DragDropCancelled += (object s, Guid id) => { DragDropCancelled?.Invoke(this, null); };
+            dropHost.host.DragDropSuccess += (object s, Guid id) => { DragDropSuccess?.Invoke(this, null); };
             dropHost.host.RequestedReadStream += (object s, AnonIpcHost.StreamReadRequestArgs args) => { FileDataRequested?.Invoke(this, new DragDropManagerBase.RequestFileDataArgs(args.MessageId, args.Token, args.FileId, args.ReadLen)); };
         }
         public override bool LeftMouseState { get; protected set; } = false;
 
-        public override event EventHandler<Guid> DragDropCancelled;
-        public override event EventHandler<Guid> DragDropSuccess;
-        public override event EventHandler<Guid> DragDropComplete;
+        public override event EventHandler DragDropCancelled;
+        public override event EventHandler DragDropSuccess;
         public override event EventHandler<ClipboardDataBase> DataDropped;
         public override event EventHandler<DragDropManagerBase.RequestFileDataArgs> FileDataRequested;
 

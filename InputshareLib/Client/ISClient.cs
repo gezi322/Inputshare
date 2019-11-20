@@ -1,4 +1,5 @@
-﻿using InputshareLib.Clipboard.DataTypes;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLib.Net;
@@ -62,7 +63,7 @@ namespace InputshareLib.Client
 
 
 
-        private DataOperation currentClipboardOperation = new DataOperation();
+        private ClientDataOperation currentClipboardOperation;
 
         private FileAccessController fileController = new FileAccessController();
         private LocalDragDropController ddController;
@@ -91,7 +92,6 @@ namespace InputshareLib.Client
 
             socket = new ISClientSocket(!args.HasArg(StartArguments.NoUdp));
 
-            ddController = new LocalDragDropController(fileController, dragDropMan);
             Init();
             CreateSocketEvents();
 
@@ -136,10 +136,10 @@ namespace InputshareLib.Client
             dragDropMan.Start();
             dragDropMan.DragDropSuccess += ddController.Local_DragDropSuccess;
             dragDropMan.DragDropCancelled += ddController.Local_DragDropCancelled;
-            dragDropMan.DragDropComplete += ddController.Local_DragDropComplete;
             dragDropMan.DataDropped += ddController.Local_DataDropped;
             dragDropMan.FileDataRequested += DragDropMan_FileDataRequested;
         }
+
         private async void DragDropMan_FileDataRequested(object sender, DragDropManagerBase.RequestFileDataArgs e)
         {
             try
@@ -158,17 +158,10 @@ namespace InputshareLib.Client
         {
             if (socket != null && socket.IsConnected)
             {
-
-                if (data.DataType == ClipboardDataType.File)
-                {
-                    ISLogger.Write("File copying/pasting is currently disabled....");
-                    return;
-                }
-
                 //create GUID and file tokens
                 Guid operationId = Guid.NewGuid();
 
-                currentClipboardOperation = new DataOperation(operationId, data);
+                currentClipboardOperation = new ClientDataOperation(data, operationId);
                 socket.SendClipboardData(data.ToBytes(), operationId);
                 ISLogger.Write("Created clipboard operation " + operationId);
             }
@@ -249,7 +242,6 @@ namespace InputshareLib.Client
             socket.CancelAnyDragDrop += ddController.Socket_CancelAnyDragDrop;
             socket.DragDropDataReceived += ddController.Socket_DragDropReceived;
             socket.DragDropCancelled += ddController.Socket_DragDropCancelled;
-            socket.DragDropOperationComplete += ddController.Socket_DragDropComplete;
         }
 
         private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs e)
@@ -258,100 +250,54 @@ namespace InputshareLib.Client
         }
 
 
-        private void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs e)
+        private void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
         {
+            if (!fileController.DoesTokenExist(args.Token))
+            {
+                socket.SendFileErrorResponse(args.NetworkMessageId, "Failed to read file: Token not found " + args.Token);
+                return;
+            }
+
             try
             {
-                byte[] data = new byte[e.ReadLen];
-                int readLen = fileController.ReadStream(e.Token, e.File, data, 0, e.ReadLen);
+                byte[] data = new byte[args.ReadLen];
+                int readLen = fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
                 //resize the buffer so we don't send a buffer that ends with empty data.
                 byte[] resizedBuffer = new byte[readLen];
                 Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
-                socket.SendReadRequestResponse(e.NetworkMessageId, resizedBuffer);
-            }
-            catch (FileAccessController.TokenNotFoundException)
-            {
-                socket.SendFileErrorResponse(e.NetworkMessageId, "Token not found");
+                socket.SendReadRequestResponse(args.NetworkMessageId, resizedBuffer);
             }
             catch (Exception ex)
             {
-                ISLogger.Write("Responding with: Read error - " + ex.Message);
-                socket.SendFileErrorResponse(e.NetworkMessageId, ex.Message);
+                socket.SendFileErrorResponse(args.NetworkMessageId, ex.Message);
             }
         }
 
         private void Socket_FileTokenRequested(object sender, NetworkSocket.FileTokenRequestArgs args)
         {
-            if (args.FileGroupId == Guid.Empty)
-            {
-                ISLogger.Write("Debug: server requested access to a blank file group ID");
-                return;
-            }
-            ISLogger.Write("Server requested token");
-            int timeout = 0;
-            DataOperation operation;
-            if (args.FileGroupId == currentClipboardOperation.OperationId)
-            {
-                operation = currentClipboardOperation;
+            ISLogger.Write("Server requested token for operation");
 
-                if (operation.Data.DataType == ClipboardDataType.File)
-                {
-                    ISLogger.Write("Responding to token request: Copy/Pasting files not yet implemented");
-                    socket.SendFileErrorResponse(args.NetworkMessageId, "Copy/Pasting files not yet implemented");
-                    return;
-                }
-            }
+            ClientDataOperation op = null;
+            if (currentClipboardOperation != null && currentClipboardOperation.OperationGuid == args.DataOperationId && currentClipboardOperation.Data.DataType == ClipboardDataType.File)
+                op = currentClipboardOperation;
+            else if (ddController.CurrentOperation != null && ddController.CurrentOperation.OperationGuid == args.DataOperationId && ddController.CurrentOperation.Data.DataType == ClipboardDataType.File)
+                op = ddController.CurrentOperation;
+                
 
-            else if (args.FileGroupId == ddController.CurrentOperation?.OperationId)
+            if(op != null)
             {
-                operation = new DataOperation(ddController.CurrentOperation.OperationId, ddController.CurrentOperation.Data);
-                timeout = 10000;
+                Guid token = fileController.CreateTokenForOperation(op, 3000);
+                op.RemoteFileAccessTokens.Add(token);
+                ISLogger.Write("Sending access token " + token);
+                socket.SendTokenRequestReponse(args.NetworkMessageId, token);
             }
             else
             {
-                socket.SendFileErrorResponse(args.NetworkMessageId, "Token not found");
-                //todo - return error
-                ISLogger.Write("Server requested token for invalid operation");
+                ISLogger.Write("Failed to send access token: Operation not found");
+                socket.SendFileErrorResponse(args.NetworkMessageId, "Failed to create token: Operation not found");
                 return;
             }
-
-            try
-            {
-                Guid token = CreateTokensForOperation(operation, timeout);
-
-                //we need to keep track of which tokens are assoicated with which transfer
-
-                if (operation.OperationId == ddController.CurrentOperation?.OperationId)
-                    ddController.CurrentOperation.AssociatedAccessToken = token;
-                else
-                    currentClipboardOperation.AssociatedAccessTokens.Add(token);
-
-                ISLogger.Write("added associated access token " + token);
-                socket.SendTokenRequestReponse(args.NetworkMessageId, token);
-            }
-            catch (Exception ex)
-            {
-                socket.SendFileErrorResponse(args.NetworkMessageId, "Failed to create token: " + ex.Message);
-                ISLogger.Write("Failed to create access token for operation: " + ex.Message);
-                return;
-            }
-
         }
-
-        private Guid CreateTokensForOperation(DataOperation operation, int timeout)
-        {
-            ClipboardVirtualFileData fd = operation.Data as ClipboardVirtualFileData;
-
-            Guid[] ids = new Guid[fd.AllFiles.Count];
-            string[] sources = new string[fd.AllFiles.Count];
-            for (int i = 0; i < fd.AllFiles.Count; i++)
-            {
-                ids[i] = fd.AllFiles[i].FileRequestId;
-                sources[i] = fd.AllFiles[i].FullPath;
-            }
-            return fileController.CreateFileReadTokenForGroup(new FileAccessController.FileAccessInfo(ids, sources), timeout);
-        }
-
 
         private void Socket_EdgesChanged(object sender, ISClientSocket.BoundEdges e)
         {
@@ -400,31 +346,21 @@ namespace InputshareLib.Client
             Connected?.Invoke(this, socket.ServerAddress);
         }
 
-        private async void OnClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
+        private void OnClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
         {
             try
             {
                 ISLogger.Write("Got clipboard operation " + args.OperationId);
                 ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
 
-
                 if (cbData is ClipboardVirtualFileData cbFiles)
                 {
-                    Guid id = await socket.RequestFileTokenAsync(args.OperationId);
-
-                    if (id == Guid.Empty)
-                        return;
-
-                    for (int i = 0; i < cbFiles.AllFiles.Count; i++)
-                    {
-                        cbFiles.AllFiles[i].RemoteAccessToken = id;
-                        cbFiles.AllFiles[i].ReadDelegate = File_RequestDataAsync;
-                        cbFiles.AllFiles[i].ReadComplete += VirtualFile_ReadComplete;
-                        cbFiles.AllFiles[i].FileOperationId = args.OperationId;
-                    }
+                    cbFiles.RequestPartMethod = socket.RequestReadStreamAsync;
+                    cbFiles.RequestTokenMethod = socket.RequestFileTokenAsync;
+                    cbFiles.OperationId = args.OperationId;
                 }
 
-                currentClipboardOperation = new DataOperation(args.OperationId, cbData);
+                currentClipboardOperation = new ClientDataOperation(cbData, args.OperationId);
                 clipboardMan.SetClipboardData(cbData);
             }
             catch (Exception ex)
@@ -435,16 +371,6 @@ namespace InputshareLib.Client
             ClipboardDataCopied?.Invoke(this, null);
         }
 
-        private void VirtualFile_ReadComplete(object sender, EventArgs e)
-        {
-
-        }
-
-        private async Task<byte[]> File_RequestDataAsync(Guid token, Guid operationId, Guid fileId, int readLen)
-        {
-            return await socket.RequestReadStreamAsync(token, fileId, readLen);
-        }
-
         private struct ClientEdges
         {
             public bool Left;
@@ -453,21 +379,5 @@ namespace InputshareLib.Client
             public bool Bottom;
         }
 
-        struct DataOperation
-        {
-            public DataOperation(Guid operationId, ClipboardDataBase data)
-            {
-                OperationId = operationId;
-                Data = data;
-                AssociatedAccessTokens = new List<Guid>();
-                Completed = false;
-            }
-            public Guid OperationId { get; }
-            public ClipboardDataBase Data { get; }
-
-            public bool Completed { get; set; }
-
-            public List<Guid> AssociatedAccessTokens { get; set; }
-        }
     }
 }

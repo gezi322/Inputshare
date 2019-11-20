@@ -18,9 +18,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         public override bool LeftMouseState { get => (Native.User32.GetAsyncKeyState(System.Windows.Forms.Keys.LButton) & 0x8000) != 0; protected set { return; } }
 
         public override event EventHandler<ClipboardDataBase> DataDropped;
-        public override event EventHandler<Guid> DragDropCancelled;
-        public override event EventHandler<Guid> DragDropSuccess;
-        public override event EventHandler<Guid> DragDropComplete;
+        public override event EventHandler DragDropCancelled;
+        public override event EventHandler DragDropSuccess;
 
 #pragma warning disable CS0067
         public override event EventHandler<DragDropManagerBase.RequestFileDataArgs> FileDataRequested;
@@ -68,7 +67,6 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 dropSourceWindow = new WindowsDropSource(formLoadedEvent);
                 dropSourceWindow.DragDropCancelled += DropSourceWindow_DragDropCancelled;
                 dropSourceWindow.DragDropSuccess += DropSourceWindow_DragDropSuccess;
-                dropSourceWindow.DragDropComplete += DropSourceWindow_DragDropComplete;
                 Application.Run(dropSourceWindow);
             });
 
@@ -81,17 +79,12 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             }
         }
 
-        private void DropSourceWindow_DragDropComplete(object sender, Guid operationId)
-        {
-            DragDropComplete?.Invoke(this, operationId);
-        }
-
         public override void CancelDrop()
         {
             dropSourceWindow.CancelDrop();
         }
 
-        private void DropSourceWindow_DragDropSuccess(object sender, Guid operationId)
+        private void DropSourceWindow_DragDropSuccess(object sender, EventArgs _)
         {
             if (dropTargetWindow.InputshareDataDropped)
             {
@@ -99,12 +92,12 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 return;
             }
             
-            DragDropSuccess?.Invoke(this, operationId);
+            DragDropSuccess?.Invoke(this, null);
         }
 
-        private void DropSourceWindow_DragDropCancelled(object sender, Guid operationId)
+        private void DropSourceWindow_DragDropCancelled(object sender, EventArgs _)
         {
-            DragDropCancelled?.Invoke(this, operationId);
+            DragDropCancelled?.Invoke(this, null);
         }
 
         public override void DoDragDrop(ClipboardDataBase data, Guid operationId)

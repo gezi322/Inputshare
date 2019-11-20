@@ -14,18 +14,17 @@ using System.Windows;
 using System.Windows.Forms;
 using static InputshareLibWindows.Native.Ole32;
 using static InputshareLibWindows.Native.User32;
-using DataObject = System.Windows.Forms.DataObject;
 using DragDropEffects = System.Windows.Forms.DragDropEffects;
 using Point = System.Drawing.Point;
 using Size = System.Drawing.Size;
+using IDataObject = System.Runtime.InteropServices.ComTypes.IDataObject;
 
 namespace InputshareLibWindows.PlatformModules.DragDrop
 {
     class WindowsDropSource : Form, IDropSource
     {
-        public event EventHandler<Guid> DragDropCancelled;
-        public event EventHandler<Guid> DragDropSuccess;
-        public event EventHandler<Guid> DragDropComplete;
+        public event EventHandler DragDropCancelled;
+        public event EventHandler DragDropSuccess;
 
         private AutoResetEvent HandleCreatedEvent;
         public readonly AutoResetEvent WindowClosedEvent = new AutoResetEvent(false);
@@ -37,7 +36,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         private bool dropSourceAllowDrop = false;
         private bool reportedSuccess = false;
 
-        private Queue<DataObject> dropQueue = new Queue<DataObject>();
+        private Queue<IDataObject> dropQueue = new Queue<IDataObject>();
         private bool cancelDrop = false;
         private bool registeredDrop = false;
 
@@ -65,7 +64,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
 
                 reportedSuccess = false;
 
-                if (dropQueue.TryDequeue(out DataObject dropObject))
+                if (dropQueue.TryDequeue(out IDataObject dropObject))
                 {
                     if (dropObject == null)
                     {
@@ -73,22 +72,23 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                         this.Hide();
                         return;
                     }
+
                     int[] droppedValue = new int[1];
                     dropSourceAllowDrop = false;
                     Task.Run(() => { Thread.Sleep(300); dropSourceAllowDrop = true; });
                     registeredDrop = true;
 
-                    Guid operationId = (Guid)dropObject.GetData("InputshareData");
+                    Guid operationId = ((InputshareDataObject)dropObject).OperationGuid;
 
                     Dropping = true;
                     Ole32.DoDragDrop(dropObject, this, (int)DragDropEffects.All, droppedValue);
                     Dropping = false;
                     if (droppedValue[0] == 0)
-                        DragDropCancelled?.Invoke(this, operationId);
+                        DragDropCancelled?.Invoke(this, null);
                     else if (!reportedSuccess)
                     {
                         reportedSuccess = true;
-                        DragDropSuccess?.Invoke(this, operationId);
+                        DragDropSuccess?.Invoke(this, null);
                     }
                         
                 }
@@ -101,12 +101,12 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             base.WndProc(ref m);
         }
 
-        public void InvokeDoDragDrop(ClipboardDataBase data, Guid operationId)
+        public void InvokeDoDragDrop(ClipboardDataBase data)
         {
             this.Invoke(new Action(() => {
                 registeredDrop = false;
                 cancelDrop = false;
-                DoDragDrop(data, operationId);
+                DoDragDrop(data);
             }));
         }
 
@@ -125,19 +125,16 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
            
         }
 
-        private void DoDragDrop(ClipboardDataBase data, Guid operationId)
+        private void DoDragDrop(ClipboardDataBase data)
         {
             InputshareDataObject nativeObject = null;
             try
             {
-                nativeObject = ClipboardTranslatorWindows.ConvertToWindows(data, operationId);
+                nativeObject = new InputshareDataObject(data, true);
                 reportedSuccess = false;
-                nativeObject.SetData("InputshareData", operationId);
                 dropQueue.Enqueue(nativeObject);
 
-                nativeObject.DropComplete += NativeObject_DropComplete;
                 nativeObject.DropSuccess += NativeObject_DropSuccess;
-
             }
             catch(Exception ex)
             {
@@ -158,11 +155,12 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 Thread.Sleep(300); this.Invoke(new Action(() => {
                     if (!registeredDrop)
                     {
-                        DoDragDrop(data, operationId);
+                        DoDragDrop(data);
                     }
                 }));
             });
         }
+
         private void NativeObject_DropSuccess(object sender, EventArgs e)
         {
             if (!reportedSuccess)
@@ -170,14 +168,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 InputshareDataObject obj = (InputshareDataObject)sender;
 
                 reportedSuccess = true;
-                DragDropSuccess?.Invoke(this, obj.OperationGuid);
+                DragDropSuccess?.Invoke(this, null);
             }
-            
-        }
-
-        private void NativeObject_DropComplete(object sender, EventArgs e)
-        {
-            DragDropComplete?.Invoke(this, ((InputshareDataObject)sender).OperationGuid);
         }
 
         private void WindowsDragSource_Load(object sender, EventArgs e)

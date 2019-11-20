@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Timers;
+using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 
 namespace InputshareLib
 {
@@ -50,9 +52,21 @@ namespace InputshareLib
                 }
             }
 
+            public void SetTimeout(int ms)
+            {
+                timeoutValue = ms;
+                timeoutStopwatch = new Stopwatch();
+                timeoutStopwatch.Start();
+
+                readTimeoutTimer = new Timer(2000);
+                readTimeoutTimer.Elapsed += ReadTimeoutTimer_Elapsed;
+                readTimeoutTimer.AutoReset = true;
+                readTimeoutTimer.Start();
+            }
+
             private void ReadTimeoutTimer_Elapsed(object sender, ElapsedEventArgs e)
             {
-                //If this token has not been access in the past 10 seconds, close all streams.
+                //If this token has not been access in the past timeoutValue seconds, close all streams.
                 if (timeoutStopwatch.ElapsedMilliseconds > timeoutValue)
                 {
                     CloseAllStreams();
@@ -67,14 +81,14 @@ namespace InputshareLib
                 }
 
                 openFileStreams.Clear();
-                readTimeoutTimer.Dispose();
-                timeoutStopwatch.Stop();
+                readTimeoutTimer?.Dispose();
+                timeoutStopwatch?.Stop();
                 TokenClosed?.Invoke(this, TokenId);
             }
 
             public void CloseStream(Guid file)
             {
-                timeoutStopwatch.Restart();
+                timeoutStopwatch?.Restart();
                 if (openFileStreams.TryGetValue(file, out FileStream stream))
                 {
                     stream.Close();
@@ -83,7 +97,9 @@ namespace InputshareLib
 
             public int ReadFile(Guid file, byte[] buffer, int offset, int readLen)
             {
-                timeoutStopwatch.Restart();
+                if(timeoutValue != 0)
+                    timeoutStopwatch.Restart();
+
                 if (openFileStreams.TryGetValue(file, out FileStream stream))
                 {
                     int read = stream.Read(buffer, offset, readLen);
@@ -116,7 +132,9 @@ namespace InputshareLib
 
             public long SeekFile(Guid file, SeekOrigin origin, long offset)
             {
-                timeoutStopwatch.Restart();
+                if(timeoutValue > 0)
+                    timeoutStopwatch.Restart();
+
                 if (openFileStreams.TryGetValue(file, out FileStream stream))
                 {
                     return stream.Seek(offset, origin);
@@ -155,19 +173,55 @@ namespace InputshareLib
         }
 
         /// <summary>
+        /// Sets the token to be deleted if it has not being read in X ms
+        /// </summary>
+        /// <param name="ms"></param>
+        /// <param name="token"></param>
+        public void SetTokenTimeout(int ms, Guid token)
+        {
+            if (!currentAccessTokens.TryGetValue(token, out AccessToken ac))
+                throw new TokenNotFoundException();
+
+            ac.SetTimeout(ms);
+            ISLogger.Write("Set timeout for token {0} to {1}MS", ac.TokenId, ms);
+        }
+
+        /// <summary>
         /// Creates an access token for a group of files
         /// </summary>
         /// <param name="info">The file IDs and file sources to include in token</param>
         /// <param name="timeout">Time in seconds to automatically delete token if inactive. 0 = disabled</param>
         /// <returns></returns>
-        public Guid CreateFileReadTokenForGroup(FileAccessInfo info, int timeout)
+        private Guid CreateFileReadTokenForGroup(FileAccessInfo info, int timeout)
         {
             Guid accessId = Guid.NewGuid();
+            ISLogger.Write("Access token timeout = " + timeout);
             AccessToken token = new AccessToken(accessId, info.FileIds, info.FileSources, timeout);
             token.TokenClosed += Token_TokenClosed;
             currentAccessTokens.Add(accessId, token);
             ISLogger.Write("FileAccessController: Created group token {0} for {1} files", accessId, info.FileIds.Length);
             return accessId;
+        }
+
+        public Guid CreateTokenForOperation(DataOperation operation, int timeout)
+        {
+            if (operation.Data.DataType != Clipboard.DataTypes.ClipboardDataType.File)
+                throw new ArgumentException("Data type must be 'File'");
+
+            Guid accessId = Guid.NewGuid();
+
+            ClipboardVirtualFileData file = operation.Data as ClipboardVirtualFileData;
+            Guid[] fIds = new Guid[file.AllFiles.Count];
+            string[] fSources = new string[file.AllFiles.Count];
+
+            for (int i = 0; i < file.AllFiles.Count; i++)
+            {
+                fIds[i] = file.AllFiles[i].FileRequestId;
+                fSources[i] = file.AllFiles[i].FullPath;
+            }
+
+            return CreateFileReadTokenForGroup(new FileAccessController.FileAccessInfo(fIds, fSources), timeout);
+
         }
 
         private void Token_TokenClosed(object sender, Guid e)
@@ -176,6 +230,16 @@ namespace InputshareLib
             currentAccessTokens.Remove(e);
         }
 
+        /// <summary>
+        /// Reads data from the specified file with the specified token
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="file"></param>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="readLen"></param>
+        /// <returns></returns>
+        /// <exception cref="TokenNotFoundException"></exception>"
         public int ReadStream(Guid token, Guid file, byte[] buffer, int offset, int readLen)
         {
             if (currentAccessTokens.TryGetValue(token, out AccessToken access))
@@ -255,9 +319,8 @@ namespace InputshareLib
 
         public class TokenNotFoundException : Exception
         {
-            public TokenNotFoundException() : base()
+            public TokenNotFoundException() : base("The specified access token was not found")
             {
-
             }
         }
     }

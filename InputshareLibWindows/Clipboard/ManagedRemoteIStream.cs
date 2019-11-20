@@ -4,7 +4,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
-namespace InputshareLibWindows.PlatformModules.Clipboard
+namespace InputshareLibWindows.Clipboard
 {
     /// <summary>
     /// Enables transfering data from an inputshare server/client to windows clipboard
@@ -14,7 +14,10 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
         /// <summary>
         /// The file that is being written to the stream
         /// </summary>
-        public ClipboardVirtualFileData.FileAttributes SourceVirtualFile;
+        public FileAttributes SourceVirtualFile;
+
+        private ClipboardVirtualFileData sourceClipboardData;
+        private readonly Guid accessToken;
 
         /// <summary>
         /// If true, the read method returns -1 back to the shell
@@ -25,8 +28,10 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
         /// Creates an IStream that uses a network machine as the source of data
         /// </summary>
         /// <param name="file"></param>
-        internal ManagedRemoteIStream(ClipboardVirtualFileData.FileAttributes file)
+        internal ManagedRemoteIStream(FileAttributes file, ClipboardVirtualFileData parent, Guid accessToken)
         {
+            sourceClipboardData = parent;
+            this.accessToken = accessToken;
             SourceVirtualFile = file;
             SourceVirtualFile.CloseStreamRequested += FileInfo_CloseStreamRequested;
         }
@@ -67,17 +72,16 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
                 if(readLen >= SourceVirtualFile.FileSize)
                 {
                     Marshal.WriteInt32(bytesReadPtr, 0);
-                    OnComplete();
                     return;
                 }
                 
                 //using await will break the dragdrop operation!
-                byte[] data = SourceVirtualFile.ReadDelegate(SourceVirtualFile.RemoteAccessToken, SourceVirtualFile.FileOperationId, SourceVirtualFile.FileRequestId, bufferSize).Result;
+                byte[] data = sourceClipboardData.RequestPartMethod(accessToken, SourceVirtualFile.FileRequestId, bufferSize).Result;
 
                 //check that close has not been called
                 if (closeStream || data.Length == 0)
                 {
-                    Marshal.WriteInt32(bytesReadPtr, -1);
+                    Marshal.WriteInt32(bytesReadPtr, 0);
                     return;
                 }
 
@@ -89,13 +93,8 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
             catch (Exception ex)
             {
                 ISLogger.Write("ManagedRemoteIStream: Failed to read remote file: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
             }
-        }
-
-        void OnComplete()
-        {
-            SourceVirtualFile.MarkComplete();
-            return;
         }
 
         void IStream.Seek(Int64 offset, Int32 origin, IntPtr newPositionPtr)

@@ -120,11 +120,10 @@ namespace InputshareLibWindows.Output
             uint mappedScanb = MapVirtualKeyA((uint)input.Param1, MAPVKTYPE.MAPVK_VK_TO_VSC);
             if (mappedScanb != input.Param2)
             {
-                ISLogger.Write("Invalid key virtual key:{0} scan code:{1} mapped: {2}", input.Param1, input.Param2, mappedScanb);
-                return input.Param2;
+                ISLogger.Write("Cannot translate key '{0}' to a scan code!", (WindowsVirtualKey)input.Param1);
+                return input.Param1;
             }
 
-            ISLogger.Write("Using scan code!");
             useScan = true;
             return input.Param2;
         }

@@ -5,9 +5,8 @@ namespace InputshareLib.PlatformModules.DragDrop
 {
     public abstract class DragDropManagerBase : PlatformModuleBase
     {
-        public abstract event EventHandler<Guid> DragDropCancelled;
-        public abstract event EventHandler<Guid> DragDropSuccess;
-        public abstract event EventHandler<Guid> DragDropComplete;
+        public abstract event EventHandler DragDropCancelled;
+        public abstract event EventHandler DragDropSuccess;
         public abstract event EventHandler<ClipboardDataBase> DataDropped;
         public abstract event EventHandler<RequestFileDataArgs> FileDataRequested;
 

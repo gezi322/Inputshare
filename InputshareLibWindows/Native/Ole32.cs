@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
@@ -6,6 +7,34 @@ namespace InputshareLibWindows.Native
 {
     public static class Ole32
     {
+        [ComImport]
+        [Guid("3D8B0590-F691-11d2-8EA9-006097DF5BD4")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        internal interface IAsyncOperation
+        {
+            void SetAsyncMode([In] Int32 fDoOpAsync);
+            void GetAsyncMode([Out] out Int32 pfIsOpAsync);
+            void StartOperation([In] IBindCtx pbcReserved);
+            void InOperation([Out] out Int32 pfInAsyncOp);
+            void EndOperation([In] Int32 hResult, [In] IBindCtx pbcReserved, [In] UInt32 dwEffects);
+        }
+
+        public const int FD_CLSID = 0x00000001;
+        public const int FD_SIZEPOINT = 0x00000002;
+        public const int FD_ATTRIBUTES = 0x00000004;
+        public const int FD_CREATETIME = 0x00000008;
+        public const int FD_ACCESSTIME = 0x00000010;
+        public const int FD_WRITESTIME = 0x00000020;
+        public const int FD_FILESIZE = 0x00000040;
+        public const int FD_PROGRESSUI = 0x00004000;
+        public const int FD_LINKUI = 0x00008000;
+
+
+
+        [SuppressMessage("Microsoft.Design", "CA1021:AvoidOutParameters", MessageId = "2#", Justification = "Win32 API.")]
+        [DllImport("shell32.dll")]
+        public static extern int SHCreateStdEnumFmtEtc(uint cfmt, FORMATETC[] afmt, out IEnumFORMATETC ppenumFormatEtc);
+
         [ComImport]
         [Guid("00000121-0000-0000-C000-000000000046")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

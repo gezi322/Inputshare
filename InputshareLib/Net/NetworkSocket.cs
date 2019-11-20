@@ -17,12 +17,12 @@ namespace InputshareLib.Net
         /// <summary>
         /// Occurs when a client successfully drops the current dragdrop operation files to a droptarget
         /// </summary>
-        public event EventHandler<Guid> DragDropSuccess;
+        public event EventHandler DragDropSuccess;
 
         /// <summary>
         /// Occurs when the client or server cancels the current drag drop operation
         /// </summary>
-        public event EventHandler<Guid> DragDropCancelled;
+        public event EventHandler DragDropCancelled;
 
         /// <summary>
         /// Occurs when an urecoverable connection error occurs
@@ -70,9 +70,6 @@ namespace InputshareLib.Net
         /// that would be too large to fit in the socket buffer
         /// </summary>
         private readonly List<LargeMessageHandler> messageHandlers = new List<LargeMessageHandler>();
-
-        public event EventHandler<Guid> DragDropOperationComplete;
-
         public event EventHandler<FileTokenRequestArgs> RequestedFileToken;
         public event EventHandler<RequestStreamReadArgs> RequestedStreamRead;
         public event EventHandler<RequestCloseStreamArgs> RequestedCloseStream;
@@ -134,6 +131,7 @@ namespace InputshareLib.Net
         /// <returns></returns>
         public async Task<Guid> RequestFileTokenAsync(Guid fileGroupId)
         {
+            ISLogger.Write(new Exception().StackTrace);
             ISLogger.Write("Sending token request");
             NetworkMessage response = await SendRequestAsync(new RequestGroupTokenMessage(fileGroupId));
             ISLogger.Write("Server responded to token request!");
@@ -189,6 +187,7 @@ namespace InputshareLib.Net
         /// <returns></returns>
         public async Task<byte[]> RequestReadStreamAsync(Guid token, Guid file, int readLen)
         {
+            
             NetworkMessage response = await SendRequestAsync(new FileStreamReadRequestMessage(token, file, readLen));
 
             switch (response.Type)
@@ -251,12 +250,12 @@ namespace InputshareLib.Net
         /// Notifies the host that either the dragdrop files were dropped, or the operation was cancelled
         /// </summary>
         /// <param name="successful"></param>
-        public void NotifyDragDropSuccess(Guid operationId, bool successful)
+        public void NotifyDragDropSuccess(bool successful)
         {
             if (successful)
-                SendMessage(new DragDropSuccessMessage(operationId));
+                SendMessage(new NetworkMessage(MessageType.DragDropSuccess));
             else
-                SendMessage(new DragDropCancelledMessage(operationId));
+                SendMessage(new NetworkMessage(MessageType.DragDropCancelled));
         }
 
         /// <summary>
@@ -467,11 +466,6 @@ namespace InputshareLib.Net
             SendMessage(new ClipboardDataMessage(data, operationId));
         }
 
-        public void SendDragDropComplete(Guid operationId)
-        {
-            SendMessage(new DragDropCompleteMessage(operationId));
-        }
-
         /// <summary>
         /// Handles incoming messages and checks for message chunks,
         /// which are then read into the appropriate LargeMessageHandler
@@ -552,11 +546,11 @@ namespace InputshareLib.Net
             }
             else if (type == MessageType.DragDropSuccess)
             {
-                DragDropSuccess?.Invoke(this, new DragDropSuccessMessage(rawMessage).OperationId);
+                DragDropSuccess?.Invoke(this, new EventArgs());
             }
             else if (type == MessageType.DragDropCancelled)
             {
-                DragDropCancelled?.Invoke(this, new DragDropCancelledMessage(rawMessage).OperationId);
+                DragDropCancelled?.Invoke(this, new EventArgs());
             }
             else if (type == MessageType.RequestFileGroupToken)
             {
@@ -572,11 +566,6 @@ namespace InputshareLib.Net
             {
                 FileStreamCloseStreamMessage closeMsg = new FileStreamCloseStreamMessage(rawMessage);
                 RequestedCloseStream?.Invoke(this, new RequestCloseStreamArgs(closeMsg.Token, closeMsg.FileId));
-            }
-            else if (type == MessageType.DragDropComplete)
-            {
-                DragDropCompleteMessage ddcMsg = new DragDropCompleteMessage(rawMessage);
-                DragDropOperationComplete?.Invoke(this, ddcMsg.OperationId);
             }
         }
 
@@ -667,7 +656,6 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         protected virtual void HandleClipboardData(ClipboardDataMessage message)
         {
-            ISLogger.Write(message.OperationId);
             ClipboardDataReceived?.Invoke(this, new ClipboardDataReceivedArgs(message.cbData, message.OperationId));
         }
 
@@ -743,10 +731,10 @@ namespace InputshareLib.Net
             public FileTokenRequestArgs(Guid networkMessageId, Guid fileGroupId)
             {
                 NetworkMessageId = networkMessageId;
-                FileGroupId = fileGroupId;
+                DataOperationId = fileGroupId;
             }
             public Guid NetworkMessageId { get; }
-            public Guid FileGroupId { get; }
+            public Guid DataOperationId { get; }
         }
         public class ClipboardDataReceivedArgs : EventArgs
         {

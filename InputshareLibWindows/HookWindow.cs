@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Windows.Forms;
 using static InputshareLibWindows.Native.User32;
 
 namespace InputshareLibWindows
@@ -171,7 +172,6 @@ namespace InputshareLibWindows
             if (!AddClipboardFormatListener(Handle))
                 throw new Win32Exception();
 
-            clipboardTimer.Start();
             MonitoringClipboard = true;
             ISLogger.Write(WindowName + ": Monitoring for clipboard changes...");
         }
@@ -221,31 +221,18 @@ namespace InputshareLibWindows
         }
 
 
-        protected override IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        protected override bool WndProc(ref Message msg)
         {
-            if (msg == WM_CLIPBOARDUPDATE && clipboardChangeCallback != null)
+            if (msg.Msg == WM_CLIPBOARDUPDATE && clipboardChangeCallback != null)
                 ReadClipboardChange();
 
-            return base.WndProc(hWnd, msg, wParam, lParam);
+            return false;
         }
 
-        private readonly Stopwatch clipboardTimer = new Stopwatch();
         private void ReadClipboardChange()
         {
-            if (ignoreCbChange)
-            {
-                clipboardTimer.Restart();
-                ignoreCbChange = false;
-                return;
-            }
-
-            if (clipboardTimer.ElapsedMilliseconds < 500)
-            {
-                return;
-            }
             try
             {
-                currentObject?.Dispose();
                 var obj = System.Windows.Forms.Clipboard.GetDataObject();
                 if (obj == null)
                 {
@@ -254,8 +241,6 @@ namespace InputshareLibWindows
                 }
 
                 clipboardChangeCallback(obj);
-
-                clipboardTimer.Restart();
             }
             catch (Exception ex)
             {

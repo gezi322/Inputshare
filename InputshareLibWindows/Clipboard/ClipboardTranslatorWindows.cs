@@ -8,54 +8,16 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
-using DirectoryAttributes = InputshareLib.Clipboard.DataTypes.ClipboardVirtualFileData.DirectoryAttributes;
-using FileAttributes = InputshareLib.Clipboard.DataTypes.ClipboardVirtualFileData.FileAttributes;
+using DirectoryAttributes = InputshareLib.Clipboard.DataTypes.DirectoryAttributes;
+using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
 
-namespace InputshareLibWindows.PlatformModules.Clipboard
+namespace InputshareLibWindows.Clipboard
 {
     /// <summary>
     /// Extension of InputshareLib.Clipboard.ClipboardTranslator using the windows IDataObject interface
     /// </summary>
     public static class ClipboardTranslatorWindows
     {
-
-        /// <summary>
-        /// Converts an inputshare clipboard data type into a windows dataobject
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public static InputshareDataObject ConvertToWindows(ClipboardDataBase data, Guid operationId)
-        {
-            if (data is ClipboardVirtualFileData fd)
-            {
-                List<FileAttributes> files = fd.AllFiles;
-                InputshareDataObject o = new InputshareDataObject(files, operationId);
-                return o;
-            }
-            else if (data is ClipboardImageData imgData)
-            {
-                try
-                {
-                    using (MemoryStream ms = new MemoryStream(imgData.ImageData))
-                    {
-                        Image bmp = Image.FromStream(ms);
-                        return new InputshareDataObject(bmp, operationId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ISLogger.Write("Error converting image data: " + ex.Message);
-                    return null;
-                }
-            }
-            else if (data is ClipboardTextData textData)
-            {
-                return new InputshareDataObject(textData, operationId);
-            }
-
-            throw new ArgumentException("Unrecognized data type " + data.GetType().FullName);
-        }
-
         /// <summary>
         /// Converts a window dataobject to an inputshare clipboard data object
         /// </summary>

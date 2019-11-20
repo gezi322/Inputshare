@@ -1,16 +1,8 @@
 ﻿using InputshareLib;
 using InputshareLibWindows.Clipboard;
-using InputshareLibWindows.PlatformModules.Clipboard;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows;
-using static InputshareLibWindows.Native.User32;
-using static InputshareLibWindows.Native.WindowMessages;
+using System.Windows.Forms;
 
 namespace InputshareLibWindows
 {
@@ -28,22 +20,14 @@ namespace InputshareLibWindows
 
         public bool Closed { get; protected set; } = false;
 
-        private const int INPUTSHARE_EXECMETHOD = 1333;
-
-        private WNDCLASSEX wndClass;
-
-        private delegate IntPtr Procdel(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-        private Procdel WndProcDelegate;
-
         private Thread wndThread;
-        private Queue<Action> invokeQueue;
         private CancellationTokenSource cancelToken;
 
-        protected bool ignoreCbChange = false;
         protected IntPtr Handle { get; private set; }
         protected string WindowName { get; }
 
-        protected InputshareDataObject currentObject;
+        protected InnerForm innerForm;
+        protected AutoResetEvent windowHandleCreateEvent = new AutoResetEvent(false);
 
         public MessageWindow(string wndName)
         {
@@ -64,6 +48,9 @@ namespace InputshareLibWindows
             });
             wndThread.SetApartmentState(ApartmentState.STA);
             wndThread.Start();
+
+            if (!windowHandleCreateEvent.WaitOne(2500))
+                throw new Exception("Timed out waiting for window handle creation");
         }
 
         public virtual void CloseWindow()
@@ -71,8 +58,7 @@ namespace InputshareLibWindows
             if (Handle == IntPtr.Zero)
                 throw new Exception("Window handle does not exist");
 
-            PostMessage(new HandleRef(this, Handle), WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-            cancelToken.Cancel();
+            InvokeAction(() => { innerForm.Close(); });
         }
        
         public virtual void SetClipboardData(InputshareDataObject data)
@@ -81,28 +67,11 @@ namespace InputshareLibWindows
                 throw new InvalidOperationException("Window has been closed");
 
             InvokeAction(new Action(() => {
-
-                currentObject?.Dispose();
-
                 for(int i = 0; i < 10; i++)
                 {
                     try
                     {
-                        ignoreCbChange = true;
-
-                        if(data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Image)
-                        {
-                            System.Windows.Clipboard.SetData("Bitmap", data.xImage);
-                            currentObject = data;
-                            return;
-                        }
-
-                        if(data.objectType == InputshareLib.Clipboard.DataTypes.ClipboardDataType.Text)
-                            System.Windows.Clipboard.SetDataObject(data, true);
-                        else
-                            System.Windows.Clipboard.SetDataObject(data, false);
-
-                        currentObject = data;
+                        System.Windows.Clipboard.SetDataObject(data);
                         return;
                     }catch
                     {
@@ -116,54 +85,30 @@ namespace InputshareLibWindows
 
         private void CreateWindow()
         {
-            invokeQueue = new Queue<Action>();
-
-            WndProcDelegate = WndProc;
-            CreateClass();
-
-            Handle = CreateWindowEx(0,
-                wndClass.lpszClassName,
-                "ismsg",
-                0,
-                0,
-                0,
-                0,
-                0,
-                new IntPtr(-3),
-                IntPtr.Zero,
-                Process.GetCurrentProcess().Handle,
-                IntPtr.Zero);
-
-            if (Handle == IntPtr.Zero)
-                throw new Win32Exception();
-
-            OnHandleCreated();
-            WndThreadLoop();
+            innerForm = new InnerForm(WndProc);
+            innerForm.Load += InnerForm_Load;
+            innerForm.FormClosed += InnerForm_FormClosed;
+            System.Windows.Forms.Application.Run(innerForm);
         }
 
-        private void WndThreadLoop()
+        private void InnerForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            MSG msg = new MSG();
-            int ret;
-            while ((ret = GetMessage(out msg, Handle, 0, 0)) != 0)
-            {
-                if (ret == -1)
-                {
-                    break;
-                }
-                else
-                {
-                    DispatchMessage(ref msg);
-                }
-            }
-
-            ISLogger.Write("Destroyed window {0}", WindowName);
-
-            Closed = true;
-            DestroyWindow(Handle);
-            OnWindowDestroyed();
-            UnregisterClassA(wndClass.lpszClassName, Process.GetCurrentProcess().Handle);
+            WindowDestroyed?.Invoke(this, new EventArgs());
         }
+
+        private void InnerForm_Load(object sender, EventArgs e)
+        {
+            Handle = innerForm.Handle;
+            windowHandleCreateEvent.Set();
+            HandleCreated?.Invoke(this, e);
+        }
+
+        protected virtual bool WndProc(ref Message msg)
+        {
+
+            return false;
+        }
+
 
         protected void InvokeAction(Action invoke)
         {
@@ -173,77 +118,34 @@ namespace InputshareLibWindows
             if (Handle == IntPtr.Zero)
                 throw new InvalidOperationException("Window handle does not exist");
 
-            invokeQueue.Enqueue(invoke);
-            PostMessage(new HandleRef(this, Handle), INPUTSHARE_EXECMETHOD, IntPtr.Zero, IntPtr.Zero);
+            innerForm.Invoke(invoke);
         }
 
-        private void CreateClass()
+        //The old nativewindow implementation was causing issues with OLE dataobjects and crashing some applications
+        //TODO - reimplement native window and remove the need for Sdk="Microsoft.NET.Sdk.WindowsDesktop"
+        protected class InnerForm : Form
         {
-            wndClass = new WNDCLASSEX
+            public delegate bool FormMessageHandler(ref Message m);
+            private FormMessageHandler messageHandler;
+
+            public InnerForm(FormMessageHandler handler)
             {
-                cbClsExtra = 0,
-                cbSize = Marshal.SizeOf(typeof(WNDCLASSEX)),
-                cbWndExtra = 0,
-                hbrBackground = IntPtr.Zero,
-                hCursor = IntPtr.Zero,
-                hIcon = IntPtr.Zero,
-                hIconSm = IntPtr.Zero,
-                hInstance = Process.GetCurrentProcess().Handle,
-                lpszClassName = GenerateClassName(),
-                lpszMenuName = null,
-                style = 0,
-                lpfnWndProc = Marshal.GetFunctionPointerForDelegate(WndProcDelegate)
-            };
-            
-            if(RegisterClassEx(ref wndClass) == 0)
-            {
-                throw new Win32Exception();
-            }
-        }
-
-        private string GenerateClassName()
-        {
-            Random r = new Random();
-            return "isclass_" + r.Next(0, int.MaxValue) + "_" + r.Next(0, int.MaxValue);
-        }
-
-        private void OnWindowDestroyed()
-        {
-            WindowDestroyed?.Invoke(this, null);
-        }
-
-        protected virtual void OnHandleCreated()
-        {
-            ISLogger.Write("created window '{0}'", WindowName);
-            HandleCreated?.Invoke(this, null);
-        }
-
-        protected virtual IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
-        {
-
-            if (msg == INPUTSHARE_EXECMETHOD)
-            {
-                if(invokeQueue != null && invokeQueue.Count > 0)
-                {
-                    invokeQueue.TryDequeue(out Action invoke);
-
-                    try
-                    {
-                        invoke?.Invoke();
-                    }catch(Exception ex)
-                    {
-                        ISLogger.Write("{0}: {1}", WindowName, ex.Message);
-                    }
-                    
-                }
-
-                return IntPtr.Zero;
-            }else if(msg == WM_CLOSE)
-            {
-                PostQuitMessage(0);
+                messageHandler = handler;
+                Load += InnerForm_Load;
             }
 
-            return DefWindowProcA(hWnd, msg, wParam, lParam);
+            private void InnerForm_Load(object sender, EventArgs e)
+            {
+                this.Hide();
+                this.Visible = false;
+                this.ShowInTaskbar = false;
+            }
+
+            protected override void WndProc(ref Message m)
+            {
+                if(!messageHandler(ref m))
+                    base.WndProc(ref m);
+            }
         }
     }
 }

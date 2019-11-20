@@ -1,4 +1,5 @@
-﻿using InputshareLib.Displays;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Displays;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Input.Keys;
@@ -40,10 +41,10 @@ namespace InputshareLib.Server
         private readonly InputManagerBase inputMan;
         private readonly DragDropManagerBase dragDropMan;
         private readonly OutputManagerBase outMan;
-        private ClipboardManagerBase cbManager;
+        private readonly ClipboardManagerBase cbManager;
 
         private ISClientListener clientListener;
-        private ClientManager clientMan;
+        private readonly ClientManager clientMan;
 
         private ISUdpServer udpHost;
 
@@ -58,9 +59,9 @@ namespace InputshareLib.Server
         private ISServerSocket inputClient = ISServerSocket.Localhost;
 
 
+        private GlobalDragDropController ddController;
         private GlobalClipboardController cbController;
         private FileAccessController fileController;
-        private GlobalDragDropController ddController;
 
         private StartOptions startArgs;
 
@@ -88,13 +89,8 @@ namespace InputshareLib.Server
 
             fileController = new FileAccessController();
             clientMan = new ClientManager(12);
-            ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
-            cbController = new GlobalClipboardController(clientMan, fileController, cbManager);
-
-            cbController.GlobalCLipboardChanged += (object o, GlobalClipboardController.ClipboardOperation data) =>
-            {
-                GlobalClipboardContentChanged?.Invoke(this, GetGlobalClipboardData());
-            };
+            cbController = new GlobalClipboardController(cbManager, clientMan);
+            ddController = new GlobalDragDropController(dragDropMan, clientMan);
 
             AssignEvents();
         }
@@ -120,6 +116,7 @@ namespace InputshareLib.Server
                 StartDisplayManager();
                 StartInputManager();
                 dragDropMan.Start();
+                cbManager.Start();
 
                 clientMan.AddClient(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
@@ -270,7 +267,7 @@ namespace InputshareLib.Server
             clientSwitchTimer.Restart();
 
             //let the dragdrop controller determine if anything needs to be done or sent to the client
-            ddController.HandleClientSwitch(inputClient, oldClient);
+            ddController.HandleClientSwitchAsync(oldClient, inputClient);
             InputClientSwitched?.Invoke(this, GenerateClientInfo(client));
 
         }
@@ -295,8 +292,8 @@ namespace InputshareLib.Server
             inputMan.SetInputBlocked(false);
 
             clientSwitchTimer.Restart();
-            ddController.HandleClientSwitch(inputClient, oldClient);
             outMan.ResetKeyStates();
+            ddController.HandleClientSwitchAsync(oldClient, ISServerSocket.Localhost);
             InputClientSwitched?.Invoke(this, GenerateLocalhostInfo());
         }
 
@@ -418,27 +415,18 @@ namespace InputshareLib.Server
             try
             {
                 clientMan.AddClient(client);
-            }
-            catch (ClientManager.DuplicateGuidException)
+            }catch(Exception ex)
             {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate GUID");
+                if(ex is ClientManager.DuplicateGuidException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate GUID");
+                else if(ex is ClientManager.DuplicateNameException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate name");
+                else if(ex is ClientManager.DuplicateNameException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "client limit reached");
+
                 client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateGuid);
+                //todo - possible race condition here? messages need to be sent before the client is disposed
                 client.Dispose();
-                return;
-            }
-            catch (ClientManager.DuplicateNameException)
-            {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate name");
-                client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateName);
-                client.Dispose();
-                return;
-            }
-            catch (ClientManager.ClientLimitException)
-            {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "client limit reached");
-                client.DeclineClient(ISServerSocket.ClientDeclinedReason.MaxClientsReached);
-                client.Dispose();
-                return;
             }
 
             ISLogger.Write("Server: {1} connected as {0}", e.ClientName, client.ClientEndpoint);
@@ -469,55 +457,65 @@ namespace InputshareLib.Server
         {
             socket.ClientDisplayConfigUpdated += Client_ClientDisplayConfigUpdated;
             socket.ConnectionError += Client_ConnectionError;
-            socket.ClipboardDataReceived += cbController.OnClientClipboardDataReceived;
+            socket.ClipboardDataReceived += cbController.OnClientClipboardChange;
             socket.EdgeHit += Socket_EdgeHit;
             socket.RequestedStreamRead += Socket_RequestedStreamRead;
             socket.RequestedCloseStream += Socket_RequestedCloseStream;
             socket.RequestedFileToken += Socket_RequestedFileToken;
-            socket.DragDropDataReceived += ddController.Client_DataDropped;
-            socket.DragDropCancelled += ddController.Client_DragDropCancelled;
-            socket.DragDropSuccess += ddController.Client_DragDropSuccess;
-            socket.DragDropOperationComplete += ddController.Client_DragDropComplete;
+            socket.DragDropDataReceived += ddController.OnClientDataDropped;
+            socket.DragDropCancelled += ddController.OnClientDropCancelled;
+            socket.DragDropSuccess += ddController.OnClientDropSuccess;
         }
 
         private async void Socket_RequestedStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
         {
             ISServerSocket client = sender as ISServerSocket;
-            try
+
+            byte[] buff = new byte[args.ReadLen];
+            int bytesRead = 0;
+
+            //We need to determine if localhost is the host of the files, otherwise we need to forward the request 
+            //onto the host of the files
+            if (fileController.DoesTokenExist(args.Token))
             {
-                var ddOperation = ddController.GetOperationFromToken(args.Token);
-
-                //We need to check if this token is associated with the drag drop operation file token.
-                //If it is, and localhost is not the host of the operation, then we need to request the data from the host
-                if (ddOperation != null)
+                try
                 {
-                    if (ddOperation.ReceiverClient != client)
-                    {
-                        ISLogger.Write("Server: Client {0} attempted to access dragdrop operation files when they are not the drop target", client.ClientName);
-                        client.SendFileErrorResponse(args.NetworkMessageId, "Data has been dropped by another client");
-                        return;
-                    }
+                    bytesRead = fileController.ReadStream(args.Token, args.File, buff, 0, args.ReadLen);
+                }catch(Exception ex)
+                {
+                    client.SendFileErrorResponse(args.NetworkMessageId, "An error occurred while reading from stream: " + ex.Message);
+                    return;
+                }
+            }
+            else
+            {
+                ISServerSocket host = null;
 
-
-                    //if localhost is not the host of the dragdrop operation, we need to get data from whichever client has the files
-                    if (!ddOperation.Host.IsLocalhost)
-                    {
-                        await ReplyWithExternalFileDataAsync(client, ddOperation.Host, args.NetworkMessageId, args.Token, args.File, args.ReadLen);
-                        return;
-                    }
+                if (cbController.CurrentOperation != null && cbController.CurrentOperation.RemoteAccessTokens.Contains(args.Token))
+                    host = cbController.CurrentOperation.Host;
+                else if(ddController.CurrentOperation != null && ddController.CurrentOperation.RemoteAccessTokens.Contains(args.Token))
+                    host = ddController.CurrentOperation.Host;
+                //todo - ddcontroller
+                
+                if(host == null)
+                {
+                    client.SendFileErrorResponse(args.NetworkMessageId, "An error occurred while reading from stream: Token not found");
+                    return;
                 }
 
-                byte[] data = new byte[args.ReadLen];
-                int readLen = fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
-                //resize the buffer so we don't send a buffer that ends with empty data.
-                byte[] resizedBuffer = new byte[readLen];
-                Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
-                client.SendReadRequestResponse(args.NetworkMessageId, resizedBuffer);
+                await ReplyWithExternalFileDataAsync(client, host, args.NetworkMessageId, args.Token, args.File, args.ReadLen);
+                return;
             }
-            catch (Exception ex)
+
+            if(bytesRead != buff.Length)
             {
-                client.SendFileErrorResponse(args.NetworkMessageId, ex.Message);
+                //resize the buffer so we don't send a buffer that ends with empty data.
+                byte[] resizedBuffer = new byte[bytesRead];
+                Buffer.BlockCopy(buff, 0, resizedBuffer, 0, bytesRead);
+                buff = resizedBuffer;
             }
+
+            client.SendReadRequestResponse(args.NetworkMessageId, buff);
         }
 
 
@@ -551,11 +549,17 @@ namespace InputshareLib.Server
         /// <param name="args"></param>
         private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs args)
         {
+            if (fileController.DoesTokenExist(args.Token))
+            {
+                fileController.CloseStream(args.Token, args.File);
+                return;
+            }
+
             if (!fileController.CloseStream(args.Token, args.File))
             {
                 //If the filecontroller can't find the file ID, dragdropcontroller needs to check 
                 //if an external client owns the access token
-                ddController.Client_RequestCloseStream(sender, args);
+                //ddController.Client_RequestCloseStream(sender, args);
             }
         }
 
@@ -567,48 +571,47 @@ namespace InputshareLib.Server
         private async void Socket_RequestedFileToken(object sender, NetworkSocket.FileTokenRequestArgs args)
         {
             ISServerSocket client = sender as ISServerSocket;
+            Guid token;
+            //We need to find the dataoperation that the client requested access too (if it exists)
+            ServerDataOperation op = null;
 
-            //If the specified operation is the current dragdrop operation
-            if (args.FileGroupId == ddController.CurrentOperation?.OperationId)
+            //Check if the specified operation is the active clipboard or dragdrop operation
+            if (cbController.CurrentOperation != null && cbController.CurrentOperation.OperationGuid == args.DataOperationId)
+                op = cbController.CurrentOperation;
+            else if (ddController.CurrentOperation != null && ddController.CurrentOperation.OperationGuid == args.DataOperationId)
+                op = ddController.CurrentOperation;
+               
+
+            //If we can't find the operation, let the client know
+            if(op == null || op.Data.DataType != Clipboard.DataTypes.ClipboardDataType.File)
             {
-                //If operation host is localhost
-                if (ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && ddController.CurrentOperation.Host.IsLocalhost)
-                {
-                    client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
-                    ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
-                    return;
-                }
-                //If the operation host is another client
-                else if (ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && !ddController.CurrentOperation.Host.IsLocalhost)
-                {
-                    client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
-                    ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
-                }
+                client.SendFileErrorResponse(args.NetworkMessageId, "Data operation not found");
+                return;
             }
-            //If the operation is not current the dragdrop operatiomn
+
+            //If localhost is the host of the operation, we can just create an access token using FileAccessController
+            //otherwise, we need to get a token from the host client
+            if (op.Host == ISServerSocket.Localhost)
+            {
+                //We want the token to timeout if it is not access for 10 seconds. The token is only generated for a client
+                //when it pastes the files, so having a timeout will ensure that all filestreams are closed when the client
+                //has finished pasting all files
+                token = fileController.CreateTokenForOperation(op, 10000);
+            }
             else
             {
-                //check if the operation a clipboard file operation
-                var cbOperation = cbController.GetOperationFromId(args.FileGroupId);
-
-                if (cbOperation == null)
+                try
                 {
-                    ISLogger.Write("Server: Denied {0} request to access files that are not part of an operation", client.ClientName);
-                    client.SendFileErrorResponse(args.NetworkMessageId, "Operation not found");
+                    token = await op.Host.RequestFileTokenAsync(op.OperationGuid);
+                }catch(Exception ex)
+                {
+                    client.SendFileErrorResponse(args.NetworkMessageId, "Failed to get access token from remote client: " + ex.Message);
                     return;
                 }
-
-                Guid token = await cbController.GenerateAccessToken(cbOperation.OperationId);
-
-                if (token == Guid.Empty)
-                {
-                    client.SendFileErrorResponse(args.NetworkMessageId, "Failed to generate token");
-                    return;
-                }
-
-                client.SendTokenRequestReponse(args.NetworkMessageId, token);
-                ISLogger.Write("Sent clipboard operation access token to {0}", client.ClientName);
             }
+
+            op.RemoteAccessTokens.Add(token);
+            client.SendTokenRequestReponse(args.NetworkMessageId, token);
         }
 
         private void Socket_EdgeHit(object sender, Edge edge)
@@ -861,10 +864,10 @@ namespace InputshareLib.Server
             if (!Running)
                 throw new InvalidOperationException("Server not running");
 
-            if (cbController.currentOperation == null)
+            if (cbController.CurrentOperation == null)
                 return new CurrentClipboardData(CurrentClipboardData.ClipboardDataType.None, GenerateLocalhostInfo(), DateTime.Now);
 
-            return new CurrentClipboardData((CurrentClipboardData.ClipboardDataType)cbController.currentOperation.DataType, GenerateClientInfo(cbController.currentOperation.Host), DateTime.Now);
+            return new CurrentClipboardData((CurrentClipboardData.ClipboardDataType)cbController.CurrentOperation.Data.DataType, GenerateClientInfo(cbController.CurrentOperation.Host), DateTime.Now);
         }
 
         #endregion

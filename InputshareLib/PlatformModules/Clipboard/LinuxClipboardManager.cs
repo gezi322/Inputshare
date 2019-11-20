@@ -2,12 +2,13 @@
 using InputshareLib.Linux;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-
+using static InputshareLib.Clipboard.DataTypes.ClipboardVirtualFileData;
 using static InputshareLib.Linux.Native.LibX11;
 using static InputshareLib.Linux.Native.LibX11Events;
-
+using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
 
 namespace InputshareLib.PlatformModules.Clipboard
 {
@@ -28,6 +29,7 @@ namespace InputshareLib.PlatformModules.Clipboard
         private IntPtr atomString;
         private IntPtr atomImagePng;
         private IntPtr atomINCR;
+        private IntPtr atomFileUriList;
         //Custom properties for data callback
         private IntPtr atomTextReturn;
         private IntPtr atomImageReturn;
@@ -121,7 +123,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             //XFixesSelectSelectionInput(xConnection.XDisplay, xConnection.xConnection.XWindow, atomPrimary, 1); TODO - implement 'primary' selections (middle mouse paste)
 
             //XSelectInput(xConnection.XDisplay, xConnection.XWindow, EventMask.PropertyChangeMask); 
-            //Because we are sharing one connection for all classes, using XSelectInput will break others.
+            //Because we are sharing one connection for all classes, using XSelectInput may break others.
 
             XFlush(xConnection.XDisplay);
             XStoreName(xConnection.XDisplay, xConnection.XWindow, "InputshareWindow");
@@ -195,6 +197,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             if (cbOwner == xConnection.XWindow)
                 return;
 
+            ISLogger.Write("Requesting TARGET atoms...");
             //We want a list of TARGET atoms so that we know what type of data the owner holds
             RequestTargets(cbOwner);
         }
@@ -207,6 +210,123 @@ namespace InputshareLib.PlatformModules.Clipboard
                 HandleReceivedText(atomTextReturn);
             else if (evt.property == atomImageReturn)
                 HandleReceivedImage(evt);
+            else if (evt.property == atomFileReturn)
+                HandleReceivedFileDrop(evt);
+        }
+
+        private void HandleReceivedFileDrop(XSelectionEvent evt)
+        {
+            try
+            {
+                int ret = XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.property, 0, 0, false, new IntPtr(0), out IntPtr retType,
+                   out int format, out int nItems, out int dataSize, out IntPtr prop_return);
+                XFree(prop_return);
+
+                XGetWindowProperty(xConnection.XDisplay, xConnection.XWindow, evt.property, 0, dataSize, false, new IntPtr(0), out IntPtr returned_type,
+                    out format, out nItems, out int remBytes, out prop_return);
+
+                string rawFileList = Marshal.PtrToStringAuto(prop_return, nItems);
+
+                ISLogger.Write(rawFileList);
+
+                string[] list = rawFileList.Split('\n');
+
+                string[] sanList = new string[list.Length];
+                for (int i = 0; i < list.Length; i++)
+                {
+
+                    sanList[i] = list[i].Trim().Replace("file://", "");
+                }
+
+                XFree(prop_return);
+
+                //Now we need to get the data for the listed files...
+
+                ClipboardVirtualFileData files = ReadFileDrop(sanList);
+                OnClipboardDataChanged(files);
+
+            }catch(Exception ex)
+            {
+                ISLogger.Write("An error occurred while handling a clipboard file drop: " + ex.Message);
+            }
+        }
+
+        private static ClipboardVirtualFileData ReadFileDrop(string[] data)
+        {
+            string[] files = data;
+            DirectoryAttributes root = new DirectoryAttributes("", new List<FileAttributes>(), new List<DirectoryAttributes>(), "");
+            int fCount = 0;
+            foreach (var file in files)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(file))
+                        continue;
+
+                    System.IO.FileAttributes fa = System.IO.File.GetAttributes(file);
+                    if (fa.HasFlag(System.IO.FileAttributes.Directory))
+                    {
+                        DirectoryAttributes di = new DirectoryAttributes(new DirectoryInfo(file));
+                        root.SubFolders.Add(di);
+
+                        foreach (var baseFile in Directory.GetFiles(file))
+                        {
+                            FileAttributes df = new FileAttributes(new FileInfo(baseFile));
+                            df.RelativePath = Path.Combine(di.Name, df.FileName);
+                            di.Files.Add(df);
+                        }
+
+                    }
+                    else
+                    {
+                        root.Files.Add(new FileAttributes(new FileInfo(file)));
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    ISLogger.Write("An error occurred while reading attributes for {0}. File not copied: {1}", file, ex.Message);
+                    ISLogger.Write(ex.StackTrace);
+                }
+            }
+
+            foreach (var folder in root.SubFolders)
+            {
+                AddDirectoriesRecursive(folder, folder.Name, ref fCount);
+            }
+
+            return new ClipboardVirtualFileData(root);
+        }
+        private static DirectoryAttributes AddDirectoriesRecursive(DirectoryAttributes folder, string current, ref int fCount)
+        {
+            
+            //current = Path.Combine(current, folder.RelativePath);
+            foreach (var subd in Directory.GetDirectories(folder.FullPath))
+            {
+                try
+                {
+                    DirectoryAttributes subda = new DirectoryAttributes(new DirectoryInfo(subd));
+                    string p = Path.Combine(current, subda.Name);
+                    subda.RelativePath = p;
+                    folder.SubFolders.Add(subda);
+
+                    foreach (var subf in Directory.GetFiles(subd))
+                    {
+                        FileAttributes a = new FileAttributes(new FileInfo(subf));
+                        fCount++;
+                        a.RelativePath = Path.Combine(p, a.FileName);
+                        subda.Files.Add(a);
+                    }
+
+                    AddDirectoriesRecursive(subda, Path.Combine(current, subda.Name), ref fCount);
+                }
+                catch (Exception ex)
+                {
+                    ISLogger.Write("An error occurred while reading directory {0}. {1}", subd, ex.Message);
+                }
+
+            }
+            return folder;
         }
 
         private void HandleSelectionClear()
@@ -273,6 +393,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             }
 
             string text = Marshal.PtrToStringUTF8(prop_return, nItems);
+            XFree(prop_return);
             OnClipboardDataChanged(new ClipboardTextData(text));
         }
 
@@ -291,11 +412,19 @@ namespace InputshareLib.PlatformModules.Clipboard
             if (format == 32)
                 format = 64;
 
+            
             long[] targets = new long[numItems];
             for (int i = 0; i < numItems; i++)
             {
                 int offset = i * (format / 8);
                 targets[i] = Marshal.ReadInt64(buff, offset);
+
+                if (IsFormatFileDrop((IntPtr)targets[i]))
+                {
+                    RequestSelection((IntPtr)targets[i], owner, atomFileReturn);
+                    XFree(buff);
+                    return;
+                }
 
                 //TODO - implement priority
                 if (IsFormatImage((IntPtr)targets[i]))
@@ -311,6 +440,11 @@ namespace InputshareLib.PlatformModules.Clipboard
                     return;
                 }
             }
+        }
+
+        private bool IsFormatFileDrop(IntPtr target)
+        {
+            return target == atomFileUriList;
         }
 
         private void RequestSelection(IntPtr dataType, IntPtr ownerWindow, IntPtr returnAtom)
@@ -456,6 +590,8 @@ namespace InputshareLib.PlatformModules.Clipboard
             atomTextReturn = XInternAtom(xConnection.XDisplay, "cbReturnPropText", false);
             atomImageReturn = XInternAtom(xConnection.XDisplay, "cbReturnPropImage", false);
             atomINCR = XInternAtom(xConnection.XDisplay, "INCR", false);
+
+            atomFileUriList = XInternAtom(xConnection.XDisplay, "text/uri-list", false);
         }
 
         private string GetAtomName(IntPtr atom)

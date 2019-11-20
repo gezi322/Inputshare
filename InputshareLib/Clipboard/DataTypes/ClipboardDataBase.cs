@@ -10,6 +10,8 @@ namespace InputshareLib.Clipboard.DataTypes
         public abstract byte[] ToBytes();
         public abstract ClipboardDataType DataType { get; }
 
+        public Guid OperationId { get; set; }
+
         public static ClipboardDataBase FromBytes(byte[] data)
         {
             ClipboardDataType type = (ClipboardDataType)data[0];
