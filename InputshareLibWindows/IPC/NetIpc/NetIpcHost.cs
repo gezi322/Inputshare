@@ -124,7 +124,7 @@ namespace InputshareLibWindows.IPC.NetIpc
             else if (message.MessageType == IpcMessageType.NetIpcDisableAutoReconnect)
                 HandleSetAutoReconnect(false);
             else if (message.MessageType == IpcMessageType.NetIpcAutoReconnectRequest)
-                HandleGetAutoReconnect(message);
+                HandleGetAutoReconnect(message);  
         }
 
         private void HandleSetAutoReconnect(bool enabled)

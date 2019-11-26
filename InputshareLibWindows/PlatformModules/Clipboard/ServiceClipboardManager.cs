@@ -13,12 +13,55 @@ namespace InputshareLibWindows.Clipboard
     {
         private IpcHandle host;
 
+        private Dictionary<Guid, CallbackHolder> callbacks = new Dictionary<Guid, CallbackHolder>();
+
         public ServiceClipboardManager(IpcHandle mainHost)
         {
             host = mainHost;
             host.HandleUpdated += Host_HandleUpdated;
             host.host.ClipboardDataReceived += Host_ClipboardDataReceived;
+            host.host.RequestedFileToken += Host_RequestedFileToken;
+            host.host.RequestedReadStream += Host_RequestedReadStream;
         }
+
+        private async void Host_RequestedReadStream(object sender, AnonIpcHost.StreamReadRequestArgs args)
+        {
+            try
+            {
+                if (!callbacks.TryGetValue(args.Token, out CallbackHolder cbHolder))
+                    throw new Exception("Callback not found");
+
+                byte[] data = await cbHolder.RequestPart(args.Token, args.FileId, args.ReadLen);
+                host.host.SendReadReply(args.MessageId, data);
+
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("ServiceDragDropManager: Failed to send file data: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+            }
+        }
+
+        private async void Host_RequestedFileToken(object sender, AnonIpcHost.FileTokenRequestArgs args)
+        {
+            try
+            {
+                ISLogger.Write("Requested file token for " + args.Operation);
+                if (!callbacks.TryGetValue(args.Operation, out CallbackHolder cbHolder))
+                    throw new Exception("Callback not found");
+
+                Guid token = await cbHolder.RequestToken(args.Operation);
+                callbacks.Add(token, cbHolder);
+                host.host.SendFileTokenResponse(args.MessageId, token);
+                ISLogger.Write("Sent file token response " + token);
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("ServiceDragDropManager: Failed to send file token: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+            }
+        }
+
         protected override void OnStart()
         {
 
@@ -40,9 +83,24 @@ namespace InputshareLibWindows.Clipboard
         }
 
         public override void SetClipboardData(ClipboardDataBase data) {
+            if (data is ClipboardVirtualFileData cbFiles)
+            {
+                callbacks.Add(cbFiles.OperationId, new CallbackHolder(cbFiles.RequestPartMethod, cbFiles.RequestTokenMethod));
+            }
+
             host.host.SendClipboardData(data);
         }
 
-        
+        private class CallbackHolder
+        {
+            public CallbackHolder(ClipboardVirtualFileData.RequestPartDelegate requestPart, ClipboardVirtualFileData.RequestTokenDelegate requestToken)
+            {
+                RequestPart = requestPart;
+                RequestToken = requestToken;
+            }
+
+            public ClipboardVirtualFileData.RequestPartDelegate RequestPart { get; }
+            public ClipboardVirtualFileData.RequestTokenDelegate RequestToken { get; }
+        }
     }
 }

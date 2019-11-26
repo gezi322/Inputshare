@@ -21,10 +21,6 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         public override event EventHandler DragDropCancelled;
         public override event EventHandler DragDropSuccess;
 
-#pragma warning disable CS0067
-        public override event EventHandler<DragDropManagerBase.RequestFileDataArgs> FileDataRequested;
-#pragma warning restore CS0067
-
         private AutoResetEvent formLoadedEvent = new AutoResetEvent(false);
 
         public WindowsDragDropManager()
@@ -136,11 +132,6 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 throw new InvalidOperationException("Form not created");
 
             dropTargetWindow.CheckForDrop();
-        }
-
-        public override void WriteToFile(Guid fileId, byte[] data)
-        {
-            //This method is only used for compatibility with the windows service version.
         }
     }
 }

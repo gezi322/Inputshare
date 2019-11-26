@@ -127,7 +127,7 @@ namespace InputshareLib.Server
             ddManager.DoDragDrop(CurrentOperation.Data);
         }
 
-        public void HandleClientSwitchAsync(ISServerSocket oldActiveClient, ISServerSocket newActiveClient)
+        public void HandleClientSwitch(ISServerSocket oldActiveClient, ISServerSocket newActiveClient)
         {
             currentActiveClient = newActiveClient;
             ISLogger.Write("Handle client switch {0}=>{1}", oldActiveClient, newActiveClient);

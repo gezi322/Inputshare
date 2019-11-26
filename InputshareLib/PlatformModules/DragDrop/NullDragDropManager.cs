@@ -11,7 +11,6 @@ namespace InputshareLib.PlatformModules.DragDrop
         public override event EventHandler DragDropCancelled;
         public override event EventHandler DragDropSuccess;
         public override event EventHandler<ClipboardDataBase> DataDropped;
-        public override event EventHandler<DragDropManagerBase.RequestFileDataArgs> FileDataRequested;
 #pragma warning restore CS0067
         public override void CancelDrop()
         {
@@ -25,12 +24,6 @@ namespace InputshareLib.PlatformModules.DragDrop
         {
 
         }
-
-        public override void WriteToFile(Guid fileId, byte[] data)
-        {
-
-        }
-
         protected override void OnStart()
         {
 

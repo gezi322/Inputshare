@@ -14,20 +14,19 @@ namespace InputshareLib.Clipboard.DataTypes
         public DirectoryAttributes RootDirectory { get; }
 
         public override ClipboardDataType DataType { get => ClipboardDataType.File; }
+
+        [field: NonSerialized]
         private List<FileAttributes> _allFiles;
         public List<FileAttributes> AllFiles { get => GetAllFiles(); }
 
-        public Guid FileCollectionId { get; }
-
-        [field:NonSerialized]
+        [field: NonSerialized]
         public RequestPartDelegate RequestPartMethod { get; set; }
-        [field:NonSerialized]
+        [field: NonSerialized]
         public RequestTokenDelegate RequestTokenMethod { get; set; }
 
         public ClipboardVirtualFileData(DirectoryAttributes directories)
         {
             RootDirectory = directories;
-            FileCollectionId = Guid.NewGuid();
         }
 
         public ClipboardVirtualFileData(byte[] data)
@@ -50,8 +49,10 @@ namespace InputshareLib.Clipboard.DataTypes
                 {
                     bw.Write((byte)ClipboardDataType.File);
                     BinaryFormatter bf = new BinaryFormatter();
+                    bf.TypeFormat = System.Runtime.Serialization.Formatters.FormatterTypeStyle.XsdString;
                     bf.Serialize(ms, RootDirectory);
                     ms.Seek(0, SeekOrigin.Begin);
+                    ISLogger.Write("Data size = " + ms.Length);
                     return ms.ToArray();
                 }
             }

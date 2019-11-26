@@ -1,11 +1,13 @@
 ﻿using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Input;
+using InputshareLibWindows;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.PlatformModules.Clipboard;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +23,7 @@ namespace InputshareSP
         private AnonIpcClient iClient;
         private InputDesktopThread inputDeskThread;
         private WindowsClipboardManager clipMan;
+        private HookWindow hookWnd;
 
         public SPDefaultHost(string readPipe, string writePipe)
         {
@@ -40,6 +43,11 @@ namespace InputshareSP
                 }
             });
 
+
+            hookWnd = new HookWindow("Test");
+            hookWnd.InitWindow();
+            hookWnd.InstallClipboardMonitor(TestCallback);
+
             ISLogger.Write("Starting SP default host...");
 
             iClient.Connected += IClient_Connected;
@@ -57,12 +65,39 @@ namespace InputshareSP
 
             clipMan = new WindowsClipboardManager();
             clipMan.Start();
-            clipMan.ClipboardContentChanged += ClipMan_ClipboardContentChanged;
+            //clipMan.ClipboardContentChanged += ClipMan_ClipboardContentChanged;
 
             Console.ReadLine();
 
             Exit();
         }
+
+        private void TestCallback(System.Windows.Forms.IDataObject obj)
+        {
+            ISLogger.Write("Reading native");
+            System.Runtime.InteropServices.ComTypes.IDataObject native = (System.Runtime.InteropServices.ComTypes.IDataObject)obj;
+
+            IEnumFORMATETC e=  native.EnumFormatEtc(DATADIR.DATADIR_GET);
+
+            int index = 0;
+            FORMATETC[] buff = new FORMATETC[1];
+            int[] ret = new int[1];
+
+            while (true)
+            {
+                e.Next(1, buff, ret);
+
+                ISLogger.Write("Got format " + buff[0].cfFormat);
+
+                if(ret[0] != 1)
+                {
+                    ISLogger.Write("Reached end");
+                    break;
+                }
+            }
+            
+        }
+
 
         private void ClipMan_ClipboardContentChanged(object sender, ClipboardDataBase e)
         {
@@ -82,6 +117,12 @@ namespace InputshareSP
 
         private void IClient_ClipboardDataReceived(object sender, ClipboardDataBase e)
         {
+            if(e is ClipboardVirtualFileData cbFiles)
+            {
+                cbFiles.RequestPartMethod = iClient.ReadStreamAsync;
+                cbFiles.RequestTokenMethod = iClient.RequestFileTokenAsync;
+            }
+
             if (clipMan != null && clipMan.Running)
                 clipMan.SetClipboardData(e);
         }

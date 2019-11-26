@@ -44,5 +44,7 @@ namespace InputshareLibWindows.IPC
         AnonIpcStreamReadResponse,
         AnonIpcStreamReadError,
         AnonIpcClipboardData,
+        AnonIpcRequestFileToken,
+        AnonIpcFileTokenResponse,
     }
 }

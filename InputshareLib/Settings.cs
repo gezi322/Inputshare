@@ -8,7 +8,7 @@ namespace InputshareLib
         /// <summary>
         /// Disables windowsinputmanager mouse and keyboard hooks
         /// </summary>
-        public const bool DEBUG_DISABLEHOOKS = false;
+        public const bool DEBUG_DISABLEHOOKS = true;
 
         /// <summary>
         /// Max size  at which packets are split up before being sent
@@ -28,11 +28,12 @@ namespace InputshareLib
         public static Encoding NetworkMessageTextEncoder = Encoding.UTF8;
 
         /// <summary>
-        /// Size of network socket buffers - 128KB
+        /// Size of network socket buffers
         /// </summary>
         public const int SocketBufferSize = 1024 * 260; //260KB
 
-        public const bool DEBUG_SPCONSOLEENABLED = false;
+        public const bool DEBUG_SPCONSOLEENABLED = true;
+        public const int DEBUG_SPECIFYSPSESSION = 1;
 
         public const bool DEBUG_PRINTINPUTKEYS = false;
         public const bool DEBUG_PRINTOUTPUTKEYS = false;

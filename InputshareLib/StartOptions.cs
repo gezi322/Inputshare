@@ -111,5 +111,6 @@ namespace InputshareLib
         Connect = 256,
         AutoReconnect = 512,
         StartPort = 1024,
+        Service = 2048,
     }
 }

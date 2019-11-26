@@ -30,7 +30,6 @@ namespace InputshareSP
 
 
             PrintInfo();
-            ISLogger.Write("----------------------------------------");
 
             if (mode == "Default")
             {

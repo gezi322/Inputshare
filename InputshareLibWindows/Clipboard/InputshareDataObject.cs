@@ -6,7 +6,6 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using static InputshareLibWindows.Native.Ole32;
-using static InputshareLibWindows.Native.Kernel32;
 using static InputshareLibWindows.Native.User32;
 using InputshareLibWindows.Native;
 using System.Runtime.InteropServices;
@@ -30,12 +29,12 @@ namespace InputshareLibWindows.Clipboard
             ISLogger.Write("Registered clipboard format 'InputshareData'. Format = " + InputshareClipboardFormatId);
         }
 
-        public event EventHandler ObjectPasted;
+        public event EventHandler FilesPasted;
 
         public event EventHandler DropSuccess;
 
-        private readonly ClipboardVirtualFileData clipboardFileData;
-        private readonly MemoryStream fileDescriptorStream;
+        
+        private MemoryStream fileDescriptorStream;
         private readonly List<ManagedRemoteIStream> streams = new List<ManagedRemoteIStream>();
 
         private short formatFileContentsId = (short)DataFormats.GetFormat("FileContents").Id;
@@ -52,6 +51,8 @@ namespace InputshareLibWindows.Clipboard
 
         private string storedText;
         private Bitmap storedImage;
+        private readonly ClipboardVirtualFileData storedFiles;
+
         private bool isDragDropData;
 
         public InputshareDataObject(ClipboardDataBase data, bool isDragDrop)
@@ -80,11 +81,11 @@ namespace InputshareLibWindows.Clipboard
                 });
 
                 storedText = cbText.Text;
+                ISLogger.Write("Set dataobject text to " + storedText);
             }
             else if (data is ClipboardVirtualFileData cbFiles)
             {
-                fileDescriptorStream = FILEDESCRIPTOR.GenerateFileDescriptor(cbFiles.AllFiles);
-                clipboardFileData = cbFiles;
+                storedFiles = cbFiles;
 
                 supportedFormats.Add(new FORMATETC
                 {
@@ -135,8 +136,8 @@ namespace InputshareLibWindows.Clipboard
 
         ~InputshareDataObject()
         {
-            if (storedImage != null)
-                storedImage.Dispose();
+            storedImage?.Dispose();
+            fileDescriptorStream?.Dispose();
         }
 
         public IEnumFORMATETC EnumFormatEtc(DATADIR direction)
@@ -192,39 +193,54 @@ namespace InputshareLibWindows.Clipboard
             if (format.lindex == -1)
                 return;
 
-            if (streams.Count == 0)
+            try
             {
-                try
+                if (streams.Count == 0)
                 {
-                    Guid token = clipboardFileData.RequestTokenMethod(clipboardFileData.OperationId).Result;
-                    foreach(var file in clipboardFileData.AllFiles)
+                    try
                     {
-                        streams.Add(new ManagedRemoteIStream(file, clipboardFileData, token));
+                        Guid token = storedFiles.RequestTokenMethod(storedFiles.OperationId).Result;
+                        foreach (var file in storedFiles.AllFiles)
+                        {
+                            streams.Add(new ManagedRemoteIStream(file, storedFiles, token));
+                        }
                     }
-                }catch(Exception ex)
-                {
-                    ISLogger.Write("Failed to get access token for clipboard operation: " + ex.Message);
-                    return;
+                    catch (Exception ex)
+                    {
+                        ISLogger.Write("Failed to get access token for clipboard operation: " + ex.Message);
+                        return;
+                    }
                 }
-            }
 
-            medium.tymed = TYMED.TYMED_ISTREAM;
-            IStream o = streams[format.lindex];
-            medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
+                medium.tymed = TYMED.TYMED_ISTREAM;
+                IStream o = streams[format.lindex];
+                medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to transfer file contents to shell: " + ex.Message);
+            }
         }
 
         private void GetDataFileDescriptor(ref FORMATETC format, ref STGMEDIUM medium)
         {
-            if (format.tymed != TYMED.TYMED_HGLOBAL)
+            try
             {
-                ISLogger.Write("Shell requested file descriptor via tymed {0}. Not supported", format.tymed);
-                return;
+                if (format.tymed != TYMED.TYMED_HGLOBAL)
+                {
+                    ISLogger.Write("Shell requested file descriptor via tymed {0}. Not supported", format.tymed);
+                    return;
+                }
+
+                if (fileDescriptorStream == null)
+                    fileDescriptorStream = FILEDESCRIPTOR.GenerateFileDescriptor(storedFiles.AllFiles);
+
+                byte[] desc = fileDescriptorStream.ToArray();
+                medium.tymed = TYMED.TYMED_HGLOBAL;
+                medium.unionmember = CopyToHGlobal(desc);
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to transfer file descriptor to shell: " + ex.Message);
             }
-
-
-            byte[] desc = fileDescriptorStream.ToArray();
-            medium.tymed = TYMED.TYMED_HGLOBAL;
-            medium.unionmember = CopyToHGlobal(desc);
         }
 
         private void GetDataBitmap(ref FORMATETC format, ref STGMEDIUM medium)
@@ -232,6 +248,12 @@ namespace InputshareLibWindows.Clipboard
             if (format.tymed != TYMED.TYMED_GDI)
             {
                 ISLogger.Write("Shell requested bitmap via tymed {0}. Not supported", format.tymed);
+                return;
+            }
+
+            if(storedImage == null)
+            {
+                ISLogger.Write("Shell requested an image even though we don't have one");
                 return;
             }
 
@@ -245,6 +267,12 @@ namespace InputshareLibWindows.Clipboard
             if (format.tymed != TYMED.TYMED_HGLOBAL)
             {
                 ISLogger.Write("Shell requested text via tymed {0}. Not supported", format.tymed);
+                return;
+            }
+
+            if(storedText == null)
+            {
+                ISLogger.Write("Shell requested text even though we don't have any");
                 return;
             }
 
@@ -282,9 +310,18 @@ namespace InputshareLibWindows.Clipboard
 
         public int QueryGetData(ref FORMATETC format)
         {
-            foreach (var f in supportedFormats)
-                if (f.cfFormat == format.cfFormat && f.tymed == format.tymed)
-                    return (int)S_OK;
+            if((int)format.tymed == -1)
+            {
+                foreach (var f in supportedFormats)
+                    if (f.cfFormat == format.cfFormat)
+                        return (int)S_OK;
+            }
+            else
+            {
+                foreach (var f in supportedFormats)
+                    if (f.cfFormat == format.cfFormat && f.tymed == format.tymed)
+                        return (int)S_OK;
+            }
 
             return (int)S_FALSE;
         }
@@ -329,9 +366,15 @@ namespace InputshareLibWindows.Clipboard
             asyncInOperation = true;
 
             if (isDragDropData)
+            {
                 DropSuccess?.Invoke(this, new EventArgs());
-            else
-                ObjectPasted?.Invoke(this, new EventArgs());
+                return;
+            }
+            
+            if(storedFiles != null)
+            {
+                FilesPasted?.Invoke(this, new EventArgs());
+            }
         }
 
         public void InOperation([Out] out int pfInAsyncOp)
@@ -346,6 +389,12 @@ namespace InputshareLibWindows.Clipboard
             //This method is called when the file data (could be pasted clipboard data, or a dragdrop operation)
             //has finished transfering to the target application. We can use this if we need a DataTransferComplete event.
             //This method also gets called if the operation fails or is cancelled
+
+            if(storedFiles != null)
+            {
+                streams?.Clear();
+                fileDescriptorStream?.Dispose();
+            }
         }
     }
 

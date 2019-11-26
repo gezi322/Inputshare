@@ -29,6 +29,8 @@ namespace InputshareLib.Clipboard.DataTypes
         public string FileName { get; }
         public long FileSize { get; }
         public DateTime LastChangeTime { get; }
+
+        [field: NonSerialized]
         public string FullPath { get; }
         public Guid FileRequestId { get; }
 
@@ -39,11 +41,6 @@ namespace InputshareLib.Clipboard.DataTypes
         {
             CloseStreamRequested?.Invoke(this, null);
         }
-
-        /// <summary>
-        /// The access token that allows us to retrieve this file from the host PC
-        /// </summary>
-        public Guid RemoteAccessToken { get; set; }
 
         [field: NonSerialized]
         public event EventHandler CloseStreamRequested;

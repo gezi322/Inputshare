@@ -250,7 +250,9 @@ namespace InputshareLibWindows.IPC
                 msg = new AnonIpc.Messages.AnonIpcReadStreamResponseMessage(data);
             else if (type == IpcMessageType.AnonIpcDoDragDrop)
                 msg = new AnonIpc.Messages.AnonIpcDoDragDropMessage(data);
-
+            else if (type == IpcMessageType.AnonIpcFileTokenResponse)
+                msg = new AnonIpc.Messages.AnonIpcRequestFileTokenResponseMessage(data);
+            
             if(msg == null)
                 msg = new IpcMessage(data);
 

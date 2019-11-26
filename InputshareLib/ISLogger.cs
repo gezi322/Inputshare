@@ -67,6 +67,9 @@ namespace InputshareLib
 
         public static void Write(string message, params object[] args)
         {
+            if (message == null)
+                return;
+
             try
             {
                 lock (queueLock)
@@ -115,8 +118,6 @@ namespace InputshareLib
 
                     if (EnableLogFile && LogFilePath != null)
                         File.AppendAllText(LogFilePath, message + "\n");
-
-
 
                     LogMessageOut?.Invoke(null, message);
                 }

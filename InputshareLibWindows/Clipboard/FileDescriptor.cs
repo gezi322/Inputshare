@@ -6,6 +6,7 @@ using System.Text;
 using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
 using static InputshareLibWindows.Native.Ole32;
+using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
 
 namespace InputshareLibWindows.Clipboard
 {
@@ -25,7 +26,7 @@ namespace InputshareLibWindows.Clipboard
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
         public String cFileName;
 
-        public static MemoryStream GenerateFileDescriptor(List<InputshareLib.Clipboard.DataTypes.FileAttributes> files)
+        public static MemoryStream GenerateFileDescriptor(List<FileAttributes> files)
         {
             try
             {

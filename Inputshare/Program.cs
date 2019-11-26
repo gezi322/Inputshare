@@ -33,6 +33,12 @@ namespace Inputshare
                 return;
             }
 
+            if (options.HasArg(StartArguments.Service))
+            {
+                svc a = new svc();
+                return;
+            }
+
 #if LinuxBuild
             xCon = new SharedXConnection();
 #endif

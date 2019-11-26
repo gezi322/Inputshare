@@ -15,6 +15,10 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
+    <OutputPath>..\build_windows</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="System.Management" Version="4.6.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.6.0" />

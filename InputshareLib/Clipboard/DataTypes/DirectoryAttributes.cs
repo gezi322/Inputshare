@@ -34,6 +34,8 @@ namespace InputshareLib.Clipboard.DataTypes
         public string Name { get; }
         public List<FileAttributes> Files { get; }
         public List<DirectoryAttributes> SubFolders { get; }
+
+        [field: NonSerialized]
         public string FullPath { get; }
     }
 }

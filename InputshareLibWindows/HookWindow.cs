@@ -177,7 +177,6 @@ namespace InputshareLibWindows
         }
 
         #endregion
-
         #region Desktop switch listener
         public void InstallDesktopMonitor()
         {

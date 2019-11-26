@@ -65,6 +65,8 @@ namespace InputshareLib.Server
 
         private StartOptions startArgs;
 
+        #region Start/Stop
+
         public ISServer(ISServerDependencies dependencies, StartOptions args)
         {
             startArgs = args;
@@ -234,6 +236,10 @@ namespace InputshareLib.Server
 
         }
 
+        #endregion
+
+        #region InputSwitching
+
         /// <summary>
         /// Switches the input client to the specified client and disables local input
         /// </summary>
@@ -242,7 +248,7 @@ namespace InputshareLib.Server
         {
             //prevents a bug where if the mouse was on the very edge of the screen and not moving,
             //it would rapidly switch between clients
-            if (clientSwitchTimer.ElapsedMilliseconds < 200)
+            if (clientSwitchTimer.ElapsedMilliseconds < 25)
                 return;
 
             ISServerSocket client = clientMan.GetClientById(targetClient);
@@ -267,7 +273,7 @@ namespace InputshareLib.Server
             clientSwitchTimer.Restart();
 
             //let the dragdrop controller determine if anything needs to be done or sent to the client
-            ddController.HandleClientSwitchAsync(oldClient, inputClient);
+            ddController.HandleClientSwitch(oldClient, inputClient);
             InputClientSwitched?.Invoke(this, GenerateClientInfo(client));
 
         }
@@ -293,32 +299,11 @@ namespace InputshareLib.Server
 
             clientSwitchTimer.Restart();
             outMan.ResetKeyStates();
-            ddController.HandleClientSwitchAsync(oldClient, ISServerSocket.Localhost);
+            ddController.HandleClientSwitch(oldClient, ISServerSocket.Localhost);
             InputClientSwitched?.Invoke(this, GenerateLocalhostInfo());
         }
 
-        /// <summary>
-        /// Sets the position of a client relative to another client
-        /// </summary>
-        /// <param name="clientA"></param>
-        /// <param name="sideof"></param>
-        /// <param name="clientB"></param>
-        private void SetClientEdge(ISServerSocket clientA, Edge sideof, ISServerSocket clientB)
-        {
-            if (clientA == null || clientB == null)
-                throw new ArgumentNullException("client was null");
-
-            if (clientA.ClientName == clientB.ClientName)
-            {
-                throw new ArgumentException("Cannot set X sideof X");
-            }
-
-            clientB.SetClientAtEdge(sideof, clientA);
-            clientA.SetClientAtEdge(sideof.Opposite(), clientB);
-            ISLogger.Write("Server: Set {0} {1}of {2}", clientA.ClientName, sideof, clientB.ClientName);
-            clientA.SendClientEdgesUpdate();
-            clientB.SendClientEdgesUpdate();
-        }
+        #endregion
 
         #region localhost events
 
@@ -424,7 +409,7 @@ namespace InputshareLib.Server
                 else if(ex is ClientManager.DuplicateNameException)
                     ISLogger.Write("client {0} declined: {1}", client.ClientName, "client limit reached");
 
-                client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateGuid);
+                client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateName);
                 //todo - possible race condition here? messages need to be sent before the client is disposed
                 client.Dispose();
             }
@@ -717,6 +702,30 @@ namespace InputshareLib.Server
                 index++;
             }
             return info;
+        }
+
+
+        /// <summary>
+        /// Sets the position of a client relative to another client
+        /// </summary>
+        /// <param name="clientA"></param>
+        /// <param name="sideof"></param>
+        /// <param name="clientB"></param>
+        private void SetClientEdge(ISServerSocket clientA, Edge sideof, ISServerSocket clientB)
+        {
+            if (clientA == null || clientB == null)
+                throw new ArgumentNullException("client was null");
+
+            if (clientA.ClientName == clientB.ClientName)
+            {
+                throw new ArgumentException("Cannot set X sideof X");
+            }
+
+            clientB.SetClientAtEdge(sideof, clientA);
+            clientA.SetClientAtEdge(sideof.Opposite(), clientB);
+            ISLogger.Write("Server: Set {0} {1}of {2}", clientA.ClientName, sideof, clientB.ClientName);
+            clientA.SendClientEdgesUpdate();
+            clientB.SendClientEdgesUpdate();
         }
 
         public void SetMouseInputMode(MouseInputMode mode, int interval = 0)

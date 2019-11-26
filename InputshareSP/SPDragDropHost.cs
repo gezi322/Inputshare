@@ -36,8 +36,8 @@ namespace InputshareSP
             iClient.Disconnected += IClient_Disconnected;
             iClient.Connected += IClient_Connected;
 
-            dropMan.DragDropCancelled += (object s, EventArgs e) => { iClient.SendDragDropCancelled(Guid.Empty); };
-            dropMan.DragDropSuccess += (object s, EventArgs e) => { iClient.SendDragDropSuccess(Guid.Empty); };
+            dropMan.DragDropCancelled += (object s, EventArgs e) => { iClient.SendDragDropCancelled(); };
+            dropMan.DragDropSuccess += (object s, EventArgs e) => { iClient.SendDragDropSuccess(); };
             dropMan.DataDropped += (object s, ClipboardDataBase data) => { iClient.SendDroppedData(data); };
 
             Console.Title = "SP dragdrop host";
@@ -62,24 +62,17 @@ namespace InputshareSP
         {
             ISLogger.Write("Doing drop type " + ret.Item2.DataType);
 
+            ISLogger.Write("Drop data operation = " + ret.Item1);
             ClipboardDataBase data = ret.Item2;
 
-            dropMan.DoDragDrop(ret.Item2);
-        }
-        private async Task<byte[]> VirtualFile_ReadData(Guid token, Guid operationId, Guid fileId, int readLen)
-        {
-            try
+            if(data is ClipboardVirtualFileData cbFiles)
             {
-                return await iClient.ReadStreamAsync(token, fileId, readLen);
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Failed to read external data stream: " + ex.Message);
-                ISLogger.Write(ex.Source);
-                ISLogger.Write(ex.StackTrace);
-                return new byte[0];
+                cbFiles.OperationId = ret.Item1;
+                cbFiles.RequestTokenMethod = iClient.RequestFileTokenAsync;
+                cbFiles.RequestPartMethod = iClient.ReadStreamAsync;
             }
 
-            
+            dropMan.DoDragDrop(ret.Item2);
         }
 
         private void Exit()

@@ -8,16 +8,12 @@ namespace InputshareLib.PlatformModules.DragDrop
         public abstract event EventHandler DragDropCancelled;
         public abstract event EventHandler DragDropSuccess;
         public abstract event EventHandler<ClipboardDataBase> DataDropped;
-        public abstract event EventHandler<RequestFileDataArgs> FileDataRequested;
 
         public abstract bool LeftMouseState { get; protected set; }
 
         public abstract void CancelDrop();
         public abstract void CheckForDrop();
         public abstract void DoDragDrop(ClipboardDataBase data);
-        public abstract void WriteToFile(Guid fileId, byte[] data);
-
-
         public class RequestFileDataArgs
         {
             public RequestFileDataArgs(Guid messageId, Guid token, Guid fileId, int readLen)

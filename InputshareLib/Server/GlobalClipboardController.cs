@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using InputshareLib.Clipboard;
 using InputshareLib.Clipboard.DataTypes;
@@ -65,19 +66,25 @@ namespace InputshareLib.Server
         /// <returns></returns>
         private void BroadcastOperation()
         {
-            if (CurrentOperation.Data is ClipboardVirtualFileData cbFiles)
+            if (!CurrentOperation.Host.IsLocalhost)
             {
-                cbFiles.RequestPartMethod = CurrentOperation.Host.RequestReadStreamAsync;
-                cbFiles.RequestTokenMethod = CurrentOperation.Host.RequestFileTokenAsync;
+                if (CurrentOperation.Data is ClipboardVirtualFileData cbFiles)
+                {
+                    cbFiles.RequestPartMethod = CurrentOperation.Host.RequestReadStreamAsync;
+                    cbFiles.RequestTokenMethod = CurrentOperation.Host.RequestFileTokenAsync;
+                }
+
+                cbManager.SetClipboardData(CurrentOperation.Data);
             }
 
-            cbManager.SetClipboardData(CurrentOperation.Data);
-
+            byte[] data = CurrentOperation.Data.ToBytes();
             //Send the data to any client except the host client and localhost
             foreach (var client in clientMan.AllClients.Where(c => !c.IsLocalhost && c.IsConnected && c != CurrentOperation.Host))
             {
-                client.SendClipboardData(CurrentOperation.Data.ToBytes(), CurrentOperation.OperationGuid);
+                client.SendClipboardData(data, CurrentOperation.OperationGuid);
             }
+
+            data = null;
         }
     }
 }

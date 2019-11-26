@@ -102,19 +102,19 @@ namespace InputshareLibWindows.IPC.AnonIpc
         }
 
 
-        public void SendDragDropComplete(Guid id)
+        public void SendDragDropComplete()
         {
-            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropComplete, id));
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropComplete));
         }
 
-        public void SendDragDropSuccess(Guid id)
+        public void SendDragDropSuccess()
         {
-            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropSuccess, id));
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropSuccess));
         }
 
-        public void SendDragDropCancelled(Guid id)
+        public void SendDragDropCancelled()
         {
-            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropCancelled, id));
+            Write(new IpcMessage(IpcMessageType.AnonIpcDragDropCancelled));
         }
 
         public void SendDroppedData(ClipboardDataBase data)
@@ -129,9 +129,26 @@ namespace InputshareLibWindows.IPC.AnonIpc
                 AnonIpcReadStreamResponseMessage msg = (AnonIpcReadStreamResponseMessage)await SendRequest(new AnonIpcReadStreamRequestMessage(token, fileId, readLen), IpcMessageType.AnonIpcStreamReadResponse);
                 return msg.ResponseData;
             }
+            catch (Exception ex)
+            {
+                ISLogger.Write("Failed to read stream " + ex.Message);
+                return new byte[0];
+            }
+        }
+        
+        public async Task<Guid> RequestFileTokenAsync(Guid operationId)
+        {
+            try
+            {
+                ISLogger.Write("Sending file token request");
+                AnonIpcRequestFileTokenResponseMessage msg = (AnonIpcRequestFileTokenResponseMessage)await SendRequest(new AnonIpcRequestFileTokenMessage(operationId), IpcMessageType.AnonIpcFileTokenResponse);
+                ISLogger.Write("Got access token response " + msg.AccessToken);
+                return msg.AccessToken;
+            }
             catch (Exception)
             {
-                return new byte[0];
+                ISLogger.Write("Failed to get file access token");
+                return Guid.Empty;
             }
         }
 

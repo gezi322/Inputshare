@@ -51,6 +51,11 @@ namespace InputshareLibWindows.Clipboard
 
                 else
                 {
+                    ISLogger.Write("possible data formats: ");
+                    foreach(var format in data.GetFormats()){
+                        ISLogger.Write(format);
+                    }
+
                     throw new ClipboardTranslationException("Dataobject not implemented");
                 }
             }

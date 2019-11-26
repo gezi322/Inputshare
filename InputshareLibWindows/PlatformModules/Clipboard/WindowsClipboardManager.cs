@@ -4,6 +4,7 @@ using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.PlatformModules.Clipboard;
 using InputshareLibWindows.Clipboard;
 using System;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace InputshareLibWindows.PlatformModules.Clipboard
 {
@@ -41,7 +42,7 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
                 //Each dataobject gets their own access token from the host to allow them to have seperate filestreams
                 //and allow any number of programs to paste at the same time
                 currentClipboardFiles = data as ClipboardVirtualFileData;
-                obj.ObjectPasted += Obj_ObjectPasted;
+                obj.FilesPasted += Obj_ObjectPasted;
             }
             
 
@@ -64,13 +65,20 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
                 if (data.GetDataPresent("InputshareData"))
                     return;
 
+                string[] s = data.GetFormats();
+
+                foreach(var format in s)
+                {
+                    ISLogger.Write("FORMAT " + format);
+                }
+
                 ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
 
                 ISLogger.Write("WindowsClipboardManager: Copied type {0}", cb.DataType);
                 OnClipboardDataChanged(cb);
             }catch(ClipboardTranslatorWindows.ClipboardTranslationException ex)
             {
-                ISLogger.Write("Failed to red clipboard data: " + ex.Message);
+                ISLogger.Write("Failed to read clipboard data: " + ex.Message);
             }
             
         }
