@@ -29,8 +29,6 @@ namespace InputshareLib.Clipboard.DataTypes
         public string FileName { get; }
         public long FileSize { get; }
         public DateTime LastChangeTime { get; }
-
-        [field: NonSerialized]
         public string FullPath { get; }
         public Guid FileRequestId { get; }
 

@@ -114,7 +114,7 @@ namespace InputshareLib
                     if (fileSourceDictionary.TryGetValue(file, out string source))
                     {
                         FileStream fs = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        //ISLogger.Write("Debug: Filestream created for " + source);
+                        ISLogger.Write("Debug: Filestream created for " + source);
                         openFileStreams.Add(file, fs);
                         int read = fs.Read(buffer, offset, readLen);
 
@@ -216,6 +216,8 @@ namespace InputshareLib
 
             for (int i = 0; i < file.AllFiles.Count; i++)
             {
+                ISLogger.Write("PATH " + file.AllFiles[i].FullPath);
+
                 fIds[i] = file.AllFiles[i].FileRequestId;
                 fSources[i] = file.AllFiles[i].FullPath;
             }

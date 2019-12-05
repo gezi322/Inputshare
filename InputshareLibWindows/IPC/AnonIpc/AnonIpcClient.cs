@@ -19,7 +19,7 @@ namespace InputshareLibWindows.IPC.AnonIpc
     {
         public event EventHandler<ClipboardDataBase> ClipboardDataReceived;
         public event EventHandler<DisplayConfigRequestedArgs> DisplayConfigRequested;
-        public event EventHandler<Tuple<Guid, ClipboardDataBase>> DoDragDropReceived;
+        public event EventHandler<ClipboardDataBase> DoDragDropReceived;
         public event EventHandler CheckForDropReceived;
 
         private AnonymousPipeClientStream readPipe;
@@ -48,7 +48,7 @@ namespace InputshareLibWindows.IPC.AnonIpc
             else if (type == IpcMessageType.AnonIpcDoDragDrop)
             {
                 AnonIpcDoDragDropMessage msg = new AnonIpcDoDragDropMessage(data);
-                DoDragDropReceived.Invoke(this, new Tuple<Guid, ClipboardDataBase>(msg.MessageId, msg.DropData));
+                DoDragDropReceived.Invoke(this, msg.DropData);
             }
 
         }

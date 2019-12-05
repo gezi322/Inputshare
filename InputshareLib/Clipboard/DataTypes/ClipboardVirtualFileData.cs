@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace InputshareLib.Clipboard.DataTypes
 {
+    [Serializable]
     public class ClipboardVirtualFileData : ClipboardDataBase
     {
         public delegate Task<byte[]> RequestPartDelegate(Guid token, Guid fileId, int readLen);
@@ -29,14 +30,14 @@ namespace InputshareLib.Clipboard.DataTypes
             RootDirectory = directories;
         }
 
-        public ClipboardVirtualFileData(byte[] data)
+        public static ClipboardVirtualFileData FromBytes(byte[] data)
         {
             using (MemoryStream ms = new MemoryStream(data))
             {
                 using (BinaryReader br = new BinaryReader(ms))
                 {
                     br.ReadByte();
-                    RootDirectory = (DirectoryAttributes)new BinaryFormatter().Deserialize(ms);
+                    return (ClipboardVirtualFileData)new BinaryFormatter().Deserialize(ms);
                 }
             }
         }
@@ -50,9 +51,8 @@ namespace InputshareLib.Clipboard.DataTypes
                     bw.Write((byte)ClipboardDataType.File);
                     BinaryFormatter bf = new BinaryFormatter();
                     bf.TypeFormat = System.Runtime.Serialization.Formatters.FormatterTypeStyle.XsdString;
-                    bf.Serialize(ms, RootDirectory);
+                    bf.Serialize(ms, this);
                     ms.Seek(0, SeekOrigin.Begin);
-                    ISLogger.Write("Data size = " + ms.Length);
                     return ms.ToArray();
                 }
             }

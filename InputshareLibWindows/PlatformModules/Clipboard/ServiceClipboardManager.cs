@@ -15,9 +15,9 @@ namespace InputshareLibWindows.Clipboard
 
         private Dictionary<Guid, CallbackHolder> callbacks = new Dictionary<Guid, CallbackHolder>();
 
-        public ServiceClipboardManager(IpcHandle mainHost)
+        public ServiceClipboardManager(IpcHandle clipboardHost)
         {
-            host = mainHost;
+            host = clipboardHost;
             host.HandleUpdated += Host_HandleUpdated;
             host.host.ClipboardDataReceived += Host_ClipboardDataReceived;
             host.host.RequestedFileToken += Host_RequestedFileToken;
@@ -29,7 +29,7 @@ namespace InputshareLibWindows.Clipboard
             try
             {
                 if (!callbacks.TryGetValue(args.Token, out CallbackHolder cbHolder))
-                    throw new Exception("Callback not found");
+                    return;
 
                 byte[] data = await cbHolder.RequestPart(args.Token, args.FileId, args.ReadLen);
                 host.host.SendReadReply(args.MessageId, data);
@@ -46,9 +46,8 @@ namespace InputshareLibWindows.Clipboard
         {
             try
             {
-                ISLogger.Write("Requested file token for " + args.Operation);
                 if (!callbacks.TryGetValue(args.Operation, out CallbackHolder cbHolder))
-                    throw new Exception("Callback not found");
+                    return;
 
                 Guid token = await cbHolder.RequestToken(args.Operation);
                 callbacks.Add(token, cbHolder);
@@ -87,6 +86,8 @@ namespace InputshareLibWindows.Clipboard
             {
                 callbacks.Add(cbFiles.OperationId, new CallbackHolder(cbFiles.RequestPartMethod, cbFiles.RequestTokenMethod));
             }
+
+            ISLogger.Write("Set clipboard data " + data.OperationId);
 
             host.host.SendClipboardData(data);
         }

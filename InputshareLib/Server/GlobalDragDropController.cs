@@ -154,7 +154,7 @@ namespace InputshareLib.Server
                     oldActiveClient.SendCancelDragDrop();
                 }
 
-            }else if(oldActiveClient.IsLocalhost && !newActiveClient.IsLocalhost)
+            }else if(oldActiveClient.IsLocalhost && !newActiveClient.IsLocalhost && ddManager.LeftMouseState)
             {
                 ISLogger.Write("Checking for drop!");
                 ddManager.CheckForDrop();

@@ -63,7 +63,7 @@ namespace InputshareService
         public enum SPMode
         {
             Default,
-            DragDrop
+            Clipboard
         }
 
         public class CreateProcessException : Exception

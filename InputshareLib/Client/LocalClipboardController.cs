@@ -27,6 +27,7 @@ namespace InputshareLib.Client
             if (!server.IsConnected)
                 return;
 
+
             Guid opId = Guid.NewGuid();
             CurrentOperation = new ClientDataOperation(data, opId);
             server.SendClipboardData(CurrentOperation.Data.ToBytes(), opId);
@@ -38,6 +39,7 @@ namespace InputshareLib.Client
             try
             {
                 ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
+                cbData.OperationId = args.OperationId;
 
                 if (cbData is ClipboardVirtualFileData cbFiles)
                 {

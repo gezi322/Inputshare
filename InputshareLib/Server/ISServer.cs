@@ -468,7 +468,10 @@ namespace InputshareLib.Server
                     bytesRead = fileController.ReadStream(args.Token, args.File, buff, 0, args.ReadLen);
                 }catch(Exception ex)
                 {
+                    ISLogger.Write("Failed to read stream: " + ex.Message);
+                    ISLogger.Write(ex.StackTrace);
                     client.SendFileErrorResponse(args.NetworkMessageId, "An error occurred while reading from stream: " + ex.Message);
+                    
                     return;
                 }
             }

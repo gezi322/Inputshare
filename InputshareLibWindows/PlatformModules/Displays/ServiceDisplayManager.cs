@@ -32,6 +32,7 @@ namespace InputshareLibWindows.Displays
         private void Host_HandleUpdated(object sender, EventArgs e)
         {
             host.host.DisplayConfigUpdated += Host_DisplayConfigUpdated;
+            host.host.EdgeHit += (object _, Edge e) => { OnEdgeHit(e); };
         }
 
         private void Host_DisplayConfigUpdated(object sender, DisplayConfig newConfig)

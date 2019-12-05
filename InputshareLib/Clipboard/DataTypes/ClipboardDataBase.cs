@@ -5,6 +5,8 @@ namespace InputshareLib.Clipboard.DataTypes
     /// <summary>
     /// Represents universal clipboard data that can be sent to any OS
     /// </summary>
+    
+        [Serializable]
     public abstract class ClipboardDataBase
     {
         public abstract byte[] ToBytes();
@@ -18,7 +20,7 @@ namespace InputshareLib.Clipboard.DataTypes
             switch (type)
             {
                 case ClipboardDataType.File:
-                    return new ClipboardVirtualFileData(data);
+                    return ClipboardVirtualFileData.FromBytes(data);
                 case ClipboardDataType.Image:
                     return new ClipboardImageData(data);
                 case ClipboardDataType.Text:

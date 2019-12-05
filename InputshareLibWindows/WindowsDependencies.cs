@@ -39,13 +39,13 @@ namespace InputshareLibWindows
             };
         }
 
-        public static ISClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
+        public static ISClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle clipboardHost)
         {
             return new ISClientDependencies
             {
-                clipboardManager = new ServiceClipboardManager(mainHost),
+                clipboardManager = new ServiceClipboardManager(clipboardHost),
                 displayManager = new ServiceDisplayManager(mainHost),
-                dragDropManager = new ServiceDragDropManager(mainHost, dragDropHost),
+                dragDropManager = new ServiceDragDropManager(clipboardHost),
                 outputManager = new ServiceOutputManager(mainHost)
             };
         }

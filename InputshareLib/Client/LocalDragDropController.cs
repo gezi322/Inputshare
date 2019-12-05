@@ -94,6 +94,11 @@ namespace InputshareLib.Client
             {
                 cbFiles.RequestPartMethod = server.RequestReadStreamAsync;
                 cbFiles.RequestTokenMethod = server.RequestFileTokenAsync;
+
+                ISLogger.Write("Copied files");
+
+                foreach (var file in cbFiles.AllFiles)
+                    ISLogger.Write(file.FullPath);
             }
 
             CurrentOperation = new ClientDataOperation(cbData, args.OperationId);

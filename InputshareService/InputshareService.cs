@@ -26,7 +26,7 @@ namespace InputshareService
         private NetIpcHost appHost;
 
         private IpcHandle spMainHandle = new IpcHandle();
-        private IpcHandle spDragDropHandle = new IpcHandle();
+        private IpcHandle spClipboardHandle = new IpcHandle();
 
         /// <summary>
         /// True if the service is stopping.
@@ -58,6 +58,7 @@ namespace InputshareService
 
             SetPriority();
             
+           
             Task.Run(() => { SpDragDropTaskLoop(); });
             Task.Run(() => { SpMainTaskLoop(); });
 
@@ -71,7 +72,7 @@ namespace InputshareService
         private void SpDragDropTaskLoop()
         {
             iHostDragDrop = new AnonIpcHost("Dragdrop process");
-            spDragDropHandle.host = iHostDragDrop;
+            spClipboardHandle.host = iHostDragDrop;
 
             while (!stopping)
             {
@@ -135,7 +136,7 @@ namespace InputshareService
         {
             try
             {
-                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spDragDropHandle), new StartOptions(new System.Collections.Generic.List<string>()));
+                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle), new StartOptions(new System.Collections.Generic.List<string>()));
                 
 
                 clientInstance.ConnectionError += ClientInstance_ConnectionError;
@@ -185,7 +186,7 @@ namespace InputshareService
 
 
                 if(Settings.DEBUG_SPECIFYSPSESSION != -1)
-                    sysToken = Token.GetSystemToken(Settings.DEBUG_SPECIFYSPSESSION);
+                    sysToken = unchecked(Token.GetSystemToken((uint)Settings.DEBUG_SPECIFYSPSESSION));
                 else
                     sysToken = Token.GetSystemToken(Session.ConsoleSessionId);
 
@@ -216,15 +217,16 @@ namespace InputshareService
                 iHostDragDrop = new AnonIpcHost("SP dragdrop");
                 ISLogger.Write("Launching SP dragdrop process");
                 userToken = Token.GetUserToken();
-                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.DragDrop, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostDragDrop, userToken);
+                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Clipboard, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostDragDrop, userToken);
                 Token.CloseToken(userToken);
-                spDragDropHandle.host = iHostDragDrop;
-                spDragDropHandle.NotifyHandleUpdate();
+                spClipboardHandle.host = iHostDragDrop;
+                spClipboardHandle.NotifyHandleUpdate();
                 return proc;
             }
             catch (Exception ex)
             {
                 ISLogger.Write("Failed to launch inputshareSP dragdrop process: " + ex.Message);
+                
                 return null;
             }
             finally

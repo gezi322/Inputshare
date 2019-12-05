@@ -13,9 +13,6 @@ using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
 
 namespace InputshareLibWindows.Clipboard
 {
-    /// <summary>
-    /// Extension of InputshareLib.Clipboard.ClipboardTranslator using the windows IDataObject interface
-    /// </summary>
     public static class ClipboardTranslatorWindows
     {
         /// <summary>
@@ -35,7 +32,7 @@ namespace InputshareLibWindows.Clipboard
                     {
                         using (MemoryStream ms = new MemoryStream())
                         {
-                            i.Save(ms, ImageFormat.Jpeg);
+                            i.Save(ms, Settings.ImageEncodeFormat);
                             return new ClipboardImageData(ms.ToArray(), true);
                         }
                     }

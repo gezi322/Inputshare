@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Drawing.Imaging;
+using System.Text;
 
 namespace InputshareLib
 {
@@ -8,7 +9,7 @@ namespace InputshareLib
         /// <summary>
         /// Disables windowsinputmanager mouse and keyboard hooks
         /// </summary>
-        public const bool DEBUG_DISABLEHOOKS = true;
+        public const bool DEBUG_DISABLEHOOKS = false;
 
         /// <summary>
         /// Max size  at which packets are split up before being sent
@@ -32,11 +33,27 @@ namespace InputshareLib
         /// </summary>
         public const int SocketBufferSize = 1024 * 260; //260KB
 
+        /// <summary>
+        /// Image format used to transfer copied images
+        /// </summary>
+        public static readonly ImageFormat ImageEncodeFormat = ImageFormat.Jpeg;
+
+        /// <summary>
+        /// If true, SP processes are launched in the users desktop with a visible console
+        /// </summary>
         public const bool DEBUG_SPCONSOLEENABLED = true;
-        public const int DEBUG_SPECIFYSPSESSION = 1;
+
+        /// <summary>
+        /// InputshareSP launches in the specified session (-1 for current console session)
+        /// </summary>
+        public const int DEBUG_SPECIFYSPSESSION = -1;
 
         public const bool DEBUG_PRINTINPUTKEYS = false;
         public const bool DEBUG_PRINTOUTPUTKEYS = false;
+
+        /// <summary>
+        /// Rate at which to poll the X server (temp)
+        /// </summary>
         public const int XServerPollRateMS = 1;
     }
 }
