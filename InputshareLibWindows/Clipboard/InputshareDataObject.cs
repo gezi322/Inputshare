@@ -81,7 +81,6 @@ namespace InputshareLibWindows.Clipboard
                 });
 
                 storedText = cbText.Text;
-                ISLogger.Write("Set dataobject text to " + storedText);
             }
             else if (data is ClipboardVirtualFileData cbFiles)
             {

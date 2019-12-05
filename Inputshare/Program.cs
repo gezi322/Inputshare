@@ -16,7 +16,7 @@ namespace Inputshare
 {
     class Program
     {
-        private const string address = "192.168.0.12";
+        private const string address = "192.168.0.8";
         private const int port = 4441;
         private static string clientName = Environment.MachineName;
 
@@ -33,11 +33,13 @@ namespace Inputshare
                 return;
             }
 
+#if WindowsBuild
             if (options.HasArg(StartArguments.Service))
             {
                 svc a = new svc();
                 return;
             }
+#endif
 
 #if LinuxBuild
             xCon = new SharedXConnection();

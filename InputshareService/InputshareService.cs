@@ -22,7 +22,7 @@ namespace InputshareService
         private ISClient clientInstance;
 
         private AnonIpcHost iHostMain;
-        private AnonIpcHost iHostDragDrop;
+        private AnonIpcHost iHostClipboard;
         private NetIpcHost appHost;
 
         private IpcHandle spMainHandle = new IpcHandle();
@@ -71,8 +71,8 @@ namespace InputshareService
 
         private void SpDragDropTaskLoop()
         {
-            iHostDragDrop = new AnonIpcHost("Dragdrop process");
-            spClipboardHandle.host = iHostDragDrop;
+            iHostClipboard = new AnonIpcHost("Dragdrop process");
+            spClipboardHandle.host = iHostClipboard;
 
             while (!stopping)
             {
@@ -213,13 +213,13 @@ namespace InputshareService
             IntPtr userToken = IntPtr.Zero;
             try
             {
-                iHostDragDrop?.Dispose();
-                iHostDragDrop = new AnonIpcHost("SP dragdrop");
+                iHostClipboard?.Dispose();
+                iHostClipboard = new AnonIpcHost("SP dragdrop");
                 ISLogger.Write("Launching SP dragdrop process");
                 userToken = Token.GetUserToken();
-                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Clipboard, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostDragDrop, userToken);
+                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Clipboard, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostClipboard, userToken);
                 Token.CloseToken(userToken);
-                spClipboardHandle.host = iHostDragDrop;
+                spClipboardHandle.host = iHostClipboard;
                 spClipboardHandle.NotifyHandleUpdate();
                 return proc;
             }
@@ -246,7 +246,7 @@ namespace InputshareService
 
                 ISLogger.Write("Killing child processes...");
 
-                iHostDragDrop?.Dispose();
+                iHostClipboard?.Dispose();
                 iHostMain?.Dispose();
 
                 if (ISLogger.BufferedMessages > 0)

@@ -351,16 +351,6 @@ namespace InputshareLibWindows.PlatformModules.Input
 
         #endregion
 
-        #region consts
-
-
-
-        public WindowsInputManager()
-        {
-        }
-
-        #endregion
-
         #region structs
         [StructLayout(LayoutKind.Sequential)]
         public class MSLLHOOKSTRUCT

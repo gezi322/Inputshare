@@ -50,8 +50,9 @@ namespace InputshareLib
             if (index < -1 || args.Count <= index + 1)
                 return false;
 
+            Console.WriteLine("ADDRESS = " + args[index + 1]);
             IPEndPoint.TryParse(args[index + 1], out IPEndPoint addr);
-            SpecifiedServer = addr == null ? addr : null;
+            SpecifiedServer = addr == null ? null : addr;
             return SpecifiedServer != null;
         }
 
