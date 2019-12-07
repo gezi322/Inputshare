@@ -28,7 +28,7 @@ namespace InputshareLib.FileController
 
         public void CloseStream(Guid streamId)
         {
-
+            //Todo - client should notify server if it closes a token
         }
 
         public async Task<int> ReadFile(Guid file, byte[] buffer, int offset, int readLen)

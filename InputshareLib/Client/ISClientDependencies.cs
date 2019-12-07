@@ -13,8 +13,10 @@ namespace InputshareLib.Client
         public DisplayManagerBase displayManager { get; set; }
         public DragDropManagerBase dragDropManager { get; set; }
 
-        public static ISClientDependencies GetLinuxDependencies(SharedXConnection xCon)
+        public static ISClientDependencies GetLinuxDependencies()
         {
+            Linux.SharedXConnection xCon = new SharedXConnection();
+
             return new ISClientDependencies()
             {
                 clipboardManager = new LinuxClipboardManager(xCon),

@@ -18,8 +18,10 @@ namespace InputshareLib.Server
         public OutputManagerBase OutputManager { get; set; }
         public ClipboardManagerBase ClipboardManager { get; set; }
 
-        public static ISServerDependencies GetLinuxDependencies(SharedXConnection xCon)
+        public static ISServerDependencies GetLinuxDependencies()
         {
+            SharedXConnection xCon = new SharedXConnection();
+
             return new ISServerDependencies()
             {
                 ClipboardManager = new LinuxClipboardManager(xCon),

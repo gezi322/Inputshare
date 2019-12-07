@@ -23,7 +23,6 @@ namespace Inputshare
         private void Init()
         {
             client = new NetIpcClient("Service");
-            client.Connect(new IPEndPoint(IPAddress.Parse("192.168.0.12"), 4441));
 
             Console.ReadLine();
         }

@@ -16,11 +16,7 @@ namespace Inputshare
 {
     class Program
     {
-        private const string address = "192.168.0.8";
-        private const int port = 4441;
         private static string clientName = Environment.MachineName;
-
-        private static SharedXConnection xCon;
 
         //This is just for testing!
         static void Main(string[] args)
@@ -41,10 +37,6 @@ namespace Inputshare
             }
 #endif
 
-#if LinuxBuild
-            xCon = new SharedXConnection();
-#endif
-
             if(options.HasArg(StartArguments.Server)){
                 InitServer(options);
             }else if(options.HasArg(StartArguments.Client)){
@@ -62,7 +54,7 @@ namespace Inputshare
 #if WindowsBuild
              deps = WindowsDependencies.GetClientDependencies(); //TODO
 #elif true
-            deps = ISClientDependencies.GetLinuxDependencies(xCon);
+            deps = ISClientDependencies.GetLinuxDependencies();
 #endif
             ISClient client = new ISClient(deps, args);
             client.SasRequested += Client_SasRequested;
@@ -70,7 +62,6 @@ namespace Inputshare
             client.ConnectionError += Client_ConnectionError;
             client.ConnectionFailed += Client_ConnectionFailed;
             client.SetClientName(clientName);
-            client.Connect(address, port);
         }
 
         private static void Client_ConnectionFailed(object sender, string e)
@@ -100,20 +91,6 @@ namespace Inputshare
             Console.WriteLine("Requested SAS!");
         }
 
-        private static bool InitX()
-        {
-            try
-            {
-                xCon = new SharedXConnection();
-                return true;
-            }catch(XLibException ex)
-            {
-                ISLogger.Write("Failed to start: " + ex.Message);
-                Console.Write("Failed to start: " + ex.Message);
-                return false;
-            }
-        }
-
         private static void InitServer(StartOptions options)
         {
             ISServerDependencies deps;
@@ -122,7 +99,7 @@ namespace Inputshare
 #if WindowsBuild
             deps = WindowsDependencies.GetServerDependencies();
 #else
-            deps = ISServerDependencies.GetLinuxDependencies(xCon);
+            deps = ISServerDependencies.GetLinuxDependencies();
 #endif
             ISServer server = new ISServer(deps, options);
             Console.Title = "Inputshare server";
@@ -130,7 +107,6 @@ namespace Inputshare
             server.Started += Server_Started;
             server.ClientConnected += Server_ClientConnected;
             server.ClientDisconnected += Server_ClientDisconnected;
-            server.GlobalClipboardContentChanged += Server_GlobalClipboardContentChanged;
             server.InputClientSwitched += Server_InputClientSwitched;
 
             if (options.HasArg(StartArguments.StartPort))
@@ -151,12 +127,6 @@ namespace Inputshare
         {
             Console.WriteLine("Client {0} connection lost", e.Name);
         }
-
-        private static void Server_GlobalClipboardContentChanged(object sender, CurrentClipboardData e)
-        {
-            Console.WriteLine("Clipboard content changed by {0} ({1})", e.Host, e.Type);
-        }
-
         private static void Server_ClientConnected(object s, ClientInfo client){
 
             Task.Run(() => {
@@ -191,7 +161,6 @@ namespace Inputshare
 
         private static void OnServerStop(object s, EventArgs e){
             Console.WriteLine("Server exited...");
-            xCon?.Close();
         }
     }
 }
