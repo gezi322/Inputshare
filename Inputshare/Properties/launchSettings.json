@@ -2,7 +2,7 @@
   "profiles": {
     "Inputshare": {
       "commandName": "Project",
-      "commandLineArgs": "client connect 127.0.0.1:4441 a"
+      "commandLineArgs": "server startport 4441 verbose"
     }
   }
 }

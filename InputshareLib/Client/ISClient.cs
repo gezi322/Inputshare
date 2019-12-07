@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Clipboard;
 using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Displays;
+using InputshareLib.FileController;
 using InputshareLib.Input;
 using InputshareLib.Net;
 using InputshareLib.PlatformModules.Clipboard;
@@ -122,6 +123,8 @@ namespace InputshareLib.Client
             if (outMan.Running)
                 outMan.Stop();
 
+
+            fileController.DeleteAllTokens();
             server?.Close();
         }
 
@@ -220,7 +223,7 @@ namespace InputshareLib.Client
         }
 
 
-        private void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
+        private async void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
         {
             if (!fileController.DoesTokenExist(args.Token))
             {
@@ -231,7 +234,7 @@ namespace InputshareLib.Client
             try
             {
                 byte[] data = new byte[args.ReadLen];
-                int readLen = fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
+                int readLen = await fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
 
                 //resize the buffer so we don't send a buffer that ends with empty data.
                 if (data.Length != readLen)

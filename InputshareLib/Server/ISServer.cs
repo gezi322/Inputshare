@@ -1,5 +1,6 @@
 ﻿using InputshareLib.Clipboard;
 using InputshareLib.Displays;
+using InputshareLib.FileController;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Input.Keys;
@@ -218,6 +219,7 @@ namespace InputshareLib.Server
                 if (outMan.Running)
                     outMan.Stop();
 
+                fileController.DeleteAllTokens();
                 udpHost?.Dispose();
 
                 ISLogger.Write("Server: server stopped.");
@@ -444,111 +446,11 @@ namespace InputshareLib.Server
             socket.ConnectionError += Client_ConnectionError;
             socket.ClipboardDataReceived += cbController.OnClientClipboardChange;
             socket.EdgeHit += Socket_EdgeHit;
-            socket.RequestedStreamRead += Socket_RequestedStreamRead;
-            socket.RequestedCloseStream += Socket_RequestedCloseStream;
+            socket.RequestedStreamRead += fileController.Client_RequestedStreamRead;
             socket.RequestedFileToken += Socket_RequestedFileToken;
             socket.DragDropDataReceived += ddController.OnClientDataDropped;
             socket.DragDropCancelled += ddController.OnClientDropCancelled;
             socket.DragDropSuccess += ddController.OnClientDropSuccess;
-        }
-
-        private async void Socket_RequestedStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
-        {
-            ISServerSocket client = sender as ISServerSocket;
-
-            byte[] buff = new byte[args.ReadLen];
-            int bytesRead = 0;
-
-            //We need to determine if localhost is the host of the files, otherwise we need to forward the request 
-            //onto the host of the files
-            if (fileController.DoesTokenExist(args.Token))
-            {
-                try
-                {
-                    bytesRead = fileController.ReadStream(args.Token, args.File, buff, 0, args.ReadLen);
-                }catch(Exception ex)
-                {
-                    ISLogger.Write("Failed to read stream: " + ex.Message);
-                    ISLogger.Write(ex.StackTrace);
-                    client.SendFileErrorResponse(args.NetworkMessageId, "An error occurred while reading from stream: " + ex.Message);
-                    
-                    return;
-                }
-            }
-            else
-            {
-                ISServerSocket host = null;
-
-                if (cbController.CurrentOperation != null && cbController.CurrentOperation.RemoteAccessTokens.Contains(args.Token))
-                    host = cbController.CurrentOperation.Host;
-                else if(ddController.CurrentOperation != null && ddController.CurrentOperation.RemoteAccessTokens.Contains(args.Token))
-                    host = ddController.CurrentOperation.Host;
-                //todo - ddcontroller
-                
-                if(host == null)
-                {
-                    client.SendFileErrorResponse(args.NetworkMessageId, "An error occurred while reading from stream: Token not found");
-                    return;
-                }
-
-                await ReplyWithExternalFileDataAsync(client, host, args.NetworkMessageId, args.Token, args.File, args.ReadLen);
-                return;
-            }
-
-            if(bytesRead != buff.Length)
-            {
-                //resize the buffer so we don't send a buffer that ends with empty data.
-                byte[] resizedBuffer = new byte[bytesRead];
-                Buffer.BlockCopy(buff, 0, resizedBuffer, 0, bytesRead);
-                buff = resizedBuffer;
-            }
-
-            client.SendReadRequestResponse(args.NetworkMessageId, buff);
-        }
-
-
-        /// <summary>
-        /// Requests data from the specified host client and forwards it to the specified reciever client
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="host"></param>
-        /// <param name="networkMessageId"></param>
-        /// <param name="token"></param>
-        /// <param name="fileId"></param>
-        /// <param name="readLen"></param>
-        private async Task ReplyWithExternalFileDataAsync(ISServerSocket client, ISServerSocket host, Guid networkMessageId, Guid token, Guid fileId, int readLen)
-        {
-            try
-            {
-                byte[] fileData = await host.RequestReadStreamAsync(token, fileId, readLen);
-                client.SendReadRequestResponse(networkMessageId, fileData);
-            }
-            catch (Exception ex)
-            {
-                //let the client know that the read failed
-                client.SendFileErrorResponse(networkMessageId, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Occurs when a client has fully read a file.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs args)
-        {
-            if (fileController.DoesTokenExist(args.Token))
-            {
-                fileController.CloseStream(args.Token, args.File);
-                return;
-            }
-
-            if (!fileController.CloseStream(args.Token, args.File))
-            {
-                //If the filecontroller can't find the file ID, dragdropcontroller needs to check 
-                //if an external client owns the access token
-                //ddController.Client_RequestCloseStream(sender, args);
-            }
         }
 
         /// <summary>
@@ -591,6 +493,7 @@ namespace InputshareLib.Server
                 try
                 {
                     token = await op.Host.RequestFileTokenAsync(op.OperationGuid);
+                    fileController.AddRemoteAccessToken(op.Host, token);
                 }catch(Exception ex)
                 {
                     client.SendFileErrorResponse(args.NetworkMessageId, "Failed to get access token from remote client: " + ex.Message);
@@ -598,7 +501,6 @@ namespace InputshareLib.Server
                 }
             }
 
-            op.RemoteAccessTokens.Add(token);
             client.SendTokenRequestReponse(args.NetworkMessageId, token);
         }
 

@@ -55,5 +55,7 @@ namespace InputshareLib
         /// Rate at which to poll the X server (temp)
         /// </summary>
         public const int XServerPollRateMS = 1;
+
+        public const int MaxFileTransferFiles = 10000;
     }
 }

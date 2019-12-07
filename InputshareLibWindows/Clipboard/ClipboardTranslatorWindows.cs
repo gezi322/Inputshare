@@ -119,6 +119,12 @@ namespace InputshareLibWindows.Clipboard
             {
                 try
                 {
+
+                    //Todo - this is a cheap fix to stop massive folders with thousands of files being copied
+                    //File transfer needs to be changed to allow better support for a large ammount of files
+                    if (fCount > Settings.MaxFileTransferFiles)
+                        throw new ClipboardTranslationException("File count limit reached - " + fCount);
+
                     DirectoryAttributes subda = new DirectoryAttributes(new DirectoryInfo(subd));
                     string p = Path.Combine(current, subda.Name);
                     subda.RelativePath = p;
@@ -134,11 +140,12 @@ namespace InputshareLibWindows.Clipboard
 
                     AddDirectoriesRecursive(subda, Path.Combine(current, subda.Name), ref fCount);
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
                 {
                     ISLogger.Write("An error occurred while reading directory {0}.\n{1}", subd, ex.Message);
                 }
 
+                
             }
             return folder;
         }
