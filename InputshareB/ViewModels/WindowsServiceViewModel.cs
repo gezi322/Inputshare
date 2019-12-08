@@ -8,7 +8,7 @@ using InputshareLib;
 using InputshareLibWindows.IPC.NetIpc;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class WindowsServiceViewModel : ViewModelBase
     {
@@ -117,7 +117,7 @@ using System.Collections.Generic;
 using System.Text;
 
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class WindowsServiceViewModel : ViewModelBase
     {

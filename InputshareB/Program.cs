@@ -1,10 +1,10 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Logging.Serilog;
-using InputshareB.ViewModels;
-using InputshareB.Views;
+using Inputshare.ViewModels;
+using Inputshare.Views;
 
-namespace InputshareB
+namespace Inputshare
 {
     class Program
     {

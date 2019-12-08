@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:local="clr-namespace:InputshareB.Views"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
-             x:Class="InputshareB.Views.ServerStartedView">
+             x:Class="Inputshare.Views.ServerStartedView">
 
 	<StackPanel>
 		<Button Content="Stop server" Command="{Binding CommandStopServer}"/>

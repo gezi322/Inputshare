@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using InputshareLib.Client;
 
-namespace InputshareB.Views
+namespace Inputshare.Views
 {
     public class ClientConnectedView : UserControl
     {

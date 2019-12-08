@@ -1,9 +1,9 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using InputshareB.ViewModels;
+using Inputshare.ViewModels;
 
-namespace InputshareB
+namespace Inputshare
 {
     public class ViewLocator : IDataTemplate
     {

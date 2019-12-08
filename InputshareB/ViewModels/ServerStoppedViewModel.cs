@@ -6,7 +6,7 @@ using InputshareLib.Client;
 using InputshareLib.Server;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class ServerStoppedViewModel : ViewModelBase
     {

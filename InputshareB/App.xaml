@@ -1,7 +1,7 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:InputshareB"
-             x:Class="InputshareB.App">
+             xmlns:local="clr-namespace:Inputshare"
+             x:Class="Inputshare.App">
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>

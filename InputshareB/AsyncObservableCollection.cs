@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Threading;
 
-namespace InputshareB
+namespace Inputshare
 {
 
     //Taken from https://thomaslevesque.com/2009/04/17/wpf-binding-to-an-asynchronous-collection/

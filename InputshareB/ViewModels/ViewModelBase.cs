@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class ViewModelBase : ReactiveObject
     {

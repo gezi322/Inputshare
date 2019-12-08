@@ -6,7 +6,7 @@ using InputshareLib;
 using InputshareLib.Client;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class ClientViewModel : ViewModelBase
     {

@@ -4,7 +4,7 @@ using System.Text;
 using InputshareLib.Client;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class ClientConnectedViewModel : ViewModelBase
     {

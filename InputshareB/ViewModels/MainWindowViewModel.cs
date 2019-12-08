@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using InputshareB.Views;
+using Inputshare.Views;
 using InputshareLib;
 using InputshareLib.Client;
 using InputshareLib.Server;
 using ReactiveUI;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {

@@ -1,7 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Markup.Xaml;
 
-namespace InputshareB
+namespace Inputshare
 {
     public class App : Application
     {

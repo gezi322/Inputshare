@@ -14,7 +14,7 @@ namespace InputshareLib.Linux
     {
         public IntPtr XDisplay { get; private set; }
         public IntPtr XRootWindow { get; private set; }
-        public IntPtr XWindow { get; private set; }
+        public IntPtr XCbWindow { get; private set; }
 
         public event Action<XEvent> EventArrived;
         private X11ErrorDelegate errorHandler;
@@ -46,9 +46,9 @@ namespace InputshareLib.Linux
 
         public void EventLoop()
         {
-            XWindow = XCreateSimpleWindow(XDisplay, XRootWindow, 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
+            XCbWindow = XCreateSimpleWindow(XDisplay, XRootWindow, 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
             XFlush(XDisplay);
-            XSelectInput(XDisplay, XWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask | EventMask.PointerMotionMask);
+            XSelectInput(XDisplay, XCbWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask | EventMask.PointerMotionMask);
 
             int timeout_usec = Settings.XServerPollRateMS * 1000;
             

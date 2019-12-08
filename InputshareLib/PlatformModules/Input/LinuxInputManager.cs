@@ -175,11 +175,11 @@ namespace InputshareLib.PlatformModules.Input
             _evt = new XEvent();
             _evt.type = XEventName.MotionNotify;
             _evt.AnyEvent.send_event = true;
-            _evt.AnyEvent.window = xConnection.XWindow;
+            _evt.AnyEvent.window = xConnection.XCbWindow;
             _evt.MotionEvent.x_root = backX;
             _evt.MotionEvent.y_root = backY;
             _evt.AnyEvent.display = xConnection.XDisplay;
-            XSendEvent(xConnection.XDisplay, xConnection.XWindow, false, EventMask.PointerMotionMask, ref _evt);
+            XSendEvent(xConnection.XDisplay, xConnection.XCbWindow, false, EventMask.PointerMotionMask, ref _evt);
         }
 
         private void OnInputReceived(ISInputData input)
@@ -322,7 +322,7 @@ namespace InputshareLib.PlatformModules.Input
             else
                 evt.PropertyEvent.atom = atomUngrab;
 
-            XSendEvent(xConnection.XDisplay, xConnection.XWindow, true, 0, ref evt);
+            XSendEvent(xConnection.XDisplay, xConnection.XCbWindow, true, 0, ref evt);
             XFlush(xConnection.XDisplay);
         }
 

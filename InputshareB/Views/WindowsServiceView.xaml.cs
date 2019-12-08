@@ -2,7 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace InputshareB.Views
+namespace Inputshare.Views
 {
     public class WindowsServiceView : UserControl
     {

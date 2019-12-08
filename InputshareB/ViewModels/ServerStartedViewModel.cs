@@ -14,7 +14,7 @@ using ReactiveUI;
 using Key = Avalonia.Input.Key;
 using KeyEventArgs = Avalonia.Input.KeyEventArgs;
 
-namespace InputshareB.ViewModels
+namespace Inputshare.ViewModels
 {
     public class ServerStartedViewModel : ViewModelBase
     {

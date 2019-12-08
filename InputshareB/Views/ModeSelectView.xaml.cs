@@ -1,9 +1,9 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using InputshareB.ViewModels;
+using Inputshare.ViewModels;
 
-namespace InputshareB.Views
+namespace Inputshare.Views
 {
     public class ModeSelectView : UserControl
     {
