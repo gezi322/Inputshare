@@ -352,5 +352,29 @@ namespace Inputshare.ViewModels
 
 
         #endregion
+
+        #region server settings
+
+        private string mouseBufferRateText = "0";
+        public string MouseBufferRateText { get { return mouseBufferRateText; } set { MouseBufferRateTextChanged(value); } }
+
+        private void MouseBufferRateTextChanged(string text)
+        {
+            if (!int.TryParse(text, out int rate))
+                return;
+
+            mouseBufferRateText = text;
+            this.RaisePropertyChanged(nameof(MouseBufferRateText));
+            
+            if(rate == 0)
+            {
+                serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Realtime);
+            }
+            else
+            {
+                serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Buffered, rate);
+            }
+        }
+        #endregion
     }
 }

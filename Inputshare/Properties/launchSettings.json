@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Inputshare": {
-      "commandName": "Project",
-      "commandLineArgs": "server startport 4441 verbose"
-    }
-  }
-}

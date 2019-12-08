@@ -56,6 +56,9 @@ namespace InputshareLib
         /// </summary>
         public const int XServerPollRateMS = 1;
 
+        /// <summary>
+        /// Maximum number of files that can be transfered in one operation
+        /// </summary>
         public const int MaxFileTransferFiles = 10000;
     }
 }

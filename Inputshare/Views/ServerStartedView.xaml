@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:local="clr-namespace:InputshareB.Views"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
              x:Class="Inputshare.Views.ServerStartedView">
 
 	<StackPanel>
@@ -15,26 +15,38 @@
 			<StackPanel>
 				<TextBlock HorizontalAlignment="Center" Text="{Binding ClientSettingsHeaderText}"/>
 				<TextBlock Text="{Binding ClientSettingsAddressText}"/>
-				<TextBlock Text="Client hotkey:"/>
-				<StackPanel Orientation="Horizontal">
+				<TextBlock Text="{Binding ClientSettingsDisplayText}"/>
+				
+				<StackPanel Orientation="Horizontal" Spacing="3" HorizontalAlignment="Center">
+					<TextBlock Text="Client hotkey:" VerticalAlignment="Center"/>
 					<CheckBox Content="Alt" IsChecked="{Binding ClientSettingsAltChecked}"/>
 					<CheckBox Content="Ctrl" IsChecked="{Binding ClientSettingsCtrlChecked}"/>
 					<CheckBox Content="Shift" IsChecked="{Binding ClientSettingsShiftChecked}"/>
 					<Button Content="{Binding ClientSettingsHotkeyButtonText}" Command="{Binding ClientSettingsHotkeyCommand}"/>
 				</StackPanel>
-				<TextBlock Text="{Binding ClientSettingsDisplayText}"/>
+				
 
-				<TextBlock Text="Left client"/>
-				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsLeftClient}" Items="{Binding ClientListExcludeSelected}"/>
+				<StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center">
+					<StackPanel Orientation="Vertical">
+						<TextBlock Text="Left client"/>
+						<DropDown MaxWidth="200" SelectedItem="{Binding ClientSettingsLeftClient}" Items="{Binding ClientListExcludeSelected}"/>
+					</StackPanel>
 
-				<TextBlock Text="Right client"/>
-				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsRightClient}" Items="{Binding ClientListExcludeSelected}"/>
+					<StackPanel>
+						<TextBlock Text="Right client"/>
+						<DropDown MaxWidth="200" SelectedItem="{Binding ClientSettingsRightClient}" Items="{Binding ClientListExcludeSelected}"/>
+					</StackPanel>
 
-				<TextBlock Text="Top client"/>
-				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsTopClient}" Items="{Binding ClientListExcludeSelected}"/>
+					<StackPanel>
+						<TextBlock Text="Top client"/>
+						<DropDown MaxWidth="200" SelectedItem="{Binding ClientSettingsTopClient}" Items="{Binding ClientListExcludeSelected}"/>
+					</StackPanel>
 
-				<TextBlock Text="Bottom client"/>
-				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsBottomClient}" Items="{Binding ClientListExcludeSelected}"/>
+					<StackPanel>
+						<TextBlock Text="Bottom client"/>
+						<DropDown MaxWidth="200" SelectedItem="{Binding ClientSettingsBottomClient}" Items="{Binding ClientListExcludeSelected}"/>
+					</StackPanel>
+				</StackPanel>
 			</StackPanel>
 		</Border>
 		<TextBlock Text="Function hotkeys:"/>
@@ -51,6 +63,15 @@
 					<Button Content="{Binding HotkeyFunctionButtonText}" Command="{Binding HotkeyEnterCommand}"/>
 				</StackPanel>
 
+			</StackPanel>
+		</Border>
+
+		<TextBlock Text="Server settings:"/>
+		<Border BorderBrush="Gray" BorderThickness="2">
+			<StackPanel>
+				<TextBlock Text="Mouse updates per seconds"/>
+				<TextBlock Text="Set to 0 for realtime input"/>
+				<TextBox Text="{Binding MouseBufferRateText}" MinWidth="40" MaxWidth="100" HorizontalAlignment="Left"/>
 			</StackPanel>
 		</Border>
 

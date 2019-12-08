@@ -72,7 +72,6 @@ namespace InputshareLib.Net
         private readonly List<LargeMessageHandler> messageHandlers = new List<LargeMessageHandler>();
         public event EventHandler<FileTokenRequestArgs> RequestedFileToken;
         public event EventHandler<RequestStreamReadArgs> RequestedStreamRead;
-        public event EventHandler<RequestCloseStreamArgs> RequestedCloseStream;
 
 
         //Used to wait for a response to a request
@@ -561,11 +560,6 @@ namespace InputshareLib.Net
             {
                 FileStreamReadRequestMessage requestMsg = new FileStreamReadRequestMessage(rawMessage);
                 RequestedStreamRead?.Invoke(this, new RequestStreamReadArgs(requestMsg.MessageId, requestMsg.Token, requestMsg.FileRequestId, requestMsg.ReadSize));
-            }
-            else if (type == MessageType.FileStreamCloseRequest)
-            {
-                FileStreamCloseStreamMessage closeMsg = new FileStreamCloseStreamMessage(rawMessage);
-                RequestedCloseStream?.Invoke(this, new RequestCloseStreamArgs(closeMsg.Token, closeMsg.FileId));
             }
         }
 

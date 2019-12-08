@@ -42,7 +42,7 @@ namespace InputshareLib.FileController
 
         public async void Client_RequestedStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
         {
-            ISServerSocket client = sender as ISServerSocket;
+            NetworkSocket client = sender as NetworkSocket;
 
             byte[] buff = new byte[args.ReadLen];
             int bytesRead = 0;

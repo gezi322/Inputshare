@@ -1,168 +1,35 @@
-﻿using InputshareLib;
-using InputshareLib.Client;
-using InputshareLib.Server;
-using InputshareLib.Linux;
-using System.Threading;
-using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.Server.API;
-using System.Threading.Tasks;
-
-#if WindowsBuild
-using InputshareLibWindows;
-#endif
-using System;
+﻿using System;
+using Avalonia;
+using Avalonia.Logging.Serilog;
+using Inputshare.ViewModels;
+using Inputshare.Views;
 
 namespace Inputshare
 {
     class Program
     {
-        private static string clientName = Environment.MachineName;
+        // Initialization code. Don't use any Avalonia, third-party APIs or any
+        // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
+        // yet and stuff might break.
+        public static void Main(string[] args) => BuildAvaloniaApp().Start(AppMain, args);
 
-        //This is just for testing!
-        static void Main(string[] args)
+        // Avalonia configuration, don't remove; also used by visual designer.
+        public static AppBuilder BuildAvaloniaApp()
+            => AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .LogToDebug()
+                .UseReactiveUI();
+
+        // Your application's entry point. Here you can initialize your MVVM framework, DI
+        // container, etc.
+        private static void AppMain(Application app, string[] args)
         {
-            ISLogger.EnableConsole = true;
-            StartOptions options = new StartOptions(new System.Collections.Generic.List<string>(args));
-
-            if (args.Length == 0 || options.HasArg(StartArguments.Help))
+            var window = new MainWindow
             {
-                StartOptions.PrintHelp();
-                return;
-            }
+                DataContext = new MainWindowViewModel(),
+            };
 
-#if WindowsBuild
-            if (options.HasArg(StartArguments.Service))
-            {
-                svc a = new svc();
-                return;
-            }
-#endif
-
-            if(options.HasArg(StartArguments.Server)){
-                InitServer(options);
-            }else if(options.HasArg(StartArguments.Client)){
-                InitClient(options);
-            }else
-            {
-                Console.WriteLine("Specify 'server' or 'client' as an argument");
-            }
-        }
-
-        private static void InitClient(StartOptions args)
-        {
-            ISClientDependencies deps = null;
-
-#if WindowsBuild
-             deps = WindowsDependencies.GetClientDependencies(); //TODO
-#elif true
-            deps = ISClientDependencies.GetLinuxDependencies();
-#endif
-            ISClient client = new ISClient(deps, args);
-            client.SasRequested += Client_SasRequested;
-            client.Connected += Client_Connected;
-            client.ConnectionError += Client_ConnectionError;
-            client.ConnectionFailed += Client_ConnectionFailed;
-            client.SetClientName(clientName);
-        }
-
-        private static void Client_ConnectionFailed(object sender, string e)
-        {
-            Console.WriteLine("Connection failed: {0}", e);
-
-            if (((ISClient)sender).AutoReconnect)
-                Console.WriteLine("Auto reconnect enabled, retrying...");
-        }
-
-        private static void Client_ConnectionError(object sender, string e)
-        {
-            Console.WriteLine("Connection error: {0}", e);
-
-            if (((ISClient)sender).AutoReconnect)
-                Console.WriteLine("Auto reconnect enabled, retrying...");
-
-        }
-
-        private static void Client_Connected(object sender, System.Net.IPEndPoint e)
-        {
-            Console.WriteLine("Connected to {0}", e);
-        }
-
-        private static void Client_SasRequested(object sender, EventArgs e)
-        {
-            Console.WriteLine("Requested SAS!");
-        }
-
-        private static void InitServer(StartOptions options)
-        {
-            ISServerDependencies deps;
-            
-
-#if WindowsBuild
-            deps = WindowsDependencies.GetServerDependencies();
-#else
-            deps = ISServerDependencies.GetLinuxDependencies();
-#endif
-            ISServer server = new ISServer(deps, options);
-            Console.Title = "Inputshare server";
-            server.Stopped += OnServerStop;
-            server.Started += Server_Started;
-            server.ClientConnected += Server_ClientConnected;
-            server.ClientDisconnected += Server_ClientDisconnected;
-            server.InputClientSwitched += Server_InputClientSwitched;
-
-            if (options.HasArg(StartArguments.StartPort))
-                server.Start(options.SpecifiedStartPort);
-        }
-
-        private static void Server_Started(object sender, EventArgs e)
-        {
-            Console.WriteLine("Server started on " + ((ISServer)sender).BoundAddress);
-        }
-
-        private static void Server_InputClientSwitched(object sender, ClientInfo e)
-        {
-            Console.Title = string.Format("Inputshare server ({0})", e.Name);
-        }
-
-        private static void Server_ClientDisconnected(object sender, ClientInfo e)
-        {
-            Console.WriteLine("Client {0} connection lost", e.Name);
-        }
-        private static void Server_ClientConnected(object s, ClientInfo client){
-
-            Task.Run(() => {
-                Console.WriteLine("Client {0} connected! set edge", client.Name);
-                Console.WriteLine("1) Top");
-                Console.WriteLine("2) Bottom");
-                Console.WriteLine("3) Left");
-                Console.WriteLine("4) Right");
-
-                //really bad idea, blocks caller
-
-                ConsoleKeyInfo k = Console.ReadKey(true);
-                Edge e = EdgeFromKey(k.Key);
-
-                if (e == Edge.None)
-                    return;
-
-                ((ISServer)s).SetClientEdge(client, e, ((ISServer)s).GetLocalhost());
-                Console.WriteLine("Set {0} {1}of {2}", client.Name, e, "Localhost");
-            });
-
-        }
-
-        private static Edge EdgeFromKey(ConsoleKey key) => key switch
-        {
-            ConsoleKey.D1 => Edge.Top,
-            ConsoleKey.D2 => Edge.Bottom,
-            ConsoleKey.D3 => Edge.Left,
-            ConsoleKey.D4 => Edge.Right,
-            _ => Edge.None
-        };
-
-        private static void OnServerStop(object s, EventArgs e){
-            Console.WriteLine("Server exited...");
+            app.Run(window);
         }
     }
 }
- 

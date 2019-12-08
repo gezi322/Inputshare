@@ -53,7 +53,7 @@ namespace InputshareLib.PlatformModules.Input
 
         public override void SetMouseInputMode(MouseInputMode mode, int interval = 0)
         {
-
+            ISLogger.Write("Warning: Changing mouse input mode not supported on linux");
         }
 
         protected override void OnStart()

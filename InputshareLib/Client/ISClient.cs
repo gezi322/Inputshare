@@ -211,44 +211,7 @@ namespace InputshareLib.Client
             server.ActiveClientChanged += OnActiveClientChange;
             server.EdgesChanged += Socket_EdgesChanged;
             server.RequestedFileToken += Socket_FileTokenRequested;
-            server.RequestedStreamRead += Socket_RequestStreamRead;
-            server.RequestedCloseStream += Socket_RequestedCloseStream;
-        }
-
-        private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs e)
-        {
-            fileController.CloseStream(e.Token, e.File);
-        }
-
-
-        private async void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
-        {
-            if (!fileController.DoesTokenExist(args.Token))
-            {
-                server.SendFileErrorResponse(args.NetworkMessageId, "Failed to read file: Token not found " + args.Token);
-                return;
-            }
-
-            try
-            {
-                byte[] data = new byte[args.ReadLen];
-                int readLen = await fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
-
-                //resize the buffer so we don't send a buffer that ends with empty data.
-                if (data.Length != readLen)
-                {
-                    byte[] resizedBuffer = new byte[readLen];
-                    Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
-                    data = resizedBuffer;
-                }
-                
-                server.SendReadRequestResponse(args.NetworkMessageId, data);
-
-            }
-            catch (Exception ex)
-            {
-                server.SendFileErrorResponse(args.NetworkMessageId, ex.Message);
-            }
+            server.RequestedStreamRead += fileController.Client_RequestedStreamRead;
         }
 
         private void Socket_FileTokenRequested(object sender, NetworkSocket.FileTokenRequestArgs args)
