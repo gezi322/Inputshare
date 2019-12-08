@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Displays;
 using InputshareLib.Input.Hotkeys;
 using System;
+using System.ComponentModel;
 using System.Net;
 
 namespace InputshareLib.Server.API
@@ -20,6 +21,16 @@ namespace InputshareLib.Server.API
             UdpEnabled = udpEnabled;
         }
 
+        public override bool Equals(object obj)
+        {
+            if(obj is ClientInfo b)
+            {
+                return b.Id == Id;
+            }
+
+            return false;
+        }
+
         public override string ToString()
         {
             return Name;
@@ -36,6 +47,34 @@ namespace InputshareLib.Server.API
         public Hotkey ClientHotkey { get; }
         public IPEndPoint ClientAddress { get; }
         public bool UdpEnabled { get; }
-        public static ClientInfo None { get => new ClientInfo("None", Guid.NewGuid(), null, null, null, false); }
+        public static ClientInfo None = new ClientInfo("None", Guid.NewGuid(), null, null, null, false);
+
+        public static bool operator ==(ClientInfo a, ClientInfo b)
+        {
+            if (ReferenceEquals(a, null))
+            {
+                if (ReferenceEquals(b, null))
+                {
+                    return true;
+                }
+                return false;
+            }
+            if (ReferenceEquals(b, null))
+            {
+                if (ReferenceEquals(a, null))
+                {
+                    return true;
+                }
+                return false;
+            }
+
+
+            return a.Id == b.Id;
+        }
+
+        public static bool operator !=(ClientInfo a, ClientInfo b)
+        {
+            return !(a == b);
+        }
     }
 }

@@ -30,6 +30,7 @@ namespace InputshareLib.Server
         public event EventHandler<ClientInfo> ClientDisplayConfigChanged;
         public event EventHandler<ClientInfo> InputClientSwitched;
         public event EventHandler<CurrentClipboardData> GlobalClipboardContentChanged;
+        public event EventHandler<ClientInfo> ClientInfoUpdated;
 
         public bool Running { get; private set; }
         public bool LocalInput { get; private set; }
@@ -431,7 +432,7 @@ namespace InputshareLib.Server
             }
 
 
-            ClientConnected?.Invoke(this, GenerateClientInfo(client));
+            ClientConnected?.Invoke(this, GenerateClientInfo(client, true));
         }
 
         /// <summary>
@@ -654,6 +655,12 @@ namespace InputshareLib.Server
         /// <exception cref="ArgumentException">The client cannot be found</exception>
         public void SetClientEdge(ClientInfo clientA, Edge sideOf, ClientInfo clientB)
         {
+            if(clientA == ClientInfo.None)
+            {
+                RemoveClientEdge(clientB, sideOf);
+                return;
+            }
+
             ISServerSocket cA = clientMan.GetClientFromInfo(clientA);
             ISServerSocket cB = clientMan.GetClientFromInfo(clientB);
 
@@ -663,6 +670,7 @@ namespace InputshareLib.Server
                 throw new ArgumentException("Invalid clientB");
 
             SetClientEdge(cA, sideOf, cB);
+            ClientInfoUpdated?.Invoke(this, GenerateClientInfo(cB));
         }
         public void RemoveClientEdge(ClientInfo client, Edge side)
         {
@@ -671,6 +679,7 @@ namespace InputshareLib.Server
                 throw new ArgumentException("Invalid client");
 
             RemoveEdgeFromClient(cA, side);
+            ClientInfoUpdated?.Invoke(this, GenerateClientInfo(cA));
         }
 
         public FunctionHotkey GetHotkeyForFunction(Hotkeyfunction function)
@@ -696,7 +705,9 @@ namespace InputshareLib.Server
 
             inputMan.AddUpdateClientHotkey(new ClientHotkey(key.Key, key.Modifiers, client.Id));
 
-            clientMan.GetClientById(client.Id).CurrentHotkey = key;
+            ISServerSocket c = clientMan.GetClientById(client.Id);
+            c.CurrentHotkey = key;
+            ClientInfoUpdated?.Invoke(this, GenerateClientInfo(c, true));
         }
 
         public void SetHotkeyForFunction(Hotkey key, Hotkeyfunction function)
@@ -746,6 +757,11 @@ namespace InputshareLib.Server
 
         private void AssignClientEdges(ClientInfo info, ISServerSocket client)
         {
+            info.BottomClient = ClientInfo.None;
+            info.RightClient = ClientInfo.None;
+            info.LeftClient = ClientInfo.None;
+            info.TopClient = ClientInfo.None;
+
             if (client.BottomClient != null)
                 info.BottomClient = GenerateClientInfo(client.BottomClient);
             if (client.TopClient != null)
@@ -770,6 +786,7 @@ namespace InputshareLib.Server
             }
 
             c.SetUdpEnabled(udpEnabled);
+            ClientInfoUpdated?.Invoke(this, GenerateClientInfo(c));
         }
 
         private ClientInfo GetCurrentInputClient()

@@ -5,6 +5,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace InputshareLib.Client
 {
@@ -64,6 +65,7 @@ namespace InputshareLib.Client
             allowudp = udpAllowed;
         }
 
+
         /// <summary>
         /// Attemts to connect to the specified server with the specified
         /// name and ID. Cancels any ongoing connection or connection attempt.
@@ -73,6 +75,8 @@ namespace InputshareLib.Client
         /// <param name="info"></param>
         public void Connect(string address, int port, ConnectionInfo info)
         {
+            //Todo - this should be awaitable
+
             if (IsConnected)
                 throw new InvalidOperationException("Socket already connected");
 

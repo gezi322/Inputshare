@@ -9,6 +9,6 @@
 		<TextBlock Text="Hi"/>
 		<Button Content="Server" Command="{Binding SwitchToServer}"/>
 		<Button Content="Client" Command="{Binding SwitchToClient}"/>
-		<Button Content="Windows Service" IsEnabled="{Binding ServiceOptionEnabled}" Command="{Binding SwitchToService}"/>
+		<Button Content="Windows Service" IsVisible="{Binding ServiceOptionEnabled}" Command="{Binding SwitchToService}"/>
 	</StackPanel>
 </UserControl>

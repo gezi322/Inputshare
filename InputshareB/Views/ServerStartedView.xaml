@@ -2,12 +2,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="InputshareB.Views.ServerStartedView">
 
 	<StackPanel>
 		<Button Content="Stop server" Command="{Binding CommandStopServer}"/>
-		<TextBlock Text="{Binding CurrentInputClientText}"/>
+		
+		<TextBlock Text="Connected clients:"/>
+		<ListBox Items="{Binding ClientListItems}" SelectedItem="{Binding SelectedClient}"/>
+		<Border BorderThickness="2" BorderBrush="Gray">
+			<StackPanel IsVisible="{Binding ClientSettingsVisible}">
+				<TextBlock HorizontalAlignment="Center" Text="{Binding ClientSettingsHeaderText}"/>
+				<TextBlock Text="{Binding ClientSettingsAddressText}"/>
+				<TextBlock Text="Client hotkey:"/>
+				<Button Content="{Binding ClientSettingsHotkeyButtonText}" Command="{Binding ClientSettingsHotkeyCommand}"/>
+				<TextBlock Text="{Binding ClientSettingsDisplayText}"/>
+
+				<TextBlock Text="Left client"/>
+				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsLeftClient}" Items="{Binding ClientListExcludeSelected}"/>
+
+				<TextBlock Text="Right client"/>
+				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsRightClient}" Items="{Binding ClientListExcludeSelected}"/>
+
+				<TextBlock Text="Top client"/>
+				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsTopClient}" Items="{Binding ClientListExcludeSelected}"/>
+
+				<TextBlock Text="Bottom client"/>
+				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsBottomClient}" Items="{Binding ClientListExcludeSelected}"/>
+			</StackPanel>
+		</Border>
 	</StackPanel>
 	
 </UserControl>
