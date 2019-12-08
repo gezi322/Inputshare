@@ -122,7 +122,6 @@ namespace InputshareB.ViewModels
         private void ChangeViewModel(ViewModelBase view)
         {
             CurrentModel = view;
-            ISLogger.Write("Viewmodel = " + view.GetType().Name);
             this.RaisePropertyChanged(nameof(CurrentModel));
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using InputshareB.ViewModels;
 
 namespace InputshareB.Views
 {
@@ -9,6 +10,12 @@ namespace InputshareB.Views
         public ServerStartedView()
         {
             this.InitializeComponent();
+            this.KeyDown += ServerStartedView_KeyDown;
+        }
+
+        private void ServerStartedView_KeyDown(object sender, Avalonia.Input.KeyEventArgs e)
+        {
+            (this.DataContext as ServerStartedViewModel).HandleKeyDown(e);
         }
 
         private void InitializeComponent()
