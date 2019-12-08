@@ -17,7 +17,6 @@ namespace InputshareLib.PlatformModules.Displays
         protected void OnConfigUpdated(DisplayConfig newConfig)
         {
             CurrentConfig = newConfig;
-            ISLogger.Write("DisplayManagerBase: Display config updated. ({0})", newConfig.VirtualBounds);
             DisplayConfigChanged?.Invoke(this, newConfig);
         }
 

@@ -12,6 +12,8 @@ namespace InputshareLib.Client
     {
         public ClientDataOperation CurrentOperation { get; private set; }
 
+        internal bool ClipboardEnabled { get; set; } = true;
+
         private ClipboardManagerBase clipboardMan;
         private ISClientSocket server;
 
@@ -24,7 +26,7 @@ namespace InputshareLib.Client
 
         private void OnLocalClipboardChange(object sender, ClipboardDataBase data)
         {
-            if (!server.IsConnected)
+            if (!server.IsConnected || !ClipboardEnabled)
                 return;
 
 
@@ -36,6 +38,9 @@ namespace InputshareLib.Client
 
         public void OnClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
         {
+            if (!ClipboardEnabled)
+                return;
+
             try
             {
                 ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);

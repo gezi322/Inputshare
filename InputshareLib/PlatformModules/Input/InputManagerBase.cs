@@ -148,7 +148,6 @@ namespace InputshareLib.PlatformModules.Input
             return new List<Hotkey>(hotkeys.ToArray());
         }
 
-
         protected void OnFunctionHotkeyPressed(Hotkeyfunction function)
         {
             FunctionHotkeyPressed?.Invoke(this, function);

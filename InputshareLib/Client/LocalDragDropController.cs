@@ -12,6 +12,7 @@ namespace InputshareLib.Client
     {
         internal ClientDataOperation CurrentOperation { get; private set; }
 
+        internal bool DragDropEnabled { get; set; } = true;
 
         private readonly DragDropManagerBase ddManager;
         private readonly ISClientSocket server;
@@ -75,6 +76,12 @@ namespace InputshareLib.Client
 
         private void BeginReceivedOperation(NetworkSocket.DragDropDataReceivedArgs args)
         {
+            if (!DragDropEnabled)
+            {
+                server.NotifyDragDropSuccess(false);
+                return;
+            }
+
             //Check if the received operation has previously been received
             if (CurrentOperation?.OperationGuid == args.OperationId)
             {

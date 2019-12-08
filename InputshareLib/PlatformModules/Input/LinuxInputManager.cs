@@ -64,6 +64,7 @@ namespace InputshareLib.PlatformModules.Input
         protected override void OnStop()
         {
             xConnection.EventArrived -= ProcEvent;
+            hotkeys.Clear();
         }
 
         private void Init()

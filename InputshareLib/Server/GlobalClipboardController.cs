@@ -14,6 +14,7 @@ namespace InputshareLib.Server
     internal class GlobalClipboardController
     {
         public event EventHandler<ServerDataOperation> ClipboardDataChanged;
+        internal bool GlobalClipboardEnabled { get; set; } = true;
 
         internal ServerDataOperation CurrentOperation { get; private set; }
         private ClipboardManagerBase cbManager;
@@ -29,6 +30,9 @@ namespace InputshareLib.Server
 
         public void OnClientClipboardChange(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
         {
+            if (!GlobalClipboardEnabled)
+                return;
+
             ISServerSocket client = sender as ISServerSocket;
             ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
 
@@ -39,6 +43,9 @@ namespace InputshareLib.Server
 
         private void OnLocalClipboardChange(object sender, ClipboardDataBase data)
         {
+            if (!GlobalClipboardEnabled)
+                return;
+
             //Create a new dataoperation, a guid will be created generated automatically
             ServerDataOperation operation = new ServerDataOperation(data, ISServerSocket.Localhost);
             SetOperation(operation);

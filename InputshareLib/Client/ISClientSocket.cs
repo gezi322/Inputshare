@@ -82,15 +82,19 @@ namespace InputshareLib.Client
             if (port < 1 || port > 65535)
                 throw new ArgumentException("Invalid port");
 
+            if (AttemptingConnection)
+                tcpSocket.Dispose();
+
             conInfo = info;
 
             if (tcpSocket != null)
                 tcpSocket.Dispose();
 
             ServerAddress = new IPEndPoint(destAddr, port);
-
+            
             if (allowudp)
             {
+                udpC?.Dispose();
                 udpC = new ISUdpClient(ServerAddress);
                 udpC.InputReceived += UdpC_InputReceived;
             }

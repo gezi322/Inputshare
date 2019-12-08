@@ -78,17 +78,8 @@ namespace InputshareLib.Server
             displayMan = dependencies.DisplayManager;
             inputMan = dependencies.InputManager;
             outMan = dependencies.OutputManager;
-
-            if (args.HasArg(StartArguments.NoDragDrop))
-                dragDropMan = new NullDragDropManager();
-            else
-                dragDropMan = dependencies.DragDropManager;
-           
-
-            if (args.HasArg(StartArguments.NoClipboard))
-                cbManager = new NullClipboardManager();
-            else
-                cbManager = dependencies.ClipboardManager;
+            dragDropMan = dependencies.DragDropManager;
+            cbManager = dependencies.ClipboardManager;
 
             fileController = new FileAccessController();
             clientMan = new ClientManager(12);
@@ -117,9 +108,21 @@ namespace InputshareLib.Server
                     InitUdp(port);
 
                 StartDisplayManager();
-                StartInputManager();
-                dragDropMan.Start();
-                cbManager.Start();
+
+                if (!inputMan.Running)
+                    inputMan.Start();
+
+                AssignInitialHotkeys();
+
+                if (!startArgs.HasArg(StartArguments.NoDragDrop))
+                    dragDropMan.Start();
+                else
+                    ddController.GlobalDragDropEnabled = false;
+
+                if (!startArgs.HasArg(StartArguments.NoClipboard))
+                    cbManager.Start();
+                else
+                    cbController.GlobalClipboardEnabled = false;
 
                 clientMan.AddClient(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
@@ -151,12 +154,8 @@ namespace InputshareLib.Server
 
         }
 
-        private void StartInputManager()
+        private void AssignInitialHotkeys()
         {
-            ISLogger.Write("Inputmanager running: " + inputMan.Running);
-            if(!inputMan.Running)
-                inputMan.Start();
-
             HotkeyModifiers mods = HotkeyModifiers.Ctrl | HotkeyModifiers.Alt | HotkeyModifiers.Shift;
             inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
             inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
@@ -203,7 +202,6 @@ namespace InputshareLib.Server
                     }
                     catch (Exception) { }
                 }
-
                 clientMan.ClearClients();
 
                 if (clientListener != null && clientListener.Listening)
@@ -597,6 +595,12 @@ namespace InputshareLib.Server
         #endregion
 
         #region API
+
+        public void SetStartArgs(StartOptions options)
+        {
+            startArgs = options;
+        }
+
         public ClientInfo[] GetAllClients()
         {
             ClientInfo[] info = new ClientInfo[clientMan.ClientCount];

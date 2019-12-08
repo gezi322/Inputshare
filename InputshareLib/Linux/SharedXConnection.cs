@@ -71,14 +71,20 @@ namespace InputshareLib.Linux
 
         private int HandleError(IntPtr display, ref XErrorEvent evt)
         {
-            ISLogger.Write("------------------exception on X server!---------------------");
-
-            StringBuilder sb = new StringBuilder(256);
-            XGetErrorText(XDisplay, evt.error_code, sb, sb.Capacity);
-            ISLogger.Write(sb.ToString());
-
-            ISLogger.Write("------------------exception on X server!---------------------");
+            ISLogger.Write("------------------------X ERROR--------------------------");
+            ISLogger.Write("REQUEST = " + evt.request_code);
+            ISLogger.Write("MINOR CODE = " + evt.minor_code);
+            ISLogger.Write("CODE = " + evt.error_code);
+            ISLogger.Write("MESSAGE = {0}", GetErrorString(evt.error_code));
+            ISLogger.Write("------------------------X ERROR--------------------------");
             return 0;
+        }
+
+        private string GetErrorString(int code)
+        {
+            StringBuilder sb = new StringBuilder(160);
+            XGetErrorText(XDisplay, (byte)code, sb, sb.Capacity);
+            return sb.ToString();
         }
 
         private int HandleIOError(IntPtr display)

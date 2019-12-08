@@ -93,26 +93,9 @@ namespace InputshareLib.PlatformModules.Clipboard
         protected override void OnStop()
         {
             xConnection.EventArrived -= XConnection_EventArrived;
-            XDestroyWindow(xConnection.XDisplay, xConnection.XWindow);
         }
 
-        private int OnError(IntPtr display, ref XErrorEvent evt)
-        {
-            ISLogger.Write("------------------------{0} ERROR--------------------------", ModuleName);
-            ISLogger.Write("REQUEST = " + evt.request_code);
-            ISLogger.Write("MINOR CODE = " + evt.minor_code);
-            ISLogger.Write("CODE = " + evt.error_code);
-            ISLogger.Write("MESSAGE = {0}", GetErrorString(evt.error_code));
-            ISLogger.Write("------------------------{0} ERROR--------------------------", ModuleName);
-            return 0;
-        }
-
-        private string GetErrorString(int code)
-        {
-            StringBuilder sb = new StringBuilder(160);
-            XGetErrorText(xConnection.XDisplay, (byte)code, sb, sb.Capacity);
-            return sb.ToString();
-        }
+       
 
         private void InitWindow()
         {
@@ -476,7 +459,8 @@ namespace InputshareLib.PlatformModules.Clipboard
             evt.SelectionRequestEvent.property = atomTargets;
             evt.SelectionRequestEvent.target = atomTargets;
 
-            XSendEvent(xConnection.XDisplay, window, true, 0, ref evt);        }
+            XSendEvent(xConnection.XDisplay, window, true, 0, ref evt);        
+        }
 
         private void HandleSelectionRequest(XSelectionRequestEvent evt)
         {

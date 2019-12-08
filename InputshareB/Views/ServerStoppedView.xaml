@@ -1,0 +1,34 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="InputshareB.Views.ServerView"
+			 >
+
+	<Panel>
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition MaxWidth="200"/>
+				<ColumnDefinition/>
+			</Grid.ColumnDefinitions>
+
+			<Grid.RowDefinitions>
+				<RowDefinition MaxHeight="200"/>
+				<RowDefinition/>
+			</Grid.RowDefinitions>
+
+			<StackPanel>
+				<TextBlock Text="Start port: "/>
+				<TextBox Text="{Binding PortEntryText}" Name="PortTextBox"/>
+				<Button Content="Start" Command="{Binding StartServer}"/>
+
+				<CheckBox Content="Enable UDP" IsChecked="{Binding EnableUdpChecked}"/>
+				<CheckBox Content="Enable Drag/Drop" IsChecked="{Binding EnableDragDropChecked}"/>
+				<CheckBox Content="Enable clipboard sharing" IsChecked="{Binding EnableClipboardChecked}"/>
+			</StackPanel>
+
+
+		</Grid>
+	</Panel>
+</UserControl>

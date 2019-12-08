@@ -77,21 +77,18 @@ namespace InputshareLib.Client
 
             if (args.HasArg(StartArguments.Verbose))
                 ISLogger.EnableConsole = true;
+            
+            clipboardMan = dependencies.clipboardManager;
+            dragDropMan = dependencies.dragDropManager;
 
-            if (args.HasArg(StartArguments.NoClipboard))
-                clipboardMan = new NullClipboardManager();
-            else
-                clipboardMan = dependencies.clipboardManager;
-
-            if (args.HasArg(StartArguments.NoDragDrop))
-                dragDropMan = new NullDragDropManager();
-            else
-                dragDropMan = dependencies.dragDropManager;
-
+            //TODO - noudp does not work
             server = new ISClientSocket(!args.HasArg(StartArguments.NoUdp));
 
             CreateSocketEvents();
-            Init();
+
+            displayMan.DisplayConfigChanged += OnLocalDisplayConfigChange;
+            displayMan.EdgeHit += OnLocalEdgeHit;
+
             ddController = new LocalDragDropController(dragDropMan, server);
             cbController = new LocalClipboardController(clipboardMan, server);
 
@@ -109,10 +106,9 @@ namespace InputshareLib.Client
                 Connect(args.SpecifiedServer.Address.ToString(), args.SpecifiedServer.Port);
 
             AutoReconnect = startArgs.HasArg(StartArguments.AutoReconnect);
-
         }
 
-        public void Stop()
+        private void StopModules()
         {
             if (displayMan.Running)
                 displayMan.Stop();
@@ -125,7 +121,6 @@ namespace InputshareLib.Client
 
 
             fileController.DeleteAllTokens();
-            server?.Close();
         }
 
         public void Disconnect()
@@ -137,15 +132,23 @@ namespace InputshareLib.Client
             Disconnected?.Invoke(this, null);
         }
 
-        private void Init()
+        private void StartModules()
         {
-            displayMan.Start();
-            displayMan.DisplayConfigChanged += OnLocalDisplayConfigChange;
-            displayMan.UpdateConfigManual();
-            displayMan.EdgeHit += OnLocalEdgeHit;
-            clipboardMan.Start();
-            dragDropMan.Start();
+            if (!displayMan.Running)
+                displayMan.Start();
+            if (!clipboardMan.Running && !startArgs.HasArg(StartArguments.NoClipboard))
+                clipboardMan.Start();
+            if (!outMan.Running)
+                outMan.Start();
+            if (!dragDropMan.Running && !startArgs.HasArg(StartArguments.NoDragDrop))
+                dragDropMan.Start() ;
+
+            if (startArgs.HasArg(StartArguments.NoClipboard))
+                cbController.ClipboardEnabled = false;
+            if (startArgs.HasArg(StartArguments.NoDragDrop))
+                ddController.DragDropEnabled = false;
         }
+
         private void OnLocalEdgeHit(object sender, Edge edge)
         {
             if (server != null && server.IsConnected && ActiveClient)
@@ -183,12 +186,7 @@ namespace InputshareLib.Client
             if (port < 0 || port > 65535)
                 throw new ArgumentException("Invalid port");
 
-
-            if (server.AttemptingConnection)
-            {
-                ISLogger.Write("Already attempting connection... ingoring request");
-                return;
-            }
+            StartModules();
 
             lastConnectedAddress = new IPEndPoint(addr, port);
             server.Connect(address, port, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
@@ -310,12 +308,14 @@ namespace InputshareLib.Client
 
         private void OnConnectionFailed(object sender, string reason)
         {
+            StopModules();
             ISLogger.Write("Connection failed: " + reason);
             ConnectionFailed?.Invoke(this, reason);
         }
 
         private void OnConnectionError(object sender, string reason)
         {
+            StopModules();
             ISLogger.Write("Connection error: " + reason);
             ConnectionError?.Invoke(this, reason);
         }
@@ -324,6 +324,11 @@ namespace InputshareLib.Client
         {
             ISLogger.Write("Connected");
             Connected?.Invoke(this, server.ServerAddress);
+        }
+
+        public void SetStartArgs(StartOptions options)
+        {
+            startArgs = options;
         }
 
         private struct ClientEdges

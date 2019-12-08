@@ -41,7 +41,7 @@ namespace InputshareLib
         /// <summary>
         /// If true, SP processes are launched in the users desktop with a visible console
         /// </summary>
-        public const bool DEBUG_SPCONSOLEENABLED = true;
+        public const bool DEBUG_SPCONSOLEENABLED = false;
 
         /// <summary>
         /// InputshareSP launches in the specified session (-1 for current console session)

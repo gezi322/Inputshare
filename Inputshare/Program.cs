@@ -21,6 +21,7 @@ namespace Inputshare
         //This is just for testing!
         static void Main(string[] args)
         {
+            ISLogger.EnableConsole = true;
             StartOptions options = new StartOptions(new System.Collections.Generic.List<string>(args));
 
             if (args.Length == 0 || options.HasArg(StartArguments.Help))

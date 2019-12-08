@@ -70,6 +70,7 @@ namespace InputshareLibWindows.PlatformModules.Input
             cancelSource?.Cancel();
             SetInputBlocked(false);
             hookWnd = null;
+            hotkeys.Clear();
         }
 
 

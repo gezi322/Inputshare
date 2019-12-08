@@ -13,6 +13,7 @@ namespace InputshareLib.Server
     {
         public ServerDragDropDataOperation CurrentOperation { get; private set; }
 
+        internal bool GlobalDragDropEnabled { get; set; } = true;
         private bool OperationNull { get => CurrentOperation == null; }
         private readonly ClientManager clientMan;
         private readonly DragDropManagerBase ddManager;
@@ -61,7 +62,7 @@ namespace InputshareLib.Server
 
         private void SetStateAsClient(ServerDragDropDataOperation.DragDropState state, ISServerSocket client)
         {
-            if (OperationNull)
+            if (OperationNull || !GlobalDragDropEnabled)
                 return;
 
             if(CurrentOperation.TargetClient != client)
@@ -76,6 +77,9 @@ namespace InputshareLib.Server
 
         private void SetState(ServerDragDropDataOperation.DragDropState state)
         {
+            if (!GlobalDragDropEnabled)
+                return;
+
             if(state == ServerDragDropDataOperation.DragDropState.Dropped)
                 if (CurrentOperation.Data.DataType == ClipboardDataType.File)
                     CurrentOperation.State = ServerDragDropDataOperation.DragDropState.TransferingFiles;
