@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:local="clr-namespace:InputshareB.Views"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="InputshareB.Views.ServerStartedView">
 
@@ -10,8 +11,8 @@
 		
 		<TextBlock Text="Connected clients:"/>
 		<ListBox Items="{Binding ClientListItems}" SelectedItem="{Binding SelectedClient}"/>
-		<Border BorderThickness="2" BorderBrush="Gray">
-			<StackPanel IsVisible="{Binding ClientSettingsVisible}">
+		<Border BorderThickness="2" BorderBrush="Gray" IsVisible="{Binding ClientSettingsVisible}">
+			<StackPanel>
 				<TextBlock HorizontalAlignment="Center" Text="{Binding ClientSettingsHeaderText}"/>
 				<TextBlock Text="{Binding ClientSettingsAddressText}"/>
 				<TextBlock Text="Client hotkey:"/>
@@ -36,6 +37,24 @@
 				<DropDown MaxWidth="200" HorizontalAlignment="Left" SelectedItem="{Binding ClientSettingsBottomClient}" Items="{Binding ClientListExcludeSelected}"/>
 			</StackPanel>
 		</Border>
+		<TextBlock Text="Function hotkeys:"/>
+		<Border BorderBrush="Gray" BorderThickness="2">
+			<StackPanel>
+				<ListBox Items="{Binding HotkeyFunctionList}" SelectedItem="{Binding SelectedHotkeyFunction}"/>
+
+				<TextBlock Text="{Binding FhHotkeyHeaderText}"/>
+				<StackPanel Orientation="Horizontal">
+					<CheckBox Content="Alt" IsChecked="{Binding FhAltChecked}"/>
+					<CheckBox Content="Ctrl" IsChecked="{Binding FhCtrlChecked}"/>
+					<CheckBox Content="Shift" IsChecked="{Binding FhShiftChecked}"/>
+
+					<Button Content="{Binding HotkeyFunctionButtonText}" Command="{Binding HotkeyEnterCommand}"/>
+				</StackPanel>
+
+			</StackPanel>
+		</Border>
+
+
 	</StackPanel>
 	
 </UserControl>

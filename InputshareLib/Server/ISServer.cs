@@ -571,15 +571,23 @@ namespace InputshareLib.Server
             switch (edge)
             {
                 case Edge.Bottom:
+                    if (client.BottomClient != null)
+                        client.BottomClient.TopClient = null;
                     client.BottomClient = null;
                     break;
                 case Edge.Top:
+                    if (client.TopClient != null)
+                        client.TopClient.BottomClient = null;
                     client.TopClient = null;
                     break;
                 case Edge.Left:
+                    if (client.LeftClient != null)
+                        client.LeftClient.RightClient = null;
                     client.LeftClient = null;
                     break;
                 case Edge.Right:
+                    if (client.RightClient != null)
+                        client.RightClient.LeftClient = null;
                     client.RightClient = null;
                     break;
 

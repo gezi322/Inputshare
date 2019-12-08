@@ -63,6 +63,8 @@ namespace InputshareB.ViewModels
         private bool hotkeyEntering = false;
         public ReactiveCommand ClientSettingsHotkeyCommand { get; }
 
+        public List<Hotkeyfunction> HotkeyFunctionList { get; } = new List<Hotkeyfunction>();
+
         public ServerStartedViewModel(ISServer server)
         {
             server.Started += Server_Started;
@@ -70,12 +72,21 @@ namespace InputshareB.ViewModels
 
             CommandStopServer = ReactiveCommand.Create(ExecStopServer);
             ClientSettingsHotkeyCommand = ReactiveCommand.Create(ExecHotkeyCommand);
-
+            HotkeyEnterCommand = ReactiveCommand.Create(ExecHotkeyEnter);
             serverInstance = server;
             server.ClientConnected += Server_ClientConnected;
             server.ClientDisconnected += Server_ClientDisconnected;
             server.InputClientSwitched += Server_InputClientSwitched;
-            server.ClientInfoUpdated += Server_ClientInfoUpdated;
+            BuildFunctionList();
+        }
+
+        private void BuildFunctionList()
+        {
+            HotkeyFunctionList.Clear();
+            foreach(var func in Enum.GetValues(typeof(Hotkeyfunction)))
+            {
+                HotkeyFunctionList.Add((Hotkeyfunction)func);
+            }
         }
 
         public void ExecHotkeyCommand()
@@ -87,7 +98,10 @@ namespace InputshareB.ViewModels
         public void HandleKeyDown(KeyEventArgs args)
         {
             if (!hotkeyEntering)
+            {
+                HandleKeyDownFunction(args);
                 return;
+            }
 
             //ignore modifier keys
             if (args.Key == Key.LeftCtrl || args.Key == Key.RightCtrl
@@ -124,22 +138,13 @@ namespace InputshareB.ViewModels
 #endif
 
                 serverInstance.SetHotkeyForClient(selectedClient, k);
-            }catch(Exception ex)
+                ClientSettingsHotkeyButtonText = serverInstance.GetHotkeyForClient(selectedClient).Key.ToString();
+            }
+            catch(Exception ex)
             {
                 ISLogger.Write("Failed to set client hotkey: " + ex.Message);
                 ClientSettingsHotkeyButtonText = "Error";
             }
-        }
-
-        private void Server_ClientInfoUpdated(object sender, ClientInfo client)
-        {
-            ClientListItems.Clear();
-            foreach(var c in serverInstance.GetAllClients())
-            {
-                ClientListItems.Add(c);
-            }
-
-            BuildExcludedClientList();
         }
 
         private void OnSelectedClientChanged()
@@ -149,7 +154,7 @@ namespace InputshareB.ViewModels
                 ClientSettingsVisible = false;
                 return;
             }
-
+            
             BuildExcludedClientList();
             ClientSettingsVisible = true;
             ClientSettingsHeaderText = "Settings for " + selectedClient.Name;
@@ -183,6 +188,24 @@ namespace InputshareB.ViewModels
             this.RaisePropertyChanged(nameof(ClientSettingsBottomClient));
 
         }
+        private void UpdateClientList()
+        {
+            Guid oldSelected = Guid.Empty;
+
+            if (SelectedClient != null)
+                oldSelected = selectedClient.Id;
+
+            ClientListItems.Clear();
+            foreach(var client in serverInstance.GetAllClients())
+            {
+                ClientListItems.Add(client);
+            }
+
+            foreach (var c in ClientListItems)
+                if (c.Id == oldSelected)
+                    SelectedClient = c;
+        }
+
 
         private void BuildExcludedClientList()
         {
@@ -203,6 +226,7 @@ namespace InputshareB.ViewModels
                 return;
 
             serverInstance.SetClientEdge(client, edge, selectedClient);
+            UpdateClientList();
         }
 
         private void Server_Stopped(object sender, EventArgs e)
@@ -223,12 +247,12 @@ namespace InputshareB.ViewModels
 
         private void Server_ClientDisconnected(object sender, InputshareLib.Server.API.ClientInfo client)
         {
-            ClientListItems.Remove(client);
+            UpdateClientList();
         }
 
         private void Server_ClientConnected(object sender, InputshareLib.Server.API.ClientInfo client)
         {
-            ClientListItems.Add(client);
+            UpdateClientList();
         }
 
         private void UpdateCurrentInputClient(ClientInfo client)
@@ -243,5 +267,90 @@ namespace InputshareB.ViewModels
         {
             serverInstance.Stop();
         }
+
+        #region func Hotkeys
+        private Hotkeyfunction selectedHotkeyFunction = Hotkeyfunction.StopServer;
+        public Hotkeyfunction SelectedHotkeyFunction { get { return selectedHotkeyFunction; } set { selectedHotkeyFunction = value; OnHotkeyFunctionChanged(value); } }
+        public string FhHotkeyHeaderText { get; private set; }
+        public string HotkeyFunctionButtonText { get; private set; } = "Select hotkey";
+        public bool FhAltChecked { get; private set; }
+        public bool FhCtrlChecked { get; private set; }
+        public bool FhShiftChecked { get; private set; }
+
+        public ReactiveCommand HotkeyEnterCommand { get; }
+
+        private void OnHotkeyFunctionChanged(Hotkeyfunction func)
+        {
+            ISLogger.Write("Selected " + func);
+            FhHotkeyHeaderText = "Hotkey for function " + func;
+            this.RaisePropertyChanged(nameof(FhHotkeyHeaderText));
+            Hotkey hk = serverInstance.GetHotkeyForFunction(func);
+            HotkeyFunctionButtonText = hk.Key.ToString();
+            this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
+
+            FhAltChecked = hk.Modifiers.HasFlag(HotkeyModifiers.Alt);
+            FhCtrlChecked = hk.Modifiers.HasFlag(HotkeyModifiers.Ctrl);
+            FhShiftChecked = hk.Modifiers.HasFlag(HotkeyModifiers.Shift);
+            this.RaisePropertyChanged(nameof(FhAltChecked));
+            this.RaisePropertyChanged(nameof(FhCtrlChecked));
+            this.RaisePropertyChanged(nameof(FhShiftChecked));
+        }
+
+        private void ExecHotkeyEnter()
+        {
+            functionHotkeyEntering = true;
+        }
+
+        private bool functionHotkeyEntering = false;
+        private void HandleKeyDownFunction(KeyEventArgs args)
+        {
+            if (!functionHotkeyEntering)
+                return;
+
+            //ignore modifier keys
+            if (args.Key == Key.LeftCtrl || args.Key == Key.RightCtrl
+                || args.Key == Key.RightAlt || args.Key == Key.LeftAlt
+                || args.Key == Key.LeftShift || args.Key == Key.RightShift)
+                return;
+
+            functionHotkeyEntering = false;
+            SetFunctionHotkey(args.Key);
+        }
+
+        private void SetFunctionHotkey(Key key)
+        {
+            try
+            {
+                HotkeyModifiers mods = 0;
+                if (FhAltChecked)
+                    mods |= HotkeyModifiers.Alt;
+                if (FhShiftChecked)
+                    mods |= HotkeyModifiers.Shift;
+                if (FhCtrlChecked)
+                    mods |= HotkeyModifiers.Ctrl;
+
+#if WindowsBuild
+                System.Windows.Input.Key a = (System.Windows.Input.Key)key;
+                Hotkey k = new Hotkey((WindowsVirtualKey)KeyInterop.VirtualKeyFromKey(a), mods);
+#else
+                //Translate from avalonia key to windows virtual key
+                //This is a dirty method but should work for the majority of keys
+                var a = (WindowsVirtualKey)Enum.Parse(typeof(WindowsVirtualKey), key.ToString());
+                Hotkey k = new Hotkey(a, mods);
+#endif
+
+                serverInstance.SetHotkeyForFunction(k, SelectedHotkeyFunction);
+                HotkeyFunctionButtonText = serverInstance.GetHotkeyForFunction(SelectedHotkeyFunction).Key.ToString();
+                this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("Failed to set function hotkey: " + ex.Message);
+            }
+        }
+
+
+
+        #endregion
     }
 }
