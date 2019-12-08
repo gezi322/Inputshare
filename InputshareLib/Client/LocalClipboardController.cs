@@ -20,6 +20,7 @@ namespace InputshareLib.Client
         public LocalClipboardController(ClipboardManagerBase clipboardManager, ISClientSocket serverConnection)
         {
             server = serverConnection;
+            server.ClipboardDataReceived += OnClipboardDataReceived;
             clipboardMan = clipboardManager;
             clipboardMan.ClipboardContentChanged += OnLocalClipboardChange;
         }

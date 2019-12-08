@@ -22,16 +22,13 @@ namespace InputshareLib.Client
         {
             ddManager = dragDropManager;
             server = serverConnection;
+            server.DragDropDataReceived += Socket_DragDropReceived;
+            server.CancelAnyDragDrop += Socket_CancelAnyDragDrop;
         }
 
         internal void Socket_DragDropReceived(object sender, NetworkSocket.DragDropDataReceivedArgs args)
         {
             BeginReceivedOperation(args);
-        }
-
-        internal void Socket_DragDropCancelled(object sender, EventArgs _)
-        {
-            ddManager.CancelDrop();
         }
 
         internal void Socket_CancelAnyDragDrop(object sender, EventArgs _)

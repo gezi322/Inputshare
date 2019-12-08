@@ -89,11 +89,10 @@ namespace Inputshare.ViewModels
         private ISClient CreateClientInstance()
         {
 
-
 #if WindowsBuild
-            return new ISClient(InputshareLibWindows.WindowsDependencies.GetClientDependencies(), new InputshareLib.StartOptions(new List<string>()));
+            return new ISClient();
 #elif LinuxBuild
-            return  new ISClient(ISClientDependencies.GetLinuxDependencies(), new InputshareLib.StartOptions(new List<string>()));
+            return  new ISClient();
 #else
             throw new Exception("OS not supported");
 #endif

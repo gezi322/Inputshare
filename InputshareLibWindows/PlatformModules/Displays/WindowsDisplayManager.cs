@@ -25,6 +25,7 @@ namespace InputshareLibWindows.PlatformModules.Displays
         {
             displayUpdateTimer = new System.Threading.Timer(UpdateTimerCallback, null, 0, 1500);
             cursorUpdateTimer = new System.Threading.Timer(CursorTimerCallback, null, 0, 50);
+            UpdateConfigManual();
         }
 
         protected override void OnStop()

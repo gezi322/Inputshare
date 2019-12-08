@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Logging.Serilog;
 using Inputshare.ViewModels;
 using Inputshare.Views;
+using InputshareLib;
 
 namespace Inputshare
 {
@@ -24,12 +25,26 @@ namespace Inputshare
         // container, etc.
         private static void AppMain(Application app, string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             var window = new MainWindow
             {
                 DataContext = new MainWindowViewModel(),
             };
 
             app.Run(window);
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Exception ex = e.ExceptionObject as Exception; 
+
+            ISLogger.Write("--------------------------------------");
+            ISLogger.Write("UNHANDLED EXCEPTION");
+            ISLogger.Write(ex.Message);
+            ISLogger.Write(ex.StackTrace);
+            ISLogger.Write(ex.Source);
+            ISLogger.Write("--------------------------------------");
         }
     }
 }

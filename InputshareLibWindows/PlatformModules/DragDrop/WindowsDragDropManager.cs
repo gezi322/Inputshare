@@ -37,10 +37,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         {
             dropTargetWindow.InvokeExitWindow();
             dropSourceWindow.InvokeExitWindow();
-            ISLogger.Write("DragDropManager: Waiting for windows to exit");
-            dropTargetWindow.WindowClosedEvent.WaitOne();
-            dropSourceWindow.WindowClosedEvent.WaitOne();
-            ISLogger.Write("Windows drag drop manager exited");
+            dropTargetWindow.WindowClosedEvent.WaitOne(1000);
+            dropSourceWindow.WindowClosedEvent.WaitOne(1000);
         }
 
         private void InitForm()

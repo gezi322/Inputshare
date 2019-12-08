@@ -62,7 +62,8 @@ namespace InputshareService
             Task.Run(() => { SpDragDropTaskLoop(); });
             Task.Run(() => { SpMainTaskLoop(); });
 
-            Thread.Sleep(500);
+            //todo
+            Thread.Sleep(1500);
             Task.Run(() => { LoadAndStart(); });
 
 
@@ -136,8 +137,8 @@ namespace InputshareService
         {
             try
             {
-                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle), new StartOptions(new System.Collections.Generic.List<string>()));
-                
+                clientInstance = new ISClient();
+                clientInstance.Start(new StartOptions(new System.Collections.Generic.List<string>()) ,WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle));
 
                 clientInstance.ConnectionError += ClientInstance_ConnectionError;
                 clientInstance.ConnectionFailed += ClientInstance_ConnectionFailed;
@@ -157,7 +158,7 @@ namespace InputshareService
                 if(Config.TryReadProperty(ServiceConfigProperties.LastConnectedAddress, out string addrStr)){
                     if (IPEndPoint.TryParse(addrStr, out IPEndPoint addr))
                     {
-                        clientInstance.Connect(addr.Address.ToString(), addr.Port);
+                        clientInstance.Connect(addr);
                     }
                     else
                     {
@@ -254,6 +255,9 @@ namespace InputshareService
 
                 foreach (var proc in Process.GetProcessesByName("inputsharesp"))
                     proc.Kill();
+
+                if (clientInstance.Running)
+                    clientInstance.Stop();
 
             }
             catch(Exception ex)

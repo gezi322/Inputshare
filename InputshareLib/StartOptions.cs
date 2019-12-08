@@ -96,6 +96,15 @@ namespace InputshareLib
             Console.WriteLine("    'autoreconnect' - Keeps trying to connect or reconnect to the specified server");
             Console.WriteLine("    'startport port' - Starts the server on the specified port");
         }
+
+        public void PrintArgs()
+        {
+            foreach(var arg in Enum.GetValues(typeof(StartArguments)))
+            {
+                if (Args.HasFlag((StartArguments)arg))
+                    ISLogger.Write(arg);
+            }
+        }
     }
 
     [Flags]

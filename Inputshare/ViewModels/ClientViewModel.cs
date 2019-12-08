@@ -40,7 +40,7 @@ namespace Inputshare.ViewModels
 
         private void ExecConnect()
         {
-            if (!IPAddress.TryParse(addressEntryText, out _))
+            if (!IPAddress.TryParse(addressEntryText, out IPAddress addr))
                 return;
 
             if (!int.TryParse(portEntryText, out int port))
@@ -53,9 +53,19 @@ namespace Inputshare.ViewModels
             if (!EnableClipboardChecked)
                 options.Add("NoClipboard");
 
-            clientInstance.SetClientName(ClientName);
-            clientInstance.SetStartArgs(new StartOptions(options));
-            clientInstance.Connect(addressEntryText, port);
+            clientInstance.ClientName = ClientName;
+
+            if (!clientInstance.Running)
+            {
+#if WindowsBuild
+            clientInstance.Start(new StartOptions(options), InputshareLibWindows.WindowsDependencies.GetClientDependencies());
+#else
+                clientInstance.Start(new StartOptions(options), ISClientDependencies.GetLinuxDependencies());
+#endif
+            }
+
+
+            clientInstance.Connect(new IPEndPoint(addr, port));
         }
     }
 }

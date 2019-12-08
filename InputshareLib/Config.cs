@@ -33,7 +33,7 @@ namespace InputshareLib
                     value = config.AppSettings.Settings[prop.ToString()].Value;
                     return true;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     value = "";
                     return false;

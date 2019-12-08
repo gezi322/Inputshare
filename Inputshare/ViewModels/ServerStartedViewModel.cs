@@ -281,7 +281,6 @@ namespace Inputshare.ViewModels
 
         private void OnHotkeyFunctionChanged(Hotkeyfunction func)
         {
-            ISLogger.Write("Selected " + func);
             FhHotkeyHeaderText = "Hotkey for function " + func;
             this.RaisePropertyChanged(nameof(FhHotkeyHeaderText));
             Hotkey hk = serverInstance.GetHotkeyForFunction(func);

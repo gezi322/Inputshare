@@ -11,7 +11,7 @@ namespace InputshareLib.Client
 {
     internal class ISClientSocket : NetworkSocket
     {
-        public bool AutoReconnect { get; set; } = true;
+        public bool AutoReconnect { get; set; } = false;
 
         /// <summary>
         /// Occurs when a connection attempt fails
@@ -73,18 +73,12 @@ namespace InputshareLib.Client
         /// <param name="address"></param>
         /// <param name="port"></param>
         /// <param name="info"></param>
-        public void Connect(string address, int port, ConnectionInfo info)
+        public void Connect(IPEndPoint address, ConnectionInfo info)
         {
             //Todo - this should be awaitable
 
             if (IsConnected)
                 throw new InvalidOperationException("Socket already connected");
-
-            if (!IPAddress.TryParse(address, out IPAddress destAddr))
-                throw new ArgumentException("Invalid address");
-
-            if (port < 1 || port > 65535)
-                throw new ArgumentException("Invalid port");
 
             if (AttemptingConnection)
                 tcpSocket.Dispose();
@@ -94,7 +88,7 @@ namespace InputshareLib.Client
             if (tcpSocket != null)
                 tcpSocket.Dispose();
 
-            ServerAddress = new IPEndPoint(destAddr, port);
+            ServerAddress = address;
             
             if (allowudp)
             {
@@ -113,10 +107,10 @@ namespace InputshareLib.Client
             serverResponded = false;
             errorHandled = false;
 
-            ISLogger.Write("Attempting to connect to {0}:{1} as {2}", destAddr, port, info.Name);
+            ISLogger.Write("Attempting to connect to {0} as {1}", address, info.Name);
 
             try{
-                tcpSocket.BeginConnect(new IPEndPoint(destAddr, port), TcpSocket_ConnectCallback, tcpSocket);
+                tcpSocket.BeginConnect(address, TcpSocket_ConnectCallback, tcpSocket);
             }catch(Exception ex){
                 ISLogger.Write("BeginConnect threw " + ex.Message);
                 ConnectionFailed?.Invoke(this, ex.Message);
@@ -296,7 +290,7 @@ namespace InputshareLib.Client
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
                 Thread.Sleep(2000);
-                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+                Connect(ServerAddress, conInfo);
             }
             AttemptingConnection = false;
         }
@@ -312,7 +306,7 @@ namespace InputshareLib.Client
             if (AutoReconnect)
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+                Connect(ServerAddress, conInfo);
             }
         }
 
@@ -331,7 +325,7 @@ namespace InputshareLib.Client
 
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
                 Thread.Sleep(2000);
-                Connect(ServerAddress.Address.ToString(), ServerAddress.Port, conInfo);
+                Connect(ServerAddress, conInfo);
             }
             else
             {
