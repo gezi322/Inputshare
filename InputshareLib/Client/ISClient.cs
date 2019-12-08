@@ -63,20 +63,29 @@ namespace InputshareLib.Client
             if (Running)
                 throw new InvalidOperationException("Client already running");
 
-            startArgs = args;
-            ISLogger.Write("Starting inputshare client...");
-            ISLogger.Write("Using args:");
-            startArgs.PrintArgs();
+            try
+            {
+                startArgs = args;
+                ISLogger.Write("Starting inputshare client...");
+                ISLogger.Write("Using args:");
+                startArgs.PrintArgs();
 
-            InitDependencies(dependencies);
-            InitSocket();
-            fileController = new FileAccessController();
-            cbController = new LocalClipboardController(clipboardMan, server);
-            ddController = new LocalDragDropController(dragDropMan, server);
-            AssignSocketEvents();
-            AssignModuleEvents();
-            StartModules();
-            Running = true;
+                InitDependencies(dependencies);
+                InitSocket();
+                fileController = new FileAccessController();
+                cbController = new LocalClipboardController(clipboardMan, server);
+                ddController = new LocalDragDropController(dragDropMan, server);
+                AssignSocketEvents();
+                AssignModuleEvents();
+                StartModules();
+                Running = true;
+            }catch(Exception ex)
+            {
+                ISLogger.Write("An error occurred while starting client: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                Stop();
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -87,15 +96,28 @@ namespace InputshareLib.Client
             if (!Running)
                 throw new InvalidOperationException("Client not running");
 
-            ISLogger.Write("Stopping inputshare client...");
+            try
+            {
+                ISLogger.Write("Stopping inputshare client...");
 
-            if (IsConnected)
-                server.Disconnect(true);
+                if (IsConnected)
+                    server.Disconnect(true);
 
-            server.Dispose();
-            fileController.DeleteAllTokens();
-            StopModules();
-            Running = false;
+                server.Dispose();
+                fileController.DeleteAllTokens();
+                StopModules();
+            }catch(Exception ex)
+            {
+                ISLogger.Write("an error occurred while stopping client: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                throw ex;
+            }
+            finally
+            {
+                Running = false;
+            }
+            
+            
         }
 
         /// <summary>

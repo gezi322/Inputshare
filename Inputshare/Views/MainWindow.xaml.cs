@@ -15,7 +15,12 @@ namespace Inputshare.Views
             this.AttachDevTools();
 #endif
 
-            
+            this.Closing += MainWindow_Closing;
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            (DataContext as MainWindowViewModel).HandleExit();
         }
 
         private void InitializeComponent()

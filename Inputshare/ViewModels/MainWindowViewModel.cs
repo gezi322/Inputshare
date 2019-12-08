@@ -23,30 +23,33 @@ namespace Inputshare.ViewModels
 
         public ViewModelBase CurrentModel { get; private set; }
 
+        private ISServer serverInstance;
+        private ISClient clientInstance;
+
         public MainWindowViewModel()
         {
             ISLogger.EnableConsole = true;
             ISLogger.EnableLogFile = false;
 
-            ISServer server = CreateServerInstance();
+            serverInstance = CreateServerInstance();
 
-            serverView = new ServerStoppedViewModel(server);
-            serverStartedView = new ServerStartedViewModel(server);
-            server.Started += Server_Started;
-            server.Stopped += Server_Stopped;
+            serverView = new ServerStoppedViewModel(serverInstance);
+            serverStartedView = new ServerStartedViewModel(serverInstance);
+            serverInstance.Started += Server_Started;
+            serverInstance.Stopped += Server_Stopped;
 
             selectView = new ModeSelectViewModel();
             selectView.Switchserver += SelectView_Switchserver;
             selectView.SwitchClient += SelectView_SwitchClient;
             selectView.SwitchService += SelectView_SwitchService;
 
-            ISClient client = CreateClientInstance();
-            clientView = new ClientViewModel(client);
-            clientConnectedView = new ClientConnectedViewModel(client);
+            clientInstance = CreateClientInstance();
+            clientView = new ClientViewModel(clientInstance);
+            clientConnectedView = new ClientConnectedViewModel(clientInstance);
 
-            client.Connected += Client_Connected;
-            client.ConnectionError += Client_ConnectionError;
-            client.Disconnected += Client_Disconnected;
+            clientInstance.Connected += Client_Connected;
+            clientInstance.ConnectionError += Client_ConnectionError;
+            clientInstance.Disconnected += Client_Disconnected;
 
             serviceView = new WindowsServiceViewModel();
 
@@ -122,6 +125,15 @@ namespace Inputshare.ViewModels
         {
             CurrentModel = view;
             this.RaisePropertyChanged(nameof(CurrentModel));
+        }
+
+        public void HandleExit()
+        {
+            if (serverInstance.Running)
+                serverInstance.Stop();
+
+            if (clientInstance.Running)
+                clientInstance.Stop();
         }
     }
 }
