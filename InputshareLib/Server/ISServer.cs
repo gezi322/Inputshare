@@ -44,6 +44,12 @@ namespace InputshareLib.Server
         private ISServerSocket inputClient = ISServerSocket.Localhost;
         private StartOptions startArgs;
 
+        public ISServer()
+        {
+            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(ISServerSocket.Localhost, e);
+            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey);
+        }
+
         public void Start(ISServerDependencies dependencies, StartOptions args, int port)
         {
             if (Running)
@@ -149,8 +155,6 @@ namespace InputshareLib.Server
             displayMan.DisplayConfigChanged += DisplayMan_DisplayConfigChanged;
             clientListener.ClientConnected += HandleClientConnected;
             inputController.InputClientSwitched += InputController_InputClientSwitched;
-            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(ISServerSocket.Localhost, e);
-            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey);
         }
 
         private ISServerSocket oldInputClient = ISServerSocket.Localhost;

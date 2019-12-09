@@ -65,17 +65,6 @@
 
 			</StackPanel>
 		</Border>
-
-		<TextBlock Text="Server settings:"/>
-		<Border BorderBrush="Gray" BorderThickness="2">
-			<StackPanel>
-				<TextBlock Text="Mouse updates per seconds"/>
-				<TextBlock Text="Set to 0 for realtime input"/>
-				<TextBox Text="{Binding MouseBufferRateText}" MinWidth="40" MaxWidth="100" HorizontalAlignment="Left"/>
-			</StackPanel>
-		</Border>
-
-
 	</StackPanel>
 	
 </UserControl>

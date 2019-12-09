@@ -192,6 +192,8 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(ClientSettingsBottomClient));
 
         }
+
+        private object listLock = new object();
         private void UpdateClientList()
         {
             Guid oldSelected = Guid.Empty;
@@ -199,11 +201,15 @@ namespace Inputshare.ViewModels
             if (SelectedClient != null)
                 oldSelected = selectedClient.Id;
 
-            ClientListItems.Clear();
-            foreach(var client in serverInstance.GetAllClients())
+            lock (listLock)
             {
-                ClientListItems.Add(client);
+                ClientListItems.Clear();
+                foreach (var client in serverInstance.GetAllClients())
+                {
+                    ClientListItems.Add(client);
+                }
             }
+            
 
             foreach (var c in ClientListItems)
                 if (c.Id == oldSelected)
@@ -348,9 +354,9 @@ namespace Inputshare.ViewModels
                 Hotkey k = new Hotkey(a, mods);
 #endif
 
-                //serverInstance.SetHotkeyForFunction(k, SelectedHotkeyFunction);
-                //HotkeyFunctionButtonText = serverInstance.GetHotkeyForFunction(SelectedHotkeyFunction).Key.ToString();
-                //this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
+                serverInstance.SetHotkey(SelectedHotkeyFunction, k);
+                HotkeyFunctionButtonText = serverInstance.GetHotkey(SelectedHotkeyFunction).Key.ToString();
+                this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
             }
             catch (Exception ex)
             {

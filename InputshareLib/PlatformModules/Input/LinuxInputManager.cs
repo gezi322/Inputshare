@@ -28,7 +28,6 @@ namespace InputshareLib.PlatformModules.Input
 
         private IntPtr atomGrab;
         private IntPtr atomUngrab;
-        private IntPtr atomIgnoreNext;
         private int storedX = 0;
         private int storedY = 0;
         private bool[] buttonStates = new bool[16];
@@ -64,6 +63,18 @@ namespace InputshareLib.PlatformModules.Input
         protected override void OnStop()
         {
             xConnection.EventArrived -= ProcEvent;
+            
+
+            if (InputBlocked)
+            {
+                SetInputBlocked(false);
+            }
+
+            foreach(var hk in hotkeys)
+            {
+                OnHotkeyRemoved(hk);
+            }
+            
             hotkeys.Clear();
         }
 
@@ -71,7 +82,6 @@ namespace InputshareLib.PlatformModules.Input
         {
             atomGrab = XInternAtom(xConnection.XDisplay, "ISGrab", false);
             atomUngrab = XInternAtom(xConnection.XDisplay, "ISUngrab", false);
-            atomIgnoreNext = XInternAtom(xConnection.XDisplay, "ISIgnoreNext", false);
 
             xConnection.EventArrived += ProcEvent;
         }
@@ -379,7 +389,6 @@ namespace InputshareLib.PlatformModules.Input
             XUngrabKeyboard(xConnection.XDisplay, IntPtr.Zero);
             XUngrabPointer(xConnection.XDisplay, IntPtr.Zero);
             XFlush(xConnection.XDisplay);
-            ISLogger.Write("Restoring cursor to " + storedX + " + " + storedY);
             XWarpPointer(xConnection.XDisplay, IntPtr.Zero, XDefaultRootWindow(xConnection.XDisplay), 0, 0, 0, 0, storedX, storedY);
             XFlush(xConnection.XDisplay);
             InputBlocked = false;

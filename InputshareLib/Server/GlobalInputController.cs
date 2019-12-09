@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
@@ -17,6 +18,8 @@ namespace InputshareLib.Server
         private InputManagerBase inputMan;
         private ISUdpServer udpHost;
 
+        private Stopwatch clientSwitchStopwatch = new Stopwatch();
+
         private bool LocalInput { get { return CurrentInputClient.IsLocalhost; } }
 
         public GlobalInputController(ClientManager clientManager, InputManagerBase inputManager, ISUdpServer udp)
@@ -24,6 +27,7 @@ namespace InputshareLib.Server
             udpHost = udp;
             inputMan = inputManager;
             clientMan = clientManager;
+            clientSwitchStopwatch.Start();
         }
 
         public void SetInputClient(ISServerSocket client)
@@ -61,10 +65,16 @@ namespace InputshareLib.Server
 
         public void HandleEdgeHit(ISServerSocket client, Edge edge)
         {
+            //Prevent rapid switching when mouse is on border
+            if (clientSwitchStopwatch.ElapsedMilliseconds < 100)
+                return;
+
             if (client.IsLocalhost)
                 HandleEdgeHitLocal(edge);
             else
                 HandleEdgeHitExternal(client, edge);
+
+            clientSwitchStopwatch.Restart();
         }
 
         public void HandleInputReceived(ISInputData input)

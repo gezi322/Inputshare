@@ -39,11 +39,6 @@ namespace InputshareLib.Linux
             new Thread(() => { EventLoop(); }).Start();
         }
 
-        public void Close(){
-            XCloseDisplay(XDisplay);
-        }
-
-
         public void EventLoop()
         {
             XCbWindow = XCreateSimpleWindow(XDisplay, XRootWindow, 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
@@ -91,11 +86,6 @@ namespace InputshareLib.Linux
         {
             ISLogger.Write("IO Error occurred on X server!");
             return 0;
-        }
-
-        ~SharedXConnection()
-        {
-            XCloseDisplay(XDisplay);
         }
     }
 }
