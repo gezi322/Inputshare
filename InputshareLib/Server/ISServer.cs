@@ -46,7 +46,8 @@ namespace InputshareLib.Server
 
         public ISServer()
         {
-            
+            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => { if (Running) OnClientEdgeChanged(ISServerSocket.Localhost, e); };
+            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => { if (Running) Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey); };
         }
 
         public void Start(ISServerDependencies dependencies, StartOptions args, int port)
@@ -67,8 +68,7 @@ namespace InputshareLib.Server
             SetDefaultHotkeys();
             clientMan.AddClient(ISServerSocket.Localhost);
             ClientConfig.ReloadClientConfigs(clientMan);
-            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(ISServerSocket.Localhost, e);
-            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey);
+            
             Started?.Invoke(this, null);
         }
 
@@ -243,9 +243,6 @@ namespace InputshareLib.Server
 
         private void OnClientEdgeChanged(ISServerSocket client, Edge e)
         {
-            if(client.GetClientAtEdge(e) == null)
-                return;
-
             /*
             //Set the opposite edge without causing stack overflow
             switch (e) {
@@ -264,13 +261,13 @@ namespace InputshareLib.Server
             }
             */
 
+            ClientConfig.SaveClientEdge(client, e);
             OnClientSettingChanged();
             client.SendClientEdgesUpdate();
         }
 
         private void OnClientSettingChanged()
         {
-            ClientConfig.SaveAllClientConfigs(clientMan);
             ClientConfigUpdate?.Invoke(this, null);
         }
 

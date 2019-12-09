@@ -21,7 +21,7 @@ namespace InputshareLib.Server
         /// Returns a read only list of all connected clients
         /// 
         /// </summary>
-        public ReadOnlyCollection<ISServerSocket> AllClients { get { return new ReadOnlyCollection<ISServerSocket>(clients); } }
+        public ReadOnlyCollection<ISServerSocket> AllClients { get { return new ReadOnlyCollection<ISServerSocket>(new List<ISServerSocket>(clients)); } }
         private List<ISServerSocket> clients;
 
         public ClientManager(int maxClients)

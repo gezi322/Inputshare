@@ -132,7 +132,7 @@ namespace InputshareLib.Server
 
             if (!target.IsConnected && !target.IsLocalhost)
             {
-                client.SetClientAtEdge(edge, null);
+                client.SetClientAtEdgeNoUpdate(edge, null);
                 return;
             }
                 

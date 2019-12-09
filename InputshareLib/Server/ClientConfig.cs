@@ -7,19 +7,16 @@ namespace InputshareLib.Server
 {
     internal static class ClientConfig
     {
-        internal static void SaveAllClientConfigs(ClientManager clientMan)
+        internal static void SaveClientEdge(ISServerSocket client, Edge edge)
         {
-            foreach(var client in clientMan.AllClients)
-            {
-                Config.TryWrite(client.ClientName + "-left", client.LeftClient == null ? "None" : client.LeftClient.ClientName);
-                Config.TryWrite(client.ClientName + "-right", client.RightClient == null ? "None" : client.RightClient.ClientName);
-                Config.TryWrite(client.ClientName + "-top", client.TopClient == null ? "None" : client.TopClient.ClientName);
+            if(edge == Edge.Bottom)
                 Config.TryWrite(client.ClientName + "-bottom", client.BottomClient == null ? "None" : client.BottomClient.ClientName);
-
-                Config.TryWrite(client.ClientName + "-hotkey", client.CurrentHotkey == null ? "None" : client.CurrentHotkey.ToSettingsString());
-            }
-
-            
+            else if(edge == Edge.Top)
+                Config.TryWrite(client.ClientName + "-top", client.TopClient == null ? "None" : client.TopClient.ClientName);
+            else if(edge == Edge.Right)
+                Config.TryWrite(client.ClientName + "-right", client.RightClient == null ? "None" : client.RightClient.ClientName);
+            else if(edge == Edge.Left)
+                Config.TryWrite(client.ClientName + "-left", client.LeftClient == null ? "None" : client.LeftClient.ClientName);
         }
 
         internal static void ReloadClientConfigs(ClientManager clientMan)
@@ -47,7 +44,6 @@ namespace InputshareLib.Server
             {
                 return;
             }
-
             client.SetClientAtEdgeNoUpdate(edge, target);
         }
     }
