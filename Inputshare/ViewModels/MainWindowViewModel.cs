@@ -31,7 +31,7 @@ namespace Inputshare.ViewModels
             ISLogger.EnableConsole = true;
             ISLogger.EnableLogFile = false;
 
-            serverInstance = CreateServerInstance();
+            serverInstance = new ISServer();
 
             serverView = new ServerStoppedViewModel(serverInstance);
             serverStartedView = new ServerStartedViewModel(serverInstance);
@@ -43,7 +43,7 @@ namespace Inputshare.ViewModels
             selectView.SwitchClient += SelectView_SwitchClient;
             selectView.SwitchService += SelectView_SwitchService;
 
-            clientInstance = CreateClientInstance();
+            clientInstance = new ISClient();
             clientView = new ClientViewModel(clientInstance);
             clientConnectedView = new ClientConnectedViewModel(clientInstance);
 
@@ -74,31 +74,6 @@ namespace Inputshare.ViewModels
         private void Client_Connected(object sender, System.Net.IPEndPoint e)
         {
             ChangeViewModel(clientConnectedView);
-        }
-
-        private ISServer CreateServerInstance()
-        {
-            ISServer server;
-#if WindowsBuild
-            server = new ISServer(InputshareLibWindows.WindowsDependencies.GetServerDependencies(), new InputshareLib.StartOptions(new List<string>()));
-#elif LinuxBuild
-            server = new ISServer(ISServerDependencies.GetLinuxDependencies(), new InputshareLib.StartOptions(new List<string>()));
-#else
-            throw new NotImplementedException("OS not supported");
-#endif
-            return server;
-        }
-
-        private ISClient CreateClientInstance()
-        {
-
-#if WindowsBuild
-            return new ISClient();
-#elif LinuxBuild
-            return  new ISClient();
-#else
-            throw new Exception("OS not supported");
-#endif
         }
 
         private void Server_Stopped(object sender, EventArgs e)

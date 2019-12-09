@@ -22,7 +22,7 @@ namespace InputshareLib.PlatformModules.DragDrop
 
         public override void DoDragDrop(ClipboardDataBase data)
         {
-
+            DragDropCancelled?.Invoke(this, null);
         }
         protected override void OnStart()
         {

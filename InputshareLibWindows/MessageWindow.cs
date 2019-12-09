@@ -28,6 +28,7 @@ namespace InputshareLibWindows
 
         protected InnerForm innerForm;
         protected AutoResetEvent windowHandleCreateEvent = new AutoResetEvent(false);
+        private AutoResetEvent windowDestroyEvent = new AutoResetEvent(false);
 
         public MessageWindow(string wndName)
         {
@@ -39,6 +40,7 @@ namespace InputshareLibWindows
         {
             if (initCalled)
                 return;
+            windowHandleCreateEvent = new AutoResetEvent(false);
 
             initCalled = true;
             cancelToken = new CancellationTokenSource();
@@ -55,10 +57,8 @@ namespace InputshareLibWindows
 
         public virtual void CloseWindow()
         {
-            if (Handle == IntPtr.Zero)
-                throw new Exception("Window handle does not exist");
-
             InvokeAction(() => { innerForm.Close(); });
+            windowDestroyEvent.WaitOne(1000);
         }
        
         public virtual void SetClipboardData(InputshareDataObject data)
@@ -93,6 +93,7 @@ namespace InputshareLibWindows
 
         private void InnerForm_FormClosed(object sender, FormClosedEventArgs e)
         {
+            windowDestroyEvent.Set();
             WindowDestroyed?.Invoke(this, new EventArgs());
         }
 

@@ -18,6 +18,12 @@ namespace InputshareLib.Server
         /// </summary>
         public static ISServerSocket Localhost = new ISServerSocket(true);
 
+        public static ISServerSocket None = new ISServerSocket(true)
+        {
+            ClientName = "None",
+            ClientId = Guid.NewGuid()
+        };
+
         /// <summary>
         /// Occurs when the client sends an update display configuration
         /// </summary>
@@ -105,7 +111,11 @@ namespace InputshareLib.Server
             IsLocalhost = true;
         }
 
-        public Hotkey CurrentHotkey { get; set; }
+        private Hotkey currentHotkey;
+        public Hotkey CurrentHotkey { get { return currentHotkey; } set { currentHotkey = value; HotkeyChanged?.Invoke(this, null); } }
+        public event EventHandler HotkeyChanged;
+
+        public event EventHandler<Edge> ClientEdgeUpdated;
 
         /// <summary>
         /// Returns the client at the specified edge of this client.
@@ -149,19 +159,19 @@ namespace InputshareLib.Server
             {
                 case Edge.Bottom:
                     BottomClient = client;
-                    return;
+                    break;
                 case Edge.Left:
                     LeftClient = client;
-                    return;
+                    break;
                 case Edge.Right:
                     RightClient = client;
-                    return;
+                    break;
                 case Edge.Top:
                     TopClient = client;
-                    return;
+                    break;
             }
 
-            throw new ArgumentException("Invalid edge");
+            ClientEdgeUpdated?.Invoke(this, edge);
         }
 
         /// <summary>
@@ -384,7 +394,7 @@ namespace InputshareLib.Server
         private void HandleDisplayConfigMessage(DisplayConfigMessage message)
         {
             DisplayConfiguration = new DisplayConfig(message.ConfigData);
-            ClientDisplayConfigUpdated.Invoke(this, DisplayConfiguration);
+            ClientDisplayConfigUpdated?.Invoke(this, DisplayConfiguration);
         }
 
         public enum ClientDeclinedReason

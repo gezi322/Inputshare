@@ -75,9 +75,14 @@ namespace Inputshare.ViewModels
             HotkeyEnterCommand = ReactiveCommand.Create(ExecHotkeyEnter);
             serverInstance = server;
             server.ClientConnected += Server_ClientConnected;
-            server.ClientDisconnected += Server_ClientDisconnected;
             server.InputClientSwitched += Server_InputClientSwitched;
+            server.ClientDisconnected += Server_ClientDisconnected;
             BuildFunctionList();
+        }
+
+        private void Server_ClientDisconnected(object sender, ClientInfo e)
+        {
+            UpdateClientList();
         }
 
         private void BuildFunctionList()
@@ -136,8 +141,8 @@ namespace Inputshare.ViewModels
                 Hotkey k = new Hotkey(a, mods);
 #endif
 
-                serverInstance.SetHotkeyForClient(selectedClient, k);
-                ClientSettingsHotkeyButtonText = serverInstance.GetHotkeyForClient(selectedClient).Key.ToString();
+                SelectedClient.SetHotkey(k);
+                ClientSettingsHotkeyButtonText = SelectedClient.ClientHotkey.Key.ToString();
             }
             catch(Exception ex)
             {
@@ -224,7 +229,7 @@ namespace Inputshare.ViewModels
             if (selectedClient == null || selectedClient == ClientInfo.None || client == null)
                 return;
 
-            serverInstance.SetClientEdge(client, edge, selectedClient);
+            SelectedClient.SetEdge(edge, client);
             UpdateClientList();
         }
 
@@ -236,7 +241,7 @@ namespace Inputshare.ViewModels
         private void Server_Started(object sender, EventArgs e)
         {
             ClientListItems.Clear();
-            ClientListItems.Add(serverInstance.GetLocalhost());
+            UpdateClientList();
         }
 
         private void Server_InputClientSwitched(object sender, InputshareLib.Server.API.ClientInfo client)
@@ -244,12 +249,18 @@ namespace Inputshare.ViewModels
             UpdateCurrentInputClient(client);
         }
 
-        private void Server_ClientDisconnected(object sender, InputshareLib.Server.API.ClientInfo client)
+        private void Server_ClientConnected(object sender, InputshareLib.Server.API.ClientInfo client)
+        {
+            UpdateClientList();
+            client.PropertyChanged += Client_PropertyChanged;
+        }
+
+        private void Client_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             UpdateClientList();
         }
 
-        private void Server_ClientConnected(object sender, InputshareLib.Server.API.ClientInfo client)
+        private void Client_Disconnected(object sender, string e)
         {
             UpdateClientList();
         }
@@ -282,7 +293,7 @@ namespace Inputshare.ViewModels
         {
             FhHotkeyHeaderText = "Hotkey for function " + func;
             this.RaisePropertyChanged(nameof(FhHotkeyHeaderText));
-            Hotkey hk = serverInstance.GetHotkeyForFunction(func);
+            Hotkey hk = serverInstance.GetHotkey(func);
             HotkeyFunctionButtonText = hk.Key.ToString();
             this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
 
@@ -337,9 +348,9 @@ namespace Inputshare.ViewModels
                 Hotkey k = new Hotkey(a, mods);
 #endif
 
-                serverInstance.SetHotkeyForFunction(k, SelectedHotkeyFunction);
-                HotkeyFunctionButtonText = serverInstance.GetHotkeyForFunction(SelectedHotkeyFunction).Key.ToString();
-                this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
+                //serverInstance.SetHotkeyForFunction(k, SelectedHotkeyFunction);
+                //HotkeyFunctionButtonText = serverInstance.GetHotkeyForFunction(SelectedHotkeyFunction).Key.ToString();
+                //this.RaisePropertyChanged(nameof(HotkeyFunctionButtonText));
             }
             catch (Exception ex)
             {
@@ -366,11 +377,11 @@ namespace Inputshare.ViewModels
             
             if(rate == 0)
             {
-                serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Realtime);
+                //serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Realtime);
             }
             else
             {
-                serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Buffered, rate);
+                //serverInstance.SetMouseInputMode(InputshareLib.Input.MouseInputMode.Buffered, rate);
             }
         }
         #endregion

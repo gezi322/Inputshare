@@ -123,6 +123,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
 
         public override void CheckForDrop()
         {
+            ISLogger.Write("Checking for drop");
+
             if(!Running)
                 throw new InvalidOperationException("DragDrop manager not running");
 

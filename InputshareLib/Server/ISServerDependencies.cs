@@ -1,4 +1,5 @@
-﻿using InputshareLib.Linux;
+﻿using System;
+using InputshareLib.Linux;
 using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Displays;
 using InputshareLib.PlatformModules.DragDrop;

@@ -12,8 +12,8 @@ namespace Inputshare.Cli
 
         public CliServer(StartOptions options)
         {
-            server = new ISServer(GetDependencies(), options);
-            server.Start(options.SpecifiedStartPort);
+            server = new ISServer();
+            server.Start(GetDependencies(), options, options.SpecifiedStartPort);
         }
 
         private ISServerDependencies GetDependencies()

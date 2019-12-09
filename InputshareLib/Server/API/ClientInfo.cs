@@ -9,16 +9,42 @@ namespace InputshareLib.Server.API
     /// <summary>
     /// Represents a client connected to the inputshare server (for use with a UI)
     /// </summary>
-    public class ClientInfo
+    public class ClientInfo : INotifyPropertyChanged
     {
-        public ClientInfo(string name, Guid id, DisplayConfig displayConf, Hotkey clientHotkey, IPEndPoint clientAddress, bool udpEnabled)
+        public event EventHandler<string> Disconnected;
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private ISServerSocket host;
+        private ClientManager clientMan;
+
+        internal ClientInfo(ISServerSocket client, ClientManager clientManager)
         {
-            Name = name;
-            Id = id;
-            DisplayConf = displayConf;
-            ClientHotkey = clientHotkey;
-            ClientAddress = clientAddress;
-            UdpEnabled = udpEnabled;
+            clientMan = clientManager;
+            host = client;
+
+            if (host == null)
+                host = ISServerSocket.Localhost;
+
+            host.ConnectionError += Disconnected;
+            host.ClientEdgeUpdated += Host_ClientEdgeUpdated;
+        }
+
+        private void Host_ClientEdgeUpdated(object sender, Edge e)
+        {
+            switch (e) {
+                case Edge.Bottom:
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BottomClient)));
+                    return;
+                case Edge.Left:
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LeftClient)));
+                    return;
+                case Edge.Right:
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RightClient)));
+                    return;
+                case Edge.Top:
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TopClient)));
+                    return;
+            }
         }
 
         public override bool Equals(object obj)
@@ -36,45 +62,28 @@ namespace InputshareLib.Server.API
             return Name;
         }
 
-        public ClientInfo LeftClient { get; internal set; }
-        public ClientInfo RightClient { get; internal set; }
-        public ClientInfo TopClient { get; internal set; }
-        public ClientInfo BottomClient { get; internal set; }
-        public bool InputClient { get; internal set; } = false;
-        public string Name { get; }
-        public Guid Id { get; }
-        public DisplayConfig DisplayConf { get; }
-        public Hotkey ClientHotkey { get; }
-        public IPEndPoint ClientAddress { get; }
-        public bool UdpEnabled { get; }
-        public static ClientInfo None = new ClientInfo("None", Guid.NewGuid(), null, null, null, false);
+        public ClientInfo LeftClient { get { return host.LeftClient == null ? ClientInfo.None : new ClientInfo(host.LeftClient, clientMan); } }
+        public ClientInfo RightClient { get { return host.RightClient == null ? ClientInfo.None : new ClientInfo(host.RightClient, clientMan); } }
+        public ClientInfo TopClient { get { return host.TopClient == null ? ClientInfo.None : new ClientInfo(host.TopClient, clientMan); } }
+        public ClientInfo BottomClient { get { return host.BottomClient == null ? ClientInfo.None : new ClientInfo(host.BottomClient, clientMan); } }
+        public bool InputClient { get { return false; } }
+        public string Name { get { return host.ClientName; } }
+        public Guid Id { get { return host.ClientId; } }
+        public DisplayConfig DisplayConf { get { return host.DisplayConfiguration == null ? new DisplayConfig(new System.Drawing.Rectangle(0, 0, 0, 0), new System.Collections.Generic.List<Display>()) : host.DisplayConfiguration; } }
+        public Hotkey ClientHotkey { get { return host.CurrentHotkey == null ? new Hotkey(0, 0) : host.CurrentHotkey; } } 
+        public IPEndPoint ClientAddress { get { return host.ClientEndpoint; } }
+        public bool UdpEnabled { get { return host.UdpEnabled; } }
 
-        public static bool operator ==(ClientInfo a, ClientInfo b)
+        public static ClientInfo None = new ClientInfo(ISServerSocket.None, null);
+
+        public void SetEdge(Edge e, ClientInfo info)
         {
-            if (ReferenceEquals(a, null))
-            {
-                if (ReferenceEquals(b, null))
-                {
-                    return true;
-                }
-                return false;
-            }
-            if (ReferenceEquals(b, null))
-            {
-                if (ReferenceEquals(a, null))
-                {
-                    return true;
-                }
-                return false;
-            }
-
-
-            return a.Id == b.Id;
+            host.SetClientAtEdge(e, clientMan.GetClientFromInfo(info));
         }
 
-        public static bool operator !=(ClientInfo a, ClientInfo b)
+        public void SetHotkey(Hotkey hk)
         {
-            return !(a == b);
+            host.CurrentHotkey = hk;
         }
     }
 }

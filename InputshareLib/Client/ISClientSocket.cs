@@ -290,7 +290,8 @@ namespace InputshareLib.Client
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
                 Thread.Sleep(2000);
-                Connect(ServerAddress, conInfo);
+                if (!IsConnected)
+                    Connect(ServerAddress, conInfo);
             }
             AttemptingConnection = false;
         }
@@ -306,7 +307,8 @@ namespace InputshareLib.Client
             if (AutoReconnect)
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Connect(ServerAddress, conInfo);
+                if (!IsConnected)
+                    Connect(ServerAddress, conInfo);
             }
         }
 
@@ -325,7 +327,9 @@ namespace InputshareLib.Client
 
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
                 Thread.Sleep(2000);
-                Connect(ServerAddress, conInfo);
+
+                if(!IsConnected)
+                    Connect(ServerAddress, conInfo);
             }
             else
             {

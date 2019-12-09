@@ -56,9 +56,17 @@ namespace Inputshare.ViewModels
                 options.Add("NoClipboard");
             if (!EnableUdpChecked)
                 options.Add("NoUdp");
+            StartOptions args = new StartOptions(options);
+            serverInstance.Start(GetDependencies(), args, int.Parse(PortEntryText));
+        }
 
-            serverInstance.SetStartArgs(new StartOptions(options));
-            serverInstance.Start(int.Parse(PortEntryText));
+        private ISServerDependencies GetDependencies()
+        {
+#if WindowsBuild
+            return InputshareLibWindows.WindowsDependencies.GetServerDependencies();
+#elif LinuxBuild
+            return ISServerDependencies.GetLinuxDependencies();
+#endif
         }
 
     }
