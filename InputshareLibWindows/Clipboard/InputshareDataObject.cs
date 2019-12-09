@@ -1,345 +1,400 @@
-﻿using InputshareLib;
+﻿ using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
-using System.Security.Permissions;
+using System.Text;
 using System.Windows.Forms;
+using static InputshareLibWindows.Native.Ole32;
+using static InputshareLibWindows.Native.User32;
+using InputshareLibWindows.Native;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
+using IDataObject = System.Runtime.InteropServices.ComTypes.IDataObject;
+using System.Runtime.InteropServices.ComTypes;
+using IStream = System.Runtime.InteropServices.ComTypes.IStream;
+using System.Drawing;
+using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
+using System.Linq;
 
 namespace InputshareLibWindows.Clipboard
 {
-    public class InputshareDataObject : DataObject, System.Runtime.InteropServices.ComTypes.IDataObject, IAsyncOperation
+    public class InputshareDataObject : IDataObject, IAsyncOperation
     {
+        private static readonly uint InputshareClipboardFormatId;
+
+        static InputshareDataObject()
+        {
+            InputshareClipboardFormatId = RegisterClipboardFormatA("InputshareData");
+            ISLogger.Write("Registered clipboard format 'InputshareData'. Format = " + InputshareClipboardFormatId);
+        }
+
+        public event EventHandler FilesPasted;
+
         public event EventHandler DropSuccess;
-        public event EventHandler DropComplete;
 
         
-        public ClipboardDataType objectType { get; private set; }
+        private MemoryStream fileDescriptorStream;
+        private readonly List<ManagedRemoteIStream> streams = new List<ManagedRemoteIStream>();
+
+        private short formatFileContentsId = (short)DataFormats.GetFormat("FileContents").Id;
+        private short formatFileDescriptorId = (short)DataFormats.GetFormat("FileGroupDescriptorW").Id;
+        private short formatTextId = (short)DataFormats.GetFormat(DataFormats.UnicodeText).Id;
+        private short formatBitmapId = (short)DataFormats.GetFormat(DataFormats.Bitmap).Id;
+
+        private IntPtr S_OK = new IntPtr(0);
+        private IntPtr S_FALSE = new IntPtr(1);
 
         public Guid OperationGuid { get; private set; }
 
-        bool reportedSuccess = false;
+        private List<FORMATETC> supportedFormats = new List<FORMATETC>();
 
-        private Int32 m_lindex;
+        private string storedText;
+        private Bitmap storedImage;
+        private readonly ClipboardVirtualFileData storedFiles;
 
-        private List<ClipboardVirtualFileData.FileAttributes> operationFiles;
-        private MemoryStream fileDescriptorStream;
-        private List<ManagedRemoteIStream> streams = new List<ManagedRemoteIStream>();
+        private bool isDragDropData;
 
-        public InputshareDataObject(ClipboardTextData text, Guid operationId)
+        public InputshareDataObject(ClipboardDataBase data, bool isDragDrop)
         {
-            objectType = ClipboardDataType.Text;
-            OperationGuid = operationId;
-            SetData(DataFormats.Text, text.Text);
-        }
+            isDragDropData = isDragDrop;
+            OperationGuid = data.OperationId;
 
-        public InputshareDataObject(Image image, Guid operationId)
-        {
-            objectType = ClipboardDataType.Image;
-            OperationGuid = operationId;
-            SetImage(image);
-        }
-
-        public InputshareDataObject(List<ClipboardVirtualFileData.FileAttributes> files, Guid operationId)
-        {
-            objectType = ClipboardDataType.File;
-            OperationGuid = operationId;
-            fileDescriptorStream = GetFileDescriptor(files);
-            foreach (var file in files)
+            supportedFormats.Add(new FORMATETC
             {
-                ManagedRemoteIStream str = new ManagedRemoteIStream(file);
-                streams.Add(str);
-            }
+                cfFormat = (short)InputshareClipboardFormatId,
+                dwAspect = DVASPECT.DVASPECT_CONTENT,
+                lindex = -1,
+                ptd = IntPtr.Zero,
+                tymed = TYMED.TYMED_HGLOBAL
+            });
 
-            operationFiles = files;
-
-            byte[] a = BitConverter.GetBytes((int)DragDropEffects.Copy);
-
-            IntPtr p = Marshal.AllocHGlobal(a.Length);
-            Marshal.Copy(a, 0, p, a.Length);
-
-            SetData(NativeMethods.CFSTR_FILEDESCRIPTORW, null);
-            SetData(NativeMethods.CFSTR_FILECONTENTS, null);
-            SetData(NativeMethods.CFSTR_PERFORMEDDROPEFFECT, null);
-            SetData(NativeMethods.CFSTR_PREFERREDDROPEFFECT, IntPtr.Zero);
-            SetData("InputshareFileData", "Inputshare object");
-        }
-
-        public override object GetData(string format, bool autoConvert)
-        {
-            //Don't tell the shell that we have file contents if we only have text or an image
-            if(objectType == ClipboardDataType.File)
+            if (data is ClipboardTextData cbText)
             {
-                if (String.Compare(format, NativeMethods.CFSTR_FILEDESCRIPTORW, StringComparison.OrdinalIgnoreCase) == 0 && operationFiles != null)
+                supportedFormats.Add(new FORMATETC
                 {
-                    base.SetData(NativeMethods.CFSTR_FILEDESCRIPTORW, fileDescriptorStream);
-                }
-                else if (String.Compare(format, NativeMethods.CFSTR_FILECONTENTS, StringComparison.OrdinalIgnoreCase) == 0)
+                    cfFormat = formatTextId,
+                    dwAspect = DVASPECT.DVASPECT_CONTENT,
+                    lindex = -1,
+                    ptd = IntPtr.Zero,
+                    tymed = TYMED.TYMED_HGLOBAL
+                });
+
+                storedText = cbText.Text;
+            }
+            else if (data is ClipboardVirtualFileData cbFiles)
+            {
+                storedFiles = cbFiles;
+
+                supportedFormats.Add(new FORMATETC
                 {
-                    base.SetData(NativeMethods.CFSTR_FILECONTENTS, GetFileContents(m_lindex));
-                }
-                else if (String.Compare(format, NativeMethods.CFSTR_PERFORMEDDROPEFFECT, StringComparison.OrdinalIgnoreCase) == 0)
+                    cfFormat = formatFileContentsId,
+                    dwAspect = DVASPECT.DVASPECT_CONTENT,
+                    lindex = -1,
+                    ptd = IntPtr.Zero,
+                    tymed = TYMED.TYMED_ISTREAM
+                });
+
+                supportedFormats.Add(new FORMATETC
                 {
-                    base.SetData(NativeMethods.CFSTR_PREFERREDDROPEFFECT, DragDropEffects.All);
-                }
+                    cfFormat = formatFileDescriptorId,
+                    dwAspect = DVASPECT.DVASPECT_CONTENT,
+                    lindex = -1,
+                    ptd = IntPtr.Zero,
+                    tymed = TYMED.TYMED_HGLOBAL
+                });
+
+                supportedFormats.Add(new FORMATETC
+                {
+                    cfFormat = (short)DataFormats.GetFormat("Preferred DropEffect").Id,
+                    dwAspect = DVASPECT.DVASPECT_CONTENT,
+                    lindex = -1,
+                    ptd = IntPtr.Zero,
+                    tymed = TYMED.TYMED_HGLOBAL
+                });
 
             }
-            return base.GetData(format, autoConvert);
+            else if (data is ClipboardImageData cbImage)
+            {
+                using (MemoryStream ms = new MemoryStream(cbImage.ImageData))
+                {
+                    storedImage = (Bitmap)Image.FromStream(ms);
+                }
+
+                supportedFormats.Add(new FORMATETC
+                {
+                    cfFormat = formatBitmapId,
+                    dwAspect = DVASPECT.DVASPECT_CONTENT,
+                    lindex = -1,
+                    ptd = IntPtr.Zero,
+                    tymed = TYMED.TYMED_GDI
+                });
+
+            }
         }
 
-        void System.Runtime.InteropServices.ComTypes.IDataObject.SetData(ref FORMATETC format, ref STGMEDIUM medium, bool release)
+        ~InputshareDataObject()
         {
-
+            storedImage?.Dispose();
+            fileDescriptorStream?.Dispose();
         }
 
-        [SecurityPermission(SecurityAction.Demand, Flags = SecurityPermissionFlag.UnmanagedCode)]
-        void System.Runtime.InteropServices.ComTypes.IDataObject.GetData(ref System.Runtime.InteropServices.ComTypes.FORMATETC formatetc, out System.Runtime.InteropServices.ComTypes.STGMEDIUM medium)
+        public IEnumFORMATETC EnumFormatEtc(DATADIR direction)
+        {
+            int a = SHCreateStdEnumFmtEtc((uint)supportedFormats.Count, supportedFormats.ToArray(), out IEnumFORMATETC enumer);
+
+            if (a != 0)
+                throw new Win32Exception();
+
+            return enumer;
+        }
+
+
+        public int GetCanonicalFormatEtc(ref FORMATETC formatIn, out FORMATETC formatOut)
+        {
+            formatOut = new FORMATETC();
+            return 1;
+        }
+
+        public void GetData(ref FORMATETC format, out STGMEDIUM medium)
+        {
+            medium = new STGMEDIUM();
+
+            if (format.cfFormat == formatTextId)
+                GetDataText(ref format, ref medium);
+            else if (format.cfFormat == formatFileDescriptorId)
+                GetDataFileDescriptor(ref format, ref medium);
+            else if (format.cfFormat == formatFileContentsId)
+                GetDataFileContents(ref format, ref medium);
+            else if (format.cfFormat == formatBitmapId)
+                GetDataBitmap(ref format, ref medium);
+            else if (format.cfFormat == (short)InputshareClipboardFormatId)
+                GetDataInputshareData(ref format, ref medium);
+            //else
+               //ISLogger.Write("Shell requested unsupported format {0} (using {1})", DataFormats.GetFormat(format.cfFormat).Name, format.tymed);
+
+            return;
+        }
+
+        private void GetDataInputshareData(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            medium.tymed = TYMED.TYMED_HGLOBAL;
+
+            byte[] rawGuid = OperationGuid.ToByteArray();
+
+            IntPtr hMem = Marshal.AllocHGlobal(rawGuid.Length);
+            Marshal.Copy(rawGuid, 0, hMem, rawGuid.Length);
+            medium.unionmember = hMem;
+        }
+
+        private void GetDataFileContents(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            if (format.lindex == -1)
+                return;
+
+            try
+            {
+                if (streams.Count == 0)
+                {
+                    try
+                    {
+                        Guid token = storedFiles.RequestTokenMethod(storedFiles.OperationId).Result;
+                        foreach (var file in storedFiles.AllFiles)
+                        {
+                            streams.Add(new ManagedRemoteIStream(file, storedFiles, token));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ISLogger.Write("Failed to get access token for clipboard operation: " + ex.Message);
+                        return;
+                    }
+                }
+
+                medium.tymed = TYMED.TYMED_ISTREAM;
+                IStream o = streams[format.lindex];
+                medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to transfer file contents to shell: " + ex.Message);
+            }
+        }
+
+        private void GetDataFileDescriptor(ref FORMATETC format, ref STGMEDIUM medium)
         {
             try
             {
-                medium = new System.Runtime.InteropServices.ComTypes.STGMEDIUM();
-                
-                if (formatetc.cfFormat == (Int16)DataFormats.GetFormat(NativeMethods.CFSTR_FILECONTENTS).Id)
-                    m_lindex = formatetc.lindex;
-               
-                if (GetTymedUseable(formatetc.tymed))
+                if (format.tymed != TYMED.TYMED_HGLOBAL)
                 {
-                    if ((formatetc.tymed & TYMED.TYMED_ISTREAM) != TYMED.TYMED_NULL)
-                    {
-                        if (objectType != ClipboardDataType.File)
-                            return;
-                            
-                        try
-                        {
-                            //DropSuccess?.Invoke(this, null);
-                            medium.tymed = TYMED.TYMED_ISTREAM;
-                            IStream o = (IStream)GetData("FileContents", false);
-                            medium.unionmember = Marshal.GetComInterfaceForObject(o, typeof(IStream));
-                            return;
-                        }
-                        catch (Exception)
-                        {
-                            //ISLogger.Write("InputshareDataObject: Get FileContents failed: " + ex.Message);
-                            return;
-                        }
-                    }
-                    else if ((formatetc.tymed & TYMED.TYMED_HGLOBAL) != TYMED.TYMED_NULL)
-                    {
-                        medium.tymed = TYMED.TYMED_HGLOBAL;
-                        medium.unionmember = NativeMethods.GlobalAlloc(NativeMethods.GHND | NativeMethods.GMEM_DDESHARE, 1);
-                        if (medium.unionmember == IntPtr.Zero)
-                        {
-                            throw new OutOfMemoryException();
-                        }
-                        try
-                        {
+                    ISLogger.Write("Shell requested file descriptor via tymed {0}. Not supported", format.tymed);
+                    return;
+                }
 
-                            ((System.Runtime.InteropServices.ComTypes.IDataObject)this).GetDataHere(ref formatetc, ref medium);
-                            return;
-                        }
-                        catch
-                        {
-                            NativeMethods.GlobalFree(new HandleRef((STGMEDIUM)medium, medium.unionmember));
-                            medium.unionmember = IntPtr.Zero;
-                            return;
-                        }
-                    }
-                    medium.tymed = formatetc.tymed;
-                    ((System.Runtime.InteropServices.ComTypes.IDataObject)this).GetDataHere(ref formatetc, ref medium);
-                }
-                else
-                {
-                    Marshal.ThrowExceptionForHR(NativeMethods.DV_E_TYMED);
-                }
+                if (fileDescriptorStream == null)
+                    fileDescriptorStream = FILEDESCRIPTOR.GenerateFileDescriptor(storedFiles.AllFiles);
+
+                byte[] desc = fileDescriptorStream.ToArray();
+                medium.tymed = TYMED.TYMED_HGLOBAL;
+                medium.unionmember = CopyToHGlobal(desc);
             }catch(Exception ex)
             {
-                medium = new STGMEDIUM();
-                ISLogger.Write("InputshareDataObject: " + ex.Message);
+                ISLogger.Write("Failed to transfer file descriptor to shell: " + ex.Message);
+            }
+        }
+
+        private void GetDataBitmap(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            if (format.tymed != TYMED.TYMED_GDI)
+            {
+                ISLogger.Write("Shell requested bitmap via tymed {0}. Not supported", format.tymed);
+                return;
+            }
+
+            if(storedImage == null)
+            {
+                ISLogger.Write("Shell requested an image even though we don't have one");
+                return;
+            }
+
+            medium.tymed = TYMED.TYMED_GDI;
+            medium.unionmember = storedImage.GetHbitmap();
+            medium.pUnkForRelease = null;
+        }
+
+        private void GetDataText(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            if (format.tymed != TYMED.TYMED_HGLOBAL)
+            {
+                ISLogger.Write("Shell requested text via tymed {0}. Not supported", format.tymed);
+                return;
+            }
+
+            if(storedText == null)
+            {
+                ISLogger.Write("Shell requested text even though we don't have any");
+                return;
+            }
+
+            try
+            {
+                medium.tymed = TYMED.TYMED_HGLOBAL;
+                byte[] textData = Encoding.Unicode.GetBytes(storedText);
+                medium.unionmember = CopyToHGlobal(textData);
+                medium.pUnkForRelease = null;
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("Failed to return text data to shell ({0}): {1}", format.tymed, ex.Message);
+            }
+        }
+
+        private IntPtr CopyToHGlobal(byte[] data)
+        {
+            IntPtr ptr = Marshal.AllocHGlobal(data.Length);
+
+            if (ptr == IntPtr.Zero)
+                throw new Win32Exception();
+
+            Marshal.Copy(data, 0, ptr, data.Length);
+            return ptr;
+        }
+
+        public void GetDataHere(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            if (format.cfFormat == formatFileDescriptorId)
+                GetDataFileDescriptor(ref format, ref medium);
+            else if (format.cfFormat == formatFileContentsId)
+                GetDataFileContents(ref format, ref medium);
+        }
+
+        public int QueryGetData(ref FORMATETC format)
+        {
+            if((int)format.tymed == -1)
+            {
+                foreach (var f in supportedFormats)
+                    if (f.cfFormat == format.cfFormat)
+                        return (int)S_OK;
+            }
+            else
+            {
+                foreach (var f in supportedFormats)
+                    if (f.cfFormat == format.cfFormat && f.tymed == format.tymed)
+                        return (int)S_OK;
+            }
+
+            return (int)S_FALSE;
+        }
+
+        public void SetData(ref FORMATETC formatIn, ref STGMEDIUM medium, bool release)
+        {
+        }
+
+        public int DAdvise([In] ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
+        {
+            connection = -1;
+            return (int)S_FALSE;
+        }
+
+        public void DUnadvise(int connection)
+        {
+        }
+
+        public int EnumDAdvise(out IEnumSTATDATA enumAdvise)
+        {
+            enumAdvise = null;
+            return (int)S_FALSE;
+        }
+
+
+        private const int VARIANT_TRUE = -1;
+        private const int VARIANT_FALSE = 0;
+
+        private bool asyncInOperation = false;
+        public void SetAsyncMode([In] int fDoOpAsync)
+        {
+
+        }
+
+        public void GetAsyncMode([Out] out int pfIsOpAsync)
+        {
+            pfIsOpAsync = VARIANT_TRUE;
+        }
+
+        public void StartOperation([In] IBindCtx pbcReserved)
+        {
+            asyncInOperation = true;
+
+            if (isDragDropData)
+            {
+                DropSuccess?.Invoke(this, new EventArgs());
+                return;
             }
             
-        }
-
-        private static Boolean GetTymedUseable(TYMED tymed)
-        {
-            for (Int32 i = 0; i < ALLOWED_TYMEDS.Length; i++)
+            if(storedFiles != null)
             {
-                if ((tymed & ALLOWED_TYMEDS[i]) != TYMED.TYMED_NULL)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private MemoryStream GetFileDescriptor(List<ClipboardVirtualFileData.FileAttributes> files)
-        {
-            try
-            {
-                MemoryStream FileDescriptorMemoryStream = new MemoryStream();
-                // Write out the FILEGROUPDESCRIPTOR.cItems value
-                FileDescriptorMemoryStream.Write(BitConverter.GetBytes(files.Count), 0, sizeof(UInt32));
-
-                FILEDESCRIPTOR FileDescriptor = new FILEDESCRIPTOR();
-                foreach (var si in files)
-                {
-                    string n = si.RelativePath;
-
-                    //If the file is in the root folder of the operation, the relative path will not be set!
-                    if (string.IsNullOrEmpty(si.RelativePath))
-                    {
-                        n = si.FileName;
-                    }
-
-                    FileDescriptor.cFileName = n;
-                    Int64 FileWriteTimeUtc = si.LastChangeTime.ToFileTimeUtc();
-                    FileDescriptor.ftLastWriteTime.dwHighDateTime = (Int32)(FileWriteTimeUtc >> 32);
-                    FileDescriptor.ftLastWriteTime.dwLowDateTime = (Int32)(FileWriteTimeUtc & 0xFFFFFFFF);
-                    FileDescriptor.nFileSizeHigh = (UInt32)(si.FileSize >> 32);
-                    FileDescriptor.nFileSizeLow = (UInt32)(si.FileSize & 0xFFFFFFFF);
-                    FileDescriptor.dwFlags = NativeMethods.FD_WRITESTIME | NativeMethods.FD_FILESIZE | NativeMethods.FD_PROGRESSUI;
-
-                    Int32 FileDescriptorSize = Marshal.SizeOf(FileDescriptor);
-                    IntPtr FileDescriptorPointer = Marshal.AllocHGlobal(FileDescriptorSize);
-                    Marshal.StructureToPtr(FileDescriptor, FileDescriptorPointer, true);
-                    Byte[] FileDescriptorByteArray = new Byte[FileDescriptorSize];
-                    Marshal.Copy(FileDescriptorPointer, FileDescriptorByteArray, 0, FileDescriptorSize);
-                    Marshal.FreeHGlobal(FileDescriptorPointer);
-                    FileDescriptorMemoryStream.Write(FileDescriptorByteArray, 0, FileDescriptorByteArray.Length);
-                }
-                return FileDescriptorMemoryStream;
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Get file descriptor failed: " + ex.Message);
-                return null;
+                FilesPasted?.Invoke(this, new EventArgs());
             }
         }
 
-        private IStream GetFileContents(Int32 FileNumber)
+        public void InOperation([Out] out int pfInAsyncOp)
         {
-            if (FileNumber == -1)
+            pfInAsyncOp = asyncInOperation ? VARIANT_TRUE : VARIANT_FALSE;
+        }
+
+        public void EndOperation([In] int hResult, [In] IBindCtx pbcReserved, [In] uint dwEffects)
+        {
+            asyncInOperation = false;
+
+            //This method is called when the file data (could be pasted clipboard data, or a dragdrop operation)
+            //has finished transfering to the target application. We can use this if we need a DataTransferComplete event.
+            //This method also gets called if the operation fails or is cancelled
+
+            if(storedFiles != null)
             {
-                return null;
-            }
-
-            return streams[FileNumber];
-        }
-
-        private bool inOperation = false;
-        private bool completeSent = false;
-        public void SetAsyncMode(int fDoOpAsync)
-        {
-
-        }
-
-        public void GetAsyncMode(out int pfIsOpAsync)
-        {
-            pfIsOpAsync = NativeMethods.VARIANT_TRUE;
-        }
-
-        public void StartOperation(IBindCtx pbcReserved)
-        {
-            inOperation = true;
-
-            if (!reportedSuccess)
-            {
-                reportedSuccess = true;
-                DropSuccess?.Invoke(this, null);
-            }
-
-        }
-
-        public void InOperation(out int pfInAsyncOp)
-        {
-            pfInAsyncOp = inOperation ? NativeMethods.VARIANT_TRUE : NativeMethods.VARIANT_FALSE;
-        }
-
-        public void EndOperation(int hResult, IBindCtx pbcReserved, uint dwEffects)
-        {
-            inOperation = false;
-            if (!completeSent)
-            {
-                completeSent = true;
-                DropComplete?.Invoke(this, null);
+                streams?.Clear();
+                fileDescriptorStream?.Dispose();
             }
         }
-
-        private static readonly TYMED[] ALLOWED_TYMEDS =
-            new TYMED[] {
-                TYMED.TYMED_HGLOBAL,
-                TYMED.TYMED_ISTREAM,
-                TYMED.TYMED_ENHMF,
-                TYMED.TYMED_MFPICT,
-                TYMED.TYMED_GDI};
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        struct FILEDESCRIPTOR
-        {
-            public UInt32 dwFlags;
-            public Guid clsid;
-            public System.Drawing.Size sizel;
-            public System.Drawing.Point pointl;
-            public UInt32 dwFileAttributes;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftCreationTime;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftLastAccessTime;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftLastWriteTime;
-            public UInt32 nFileSizeHigh;
-            public UInt32 nFileSizeLow;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-            public String cFileName;
-        }
-
     }
 
-    public partial class NativeMethods
-    {
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        public static extern IntPtr GlobalAlloc(int uFlags, int dwBytes);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        public static extern IntPtr GlobalFree(HandleRef handle);
-
-        public const int VARIANT_FALSE = 0;
-        public const int VARIANT_TRUE = -1; 
-
-        public const string CFSTR_PREFERREDDROPEFFECT = "Preferred DropEffect";
-        public const string CFSTR_PERFORMEDDROPEFFECT = "Performed DropEffect";
-        public const string CFSTR_FILEDESCRIPTORW = "FileGroupDescriptorW";
-        public const string CFSTR_FILECONTENTS = "FileContents";
-
-        public const Int32 FD_CLSID = 0x00000001;
-        public const Int32 FD_SIZEPOINT = 0x00000002;
-        public const Int32 FD_ATTRIBUTES = 0x00000004;
-        public const Int32 FD_CREATETIME = 0x00000008;
-        public const Int32 FD_ACCESSTIME = 0x00000010;
-        public const Int32 FD_WRITESTIME = 0x00000020;
-        public const Int32 FD_FILESIZE = 0x00000040;
-        public const Int32 FD_PROGRESSUI = 0x00004000;
-        public const Int32 FD_LINKUI = 0x00008000;
-
-        public const Int32 GMEM_MOVEABLE = 0x0002;
-        public const Int32 GMEM_ZEROINIT = 0x0040;
-        public const Int32 GHND = (GMEM_MOVEABLE | GMEM_ZEROINIT);
-        public const Int32 GMEM_DDESHARE = 0x2000;
-
-        public const Int32 DV_E_TYMED = unchecked((Int32)0x80040069);
-
-
-    }
-
-
-    [ComImport]
-    [Guid("3D8B0590-F691-11d2-8EA9-006097DF5BD4")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    internal interface IAsyncOperation
-    {
-        void SetAsyncMode([In] Int32 fDoOpAsync);
-        void GetAsyncMode([Out] out Int32 pfIsOpAsync);
-        void StartOperation([In] IBindCtx pbcReserved);
-        void InOperation([Out] out Int32 pfInAsyncOp);
-        void EndOperation([In] Int32 hResult, [In] IBindCtx pbcReserved, [In] UInt32 dwEffects);
-    }
 }

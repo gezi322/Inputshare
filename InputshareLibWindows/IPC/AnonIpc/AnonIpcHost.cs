@@ -23,10 +23,11 @@ namespace InputshareLibWindows.IPC.AnonIpc
         public event EventHandler<DisplayConfig> DisplayConfigUpdated;
         public event EventHandler<bool> LeftMouseStateUpdated;
         public event EventHandler<ClipboardDataBase> DataDropped;
-        public event EventHandler<Guid> DragDropComplete;
-        public event EventHandler<Guid> DragDropCancelled;
-        public event EventHandler<Guid> DragDropSuccess;
+        public event EventHandler DragDropComplete;
+        public event EventHandler DragDropCancelled;
+        public event EventHandler DragDropSuccess;
         public event EventHandler<StreamReadRequestArgs> RequestedReadStream;
+        public event EventHandler<FileTokenRequestArgs> RequestedFileToken;
 
         public string ReadStringHandle { get; private set; }
         public string WriteStringHandle { get; private set; }
@@ -75,19 +76,28 @@ namespace InputshareLibWindows.IPC.AnonIpc
             else if (type == IpcMessageType.AnonIpcDoDragDrop)
                 DataDropped?.Invoke(this, new AnonIpcDoDragDropMessage(data).DropData);
             else if (type == IpcMessageType.AnonIpcDragDropCancelled)
-                DragDropCancelled?.Invoke(this, new IpcMessage(data).MessageId);
+                DragDropCancelled?.Invoke(this, null);
             else if (type == IpcMessageType.AnonIpcDragDropSuccess)
-                DragDropSuccess?.Invoke(this, new IpcMessage(data).MessageId);
+                DragDropSuccess?.Invoke(this, null);
             else if (type == IpcMessageType.AnonIpcDragDropComplete)
-                DragDropComplete?.Invoke(this, new IpcMessage(data).MessageId);
+                DragDropComplete?.Invoke(this, null);
             else if (type == IpcMessageType.AnonIpcStreamReadRequest)
                 HandleReadStreamRequest(new AnonIpcReadStreamRequestMessage(data));
+            else if (type == IpcMessageType.AnonIpcRequestFileToken)
+                HandleTokenRequest(new AnonIpcRequestFileTokenMessage(data));
         }
 
         private void HandleReadStreamRequest(AnonIpcReadStreamRequestMessage message)
         {
+
             StreamReadRequestArgs args = new StreamReadRequestArgs(message.MessageId, message.Token, message.FileId, message.ReadLen);
             RequestedReadStream?.Invoke(this, args);
+        }
+
+        private void HandleTokenRequest(AnonIpcRequestFileTokenMessage message)
+        {
+            RequestedFileToken?.Invoke(this, new FileTokenRequestArgs(message.MessageId, message.OperationId));
+
         }
 
         public void SendClipboardData(ClipboardDataBase data)
@@ -121,6 +131,11 @@ namespace InputshareLibWindows.IPC.AnonIpc
             Write(new AnonIpcReadStreamResponseMessage(data, messageId));
         }
 
+        public void SendFileTokenResponse(Guid messageId, Guid token)
+        {
+            Write(new AnonIpcRequestFileTokenResponseMessage(token, messageId));
+        }
+
         protected override void Dispose(bool disposing)
         {
             readPipe?.Dispose();
@@ -142,6 +157,18 @@ namespace InputshareLibWindows.IPC.AnonIpc
             public Guid Token { get; }
             public Guid FileId { get; }
             public int ReadLen { get; }
+        }
+
+        public class FileTokenRequestArgs
+        {
+            public FileTokenRequestArgs(Guid messageId, Guid operation)
+            {
+                MessageId = messageId;
+                Operation = operation;
+            }
+
+            public Guid MessageId { get; }
+            public Guid Operation { get; }
         }
     }
 }

@@ -1,83 +1,55 @@
-readme
+﻿# Inputshare
 
-# Inputshare #
+Inputshare allows you to use one keyboard and mouse across multiple PCs. Inputshare currently runs on Linux & windows using dotnet core. This project is still unfinished but progress is being made.
 
-The goal of inputshare is to make using multiple computers at the same time easier. Inputshare allows you to:
+Inputshare allows you to:
+ - quickly switch between PCs by moving the cursor onto the screen
+ - Switch between PCs with using hotkeys
+ - Share clipboard between PCs (Text,images,files)
+ - Drag and drop between PCs (Text,Images,Files)
 
-* Seamlessly switch mouse and keyboard input between computers
-* Share a global clipboard between all connected computers
-* Drag and drop text, images and files between computers 
+## Current progress 
+|  | Windows | Linux (X11) | MacOS |
+--|--|-- |--|
+| Keyboard & mouse sharing | Fully Working | Fully Working| Not implemented
+| Clipboard sharing | Fully working | Working but can't paste files (only copy) | Not implemented
+| Drag & drop support | Fully working | Not yet implemented | Not implemented
 
+## Requirements
 
+ - Dotnet core 3 runtime (including desktop apps for windows)
+ - Windows or linux OS supported by dotnet core.
 
+## Quickstart
+Inputshare can be run two ways; with a GUI or in the command line (to run in background). This section covers using the UI. For starting from the command line, see __________________. The current UI is just a mock-up using avaloniaUI and will be changed.
 
-## Demo (outdated) ##
-Quick demo:
-[![](http://img.youtube.com/vi/rlR89GpMeCE/0.jpg)](http://www.youtube.com/watch?v=rlR89GpMeCE "Inputshare demo")
+To get started, start Inputshare on the PC that has the keyboard and mouse that you want to share and select start server. Then run Inputshare on the client(s) that you want to share the keyboard and mouse with and select client and connect to the server.
 
-## Requirements ##
-* Dotnet 3 runtime (runtime + desktop apps)
-* Windows 7 or newer 
+![enter image description here](https://i.imgur.com/gIdqZMz.png)
 
-## Compiling ##
-The solution can be compiled normally using visual studio. Builds are stored in /builds/release32 or /builds/debug64 etc depending on the build setting.
+### Assigning edges
 
-Logs are stored at C:\ProgramData\sbarrac1\inputshare
+The client 'localhost' represents the server PC. To set a client to an edge of another client, select the client that you want to assign the edge to, then use the dropdown boxes to select the client to assign to the edge. The server will automatically set the opposite edge of the target client to the selected client. For example, if you had a PC to the left of the server, you could assign the PC to the left edge of localhost. This would allow you to simply move the mouse to the left of your screen to switch keyboard and mouse input to the PC, doing so would also allow you to switch back to the server by moving the mouse to the right of the PCs screen.
 
-## Using ##
+### Assigning hotkeys
 
-Run InputshareWindows.exe on the computers that you intend to use Inputshare with. When the program launches, the computer that has the keyboard and mouse that you wish to share with other computers should run the server and other computers should run the client. Both the client and server are started from InputshareWindows.exe
+Hotkeys can be assigned to clients by selecting the modifier keys that you want, then clicking on the hotkey button (Displaying F2 in the above image), the next pressed key will then be assigned to the client along with the selected modifiers. For example to assign Alt+Ctrl+F to a client, you would check the Alt and Ctrl checkboxes, then click the hotkey button and press the F key. The hotkey is only set after the button is clicked and a key is pressed. Function hotkeys are assigned the same way by using the function hotkey list at the bottom of the window.
 
-Once the server is running, start the client on the other computers and enter the address of the server.
+## Using the windows service client
+The Inputshare windows service allows much more functionality for clients. The service runs without a logged in user, meaning that It can be running from startup and can be used to log in. The service automatically connects to the last connected server, meaning that a client can be restarted and reconnected with no direct interaction. The service also runs in the background requiring to user interface except for connecting/disconnecting from servers etc, which is done from the Inputshare UI.
 
-![](https://i.imgur.com/G1Kv2S6.png)
+The service also allows the server to send alt+ctrl+delete to access the windows SAS (secure attention sequence) screen (registry edit required).
 
-Once the server has started and the clients are connected, we need to configure the server. Input can be switched between clients in two ways; either by a hotkey, or by setting the position of the client.
+### Installing the service
+The windows service must be installed before use, which is done via CMD. To install the service, run command prompt as admin and enter the command 
 
-## Using the client service ##
-The inputshare client can be run as a service, allowing more functionality. 
+'sc create Inputshareservice binpath= "path/to/inputshareservice.exe" start= auto'
 
-Benefits of the service version:
-- Runs in the background
-- Alt+ctrl+delete support
-- Runs outside of the user space, allowing it to access the windows logon and alt+ctrl+delte screen.
-- Can be set to run automatically on boot, automatically connecting to the last used server
-- Can access UAC prompts
+The service can then be started with 'sc start inputshareservice'
 
-### Installing the service ###
-The service can be simply installed from the command line. In this example the inputshare binaries (inputshareservice.exe, inputsharesp.exe ect) are located in c:\inputshare
+### Allowing alt+ctrl+delete
+By default, windows does not allow services or programs to sent alt+ctrl+delete, however this can be changed with a registry tweak. 
 
-'sc create inputshareservice binpath= C:\Inputshare\inputshareservice.exe"
-
-To allow the service to automatically start on boot, add 'start= auto' to the end of the command.
-
-**Important: Enter the command into CMD as administrator (not powershell as sc is a different command)**
-
-### Enabling Alt+Ctrl+Delete ###
-To allow windows services to trigger alt+ctrl+delete, the key SoftwareSASGeneration must be set to true.
-
-Create the DWORD key SoftwareSASGeneration in HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System and set the value to 1.
-
-## Server usage ##
-
-### Setting the position of a client ###
-Setting the position of a client allows you to simply move the cursor from one computer to another. To set a clients position, we use the display config editor. The display config editor allows you to move clients around a virtual desktop space, so when the cursor hits an edge of a client, the input is moved to the client assigned to that edge (if any).
-
-
-![](https://i.imgur.com/U9ggGBr.png)
-
-To set a clients position in the display config editor, first select a client from the left list. Then drag a client from the right list to any side of the client (drag into the label). When setting the edge of client X to client Y, the opposite edge of client X will also be assigned to client Y.
-
-
-### Assigning a hotkey to a client ###
-To assign a hotkey to a client, or to edit a function hotkey, double click on the list box item. To assign a key, click the button on the popup window and press the hotkey, once done click the button again and the hotkey will be assigned.
-
-![](https://i.imgur.com/W62w0vb.png)
-
-Hotkey modifiers can be any of the following: Alt, Ctrl, shift.
-
-
-
-## Current issues ##
-* Copy/pasting files is not yet implemented
-* Memory issues when dealing with copy/pasting images
+Create the DWORD key SoftwareSASGeneration in HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System and set the value to 1. This will allow the service to use the [SendSAS](https://docs.microsoft.com/en-us/windows/win32/api/sas/nf-sas-sendsas) function.
+### Connecting to  a server
+To connect to service to a server, start Inputshare and select the windows service option. This should allow you to connect to a server and enter a client name. When the service is started/restarted, it will automatically keep trying to reconnect to the last used server, this is useful as clients will automatically reconnect after a reboot.

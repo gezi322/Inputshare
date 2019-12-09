@@ -1,372 +1,286 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Net;
-using InputshareLib.Output;
-using System;
-using System.Net;
-using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.DragDrop;
+﻿using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
-using InputshareLib.Input;
-using System.Threading;
+using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Displays;
+using InputshareLib.FileController;
+using InputshareLib.Input;
+using InputshareLib.Net;
+using InputshareLib.PlatformModules.Clipboard;
+using InputshareLib.PlatformModules.Displays;
+using InputshareLib.PlatformModules.DragDrop;
+using InputshareLib.PlatformModules.Output;
 
 namespace InputshareLib.Client
 {
-    public sealed class ISClient
+    public class ISClient
     {
+        public bool Running { get; private set; }
 
         /// <summary>
-        /// Raised when the server sends SAS signal
+        /// Fires when alt+ctrl+delete is received
         /// </summary>
         public event EventHandler SasRequested;
 
-        public bool IsConnected
-        {
-            get
-            {
-                if (socket == null)
-                    return false;
-                else
-                    return socket.IsConnected;
-            }
-        }
-
-        public bool ActiveClient { get; private set; }
-        public IPEndPoint ServerAddress { get => lastConnectedAddress; }
-
-        public event EventHandler<bool> ActiveClientChanged;
         public event EventHandler<IPEndPoint> Connected;
         public event EventHandler<string> ConnectionFailed;
         public event EventHandler<string> ConnectionError;
         public event EventHandler Disconnected;
-        public event EventHandler ClipboardDataCopied;
+        public event EventHandler<bool> ActiveClientChanged;
 
-        private ClientEdges edges;
-        private readonly IOutputManager outMan;
-        private readonly ClipboardManagerBase clipboardMan;
-        private ISClientSocket socket = new ISClientSocket();
-        private readonly Displays.DisplayManagerBase displayMan;
-        private readonly Cursor.CursorMonitorBase curMon;
-        private readonly IDragDropManager dragDropMan;
-
-        public string ClientName { get; private set; } = Environment.MachineName;
+        public bool ActiveClient { get; private set; }
+        public string ClientName { get; set; } = Environment.MachineName;
         public Guid ClientId { get; private set; } = Guid.NewGuid();
-        private IPEndPoint lastConnectedAddress;
+        public bool AutoReconnect { get => server.AutoReconnect; set => server.AutoReconnect = value; }
+        public IPEndPoint ServerAddress { get => server.ServerAddress; }
+
+        public bool IsConnected { get => server.IsConnected; }
+
+        //Modules
+        private OutputManagerBase outMan;
+        private ClipboardManagerBase clipboardMan;
+        private DragDropManagerBase dragDropMan;
+        private DisplayManagerBase displayMan;
+
+        private FileAccessController fileController;
+        private LocalDragDropController ddController;
+        private LocalClipboardController cbController;
+        private ClientEdges assignedEdges;
+
+        private ISClientSocket server;
+        private StartOptions startArgs;
 
         /// <summary>
-        /// If true, the client will automatically keep trying to reconnect to
-        /// the last connected host
+        /// Starts the client with specified modules
         /// </summary>
-        public bool AutoReconnect { get => socket.AutoReconnect; set => socket.AutoReconnect = value; }
-
-      
-
-        private DataOperation currentClipboardOperation = new DataOperation();
-        private DataOperation currentDragDropOperation = new DataOperation();
-
-        private Dictionary<Guid, DataOperation> previousOperations = new Dictionary<Guid, DataOperation>();
-        private FileAccessController fileController = new FileAccessController();
-        private LocalDragDropController ddController;
-
-        public ISClient(ClientDependencies dependencies)
+        /// <param name="args"></param>
+        /// <param name="dependencies"></param>
+        public void Start(StartOptions args, ISClientDependencies dependencies)
         {
-            displayMan = dependencies.displayManager;
-            curMon = dependencies.cursorMonitor;
-            outMan = dependencies.outputManager;
-            clipboardMan = dependencies.clipboardManager;
-            dragDropMan = dependencies.dragDropManager;
-            ddController = new LocalDragDropController(fileController, dragDropMan);
-            Init();
-            CreateSocketEvents();
+            if (Running)
+                throw new InvalidOperationException("Client already running");
+
+            try
+            {
+                startArgs = args;
+                ISLogger.Write("Starting inputshare client...");
+                ISLogger.Write("Using args:");
+                startArgs.PrintArgs();
+                InitDependencies(dependencies);
+                InitSocket();
+                fileController = new FileAccessController();
+                cbController = new LocalClipboardController(clipboardMan, server);
+                ddController = new LocalDragDropController(dragDropMan, server);
+                AssignSocketEvents();
+                AssignModuleEvents();
+                StartModules();
+
+                AutoReconnect = args.HasArg(StartArguments.AutoReconnect);
+
+                Running = true;
+            }catch(Exception ex)
+            {
+                ISLogger.Write("An error occurred while starting client: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                Stop();
+                throw ex;
+            }
         }
 
+        /// <summary>
+        /// Stops the client
+        /// </summary>
         public void Stop()
         {
-            if (displayMan.Running)
-                displayMan.StopMonitoring();
-            if (curMon.Running)
-                curMon.StopMonitoring();
-            if (dragDropMan.Running)
-                dragDropMan.Stop();
-            if (clipboardMan.Running)
-                clipboardMan.Stop();
+            if (!Running)
+                throw new InvalidOperationException("Client not running");
 
-            socket?.Close();
+            try
+            {
+                ISLogger.Write("Stopping inputshare client...");
+
+                if (IsConnected)
+                    server.Disconnect(true);
+
+                server.Dispose();
+                fileController.DeleteAllTokens();
+                StopModules();
+            }catch(Exception ex)
+            {
+                ISLogger.Write("an error occurred while stopping client: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
+                throw ex;
+            }
+            finally
+            {
+                Running = false;
+            }
+            
+            
+        }
+
+        /// <summary>
+        /// Attempts to connect to an inputshare server
+        /// </summary>
+        /// <param name="address">Inputshare server address</param>
+        public void Connect(IPEndPoint address)
+        {
+            if (IsConnected)
+                throw new InvalidOperationException("Client already connected");
+
+            if (!Running)
+                throw new InvalidOperationException("Client not running");
+
+            server.Connect(address, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
         }
 
         public void Disconnect()
         {
             if (!IsConnected)
-                throw new InvalidOperationException("not connected");
+                throw new InvalidOperationException("Client already disconnected");
 
-            socket.Disconnect(true);
+            if (!Running)
+                throw new InvalidOperationException("Client not running");
+
+            server.Disconnect(true);
             Disconnected?.Invoke(this, null);
         }
 
-        private void Init()
+        private void InitSocket()
         {
-            displayMan.StartMonitoring();
-            displayMan.DisplayConfigChanged += OnLocalDisplayConfigChange;
-            displayMan.UpdateConfigManual();
-            curMon.EdgeHit += OnLocalEdgeHit;
-            clipboardMan.Start();
-            clipboardMan.ClipboardContentChanged += OnLocalClipboardChange;
-            dragDropMan.Start();
-            dragDropMan.DragDropSuccess += ddController.Local_DragDropSuccess;
-            dragDropMan.DragDropCancelled += ddController.Local_DragDropCancelled;
-            dragDropMan.DragDropComplete += ddController.Local_DragDropComplete;
-            dragDropMan.DataDropped += ddController.Local_DataDropped;
-            dragDropMan.FileDataRequested += DragDropMan_FileDataRequested;
-        }
-        private async void DragDropMan_FileDataRequested(object sender, IDragDropManager.RequestFileDataArgs e)
-        {
-            try
-            {
-                byte[] data = await socket.RequestReadStreamAsync(e.Token, e.FileId, e.ReadLen);
-                dragDropMan.WriteToFile(e.MessageId, data);
-            }
-            catch (Exception ex)
-            {
-                ISLogger.Write("Failed to read external file stream: " + ex.Message);
-                dragDropMan.WriteToFile(e.MessageId, new byte[0]);
-            }
+            server = new ISClientSocket(!startArgs.HasArg(StartArguments.NoUdp));
         }
 
-        private void OnLocalClipboardChange(object sender, ClipboardDataBase data)
+        private void InitDependencies(ISClientDependencies deps)
         {
-            if (socket != null && socket.IsConnected)
-            {
+            if (startArgs.HasArg(StartArguments.NoDragDrop))
+                dragDropMan = new NullDragDropManager();
+            else
+                dragDropMan = deps.dragDropManager;
 
-                if(data.DataType == ClipboardDataType.File)
-                {
-                    ISLogger.Write("File copying/pasting is currently disabled....");
-                    return;
-                }
+            if (startArgs.HasArg(StartArguments.NoClipboard))
+                clipboardMan = new NullClipboardManager();
+            else
+                clipboardMan = deps.clipboardManager; 
 
-                //create GUID and file tokens
-                Guid operationId = Guid.NewGuid();
+            displayMan = deps.displayManager;
+            outMan = deps.outputManager;
 
-                if (currentDragDropOperation.OperationId != Guid.Empty)
-                    previousOperations.Add(currentClipboardOperation.OperationId, currentClipboardOperation);
-
-                currentClipboardOperation = new DataOperation(operationId, data);
-                socket.SendClipboardData(data.ToBytes(), operationId);
-                ISLogger.Write("Created clipboard operation " + operationId);
-            }
+            ISLogger.Write("Client dependencies:");
+            ISLogger.Write(clipboardMan.GetType().Name);
+            ISLogger.Write(displayMan.GetType().Name);
+            ISLogger.Write(dragDropMan.GetType().Name);
+            ISLogger.Write(outMan.GetType().Name);
         }
 
-        private void OnLocalEdgeHit(object sender, Edge edge)
+        private void StartModules()
         {
-            if (socket != null && socket.IsConnected && ActiveClient)
+            if (!clipboardMan.Running)
+                clipboardMan.Start();
+            if (!dragDropMan.Running)
+                dragDropMan.Start();
+            if (!outMan.Running)
+                outMan.Start();
+            if (!displayMan.Running)
+                displayMan.Start();
+        }
+
+        private void StopModules()
+        {
+            if (clipboardMan.Running)
+                clipboardMan.Stop();
+            if (dragDropMan.Running)
+                dragDropMan.Stop();
+            if (outMan.Running)
+                outMan.Stop();
+            if (displayMan.Running)
+                displayMan.Stop();
+        }
+
+        private void AssignSocketEvents()
+        {
+            server.Connected += (object o, EventArgs e) => { Connected?.Invoke(this, server.ServerAddress); };
+            server.ConnectionError += ConnectionError;
+            server.ConnectionFailed += ConnectionFailed;
+            server.InputDataReceived += Server_InputDataReceived;
+            server.ActiveClientChanged += (object o, bool active) => { ActiveClient = active; outMan.ResetKeyStates(); ActiveClientChanged?.Invoke(this, active); };
+            server.EdgesChanged += Server_EdgesChanged;
+            server.RequestedStreamRead += fileController.Client_RequestedStreamRead;
+            server.RequestedFileToken += Server_FileTokenRequested;
+        }
+
+        private void AssignModuleEvents()
+        {
+            displayMan.DisplayConfigChanged += (object o, DisplayConfig conf) =>
             {
-                socket.SendEdgeHit(edge);
+                if (server.IsConnected)
+                    server.SendDisplayConfig(conf.ToBytes());
+            };
+
+            displayMan.EdgeHit += DisplayMan_EdgeHit;
+        }
+
+        private void DisplayMan_EdgeHit(object sender, Edge edge)
+        {
+            if (server != null && server.IsConnected && ActiveClient)
+            {
+                server.SendEdgeHit(edge);
 
                 if (dragDropMan.LeftMouseState)
                 {
                     switch (edge)
                     {
-                        case Edge.Bottom: if (edges.Bottom) dragDropMan.CheckForDrop(); break;
-                        case Edge.Left: if (edges.Left) dragDropMan.CheckForDrop(); break;
-                        case Edge.Right: if (edges.Right) dragDropMan.CheckForDrop(); break;
-                        case Edge.Top: if (edges.Top) dragDropMan.CheckForDrop(); break;
+                        case Edge.Bottom: if (assignedEdges.Bottom) dragDropMan.CheckForDrop(); break;
+                        case Edge.Left: if (assignedEdges.Left) dragDropMan.CheckForDrop(); break;
+                        case Edge.Right: if (assignedEdges.Right) dragDropMan.CheckForDrop(); break;
+                        case Edge.Top: if (assignedEdges.Top) dragDropMan.CheckForDrop(); break;
                     }
                 }
-                
-            }
-                
-        }
-
-        private void OnLocalDisplayConfigChange(object sender, DisplayConfig config)
-        {
-            if (socket != null && socket.IsConnected)
-            {
-                socket.SendDisplayConfig(config.ToBytes());
             }
         }
 
-        public void Connect(string address, int port)
+        private void Server_FileTokenRequested(object sender, NetworkSocket.FileTokenRequestArgs args)
         {
-            if (!IPAddress.TryParse(address, out IPAddress addr))
-                throw new ArgumentException("Invalid address");
+            ISLogger.Write("Server requested token for operation");
 
-            if (port < 0 || port > 65535)
-                throw new ArgumentException("Invalid port");
+            ClientDataOperation op = null;
+            if (cbController.CurrentOperation != null && cbController.CurrentOperation.OperationGuid == args.DataOperationId && cbController.CurrentOperation.Data.DataType == ClipboardDataType.File)
+                op = cbController.CurrentOperation;
+            else if (ddController.CurrentOperation != null && ddController.CurrentOperation.OperationGuid == args.DataOperationId && ddController.CurrentOperation.Data.DataType == ClipboardDataType.File)
+                op = ddController.CurrentOperation;
 
 
-            if (socket != null && socket.AttemptingConnection)
+            if (op != null)
             {
-                ISLogger.Write("Already attempting connection... ingoring request");
-                return;
-            }
-
-            
-            ddController.Server = socket; //TODO - bad design
-            lastConnectedAddress = new IPEndPoint(addr, port);
-            socket.Connect(address, port, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
-        }
-
-        public void SetClientGuid(Guid newGuid)
-        {
-            ClientId = newGuid;
-        }
-
-        public void SetClientName(string name)
-        {
-            ClientName = name;
-        }
-
-        private void CreateSocketEvents()
-        {
-            socket.ClipboardDataReceived += OnClipboardDataReceived;
-            socket.Connected += OnConnected;
-            socket.ConnectionError += OnConnectionError;
-            socket.ConnectionFailed += OnConnectionFailed;
-            socket.InputDataReceived += OnInputReceived;
-            socket.ActiveClientChanged += OnActiveClientChange;
-            socket.EdgesChanged += Socket_EdgesChanged;
-            socket.RequestedFileToken += Socket_FileTokenRequested;
-            socket.RequestedStreamRead += Socket_RequestStreamRead;
-            socket.RequestedCloseStream += Socket_RequestedCloseStream;
-            socket.CancelAnyDragDrop += ddController.Socket_CancelAnyDragDrop;
-            socket.DragDropDataReceived += ddController.Socket_DragDropReceived;
-            socket.DragDropCancelled += ddController.Socket_DragDropCancelled;
-            socket.DragDropOperationComplete += ddController.Socket_DragDropComplete;
-        }
-
-        private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs e)
-        {
-            fileController.CloseStream(e.Token, e.File);
-        }
-
-
-        private void Socket_RequestStreamRead(object sender, NetworkSocket.RequestStreamReadArgs e)
-        {
-            try
-            {
-                byte[] data = new byte[e.ReadLen];
-                int readLen = fileController.ReadStream(e.Token, e.File, data, 0, e.ReadLen);
-                //resize the buffer so we don't send a buffer that ends with empty data.
-                byte[] resizedBuffer = new byte[readLen];
-                Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
-                socket.SendReadRequestResponse(e.NetworkMessageId, resizedBuffer);
-            }
-            catch(FileAccessController.TokenNotFoundException)
-            {
-                socket.SendFileErrorResponse(e.NetworkMessageId, "Token not found");
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Responding with: Read error - " + ex.Message);
-                socket.SendFileErrorResponse(e.NetworkMessageId, ex.Message);
-            }
-        }
-
-        private void Socket_FileTokenRequested(object sender, NetworkSocket.FileTokenRequestArgs args)
-        {
-            if(args.FileGroupId == Guid.Empty)
-            {
-                ISLogger.Write("Debug: server requested access to a blank file group ID");
-                return;
-            }
-            ISLogger.Write("Server requested token");
-            int timeout = 0;
-            DataOperation operation;
-            if (args.FileGroupId == currentClipboardOperation.OperationId)
-            {
-                operation = currentClipboardOperation;
-
-                if(operation.Data.DataType == ClipboardDataType.File)
-                {
-                    ISLogger.Write("Responding to token request: Copy/Pasting files not yet implemented");
-                    socket.SendFileErrorResponse(args.NetworkMessageId, "Copy/Pasting files not yet implemented");
-                    return;
-                }
-            }
-                
-            else if (args.FileGroupId == ddController.CurrentOperation?.OperationId)
-            {
-                operation = new DataOperation(ddController.CurrentOperation.OperationId, ddController.CurrentOperation.Data);
-                timeout = 10000;
+                Guid token = fileController.CreateTokenForOperation(op, 10000);
+                op.RemoteFileAccessTokens.Add(token);
+                ISLogger.Write("Sending access token " + token);
+                server.SendTokenRequestReponse(args.NetworkMessageId, token);
             }
             else
             {
-                socket.SendFileErrorResponse(args.NetworkMessageId, "Token not found");
-                //todo - return error
-                ISLogger.Write("Server requested token for invalid operation");
+                ISLogger.Write("Failed to send access token: Operation not found");
+                server.SendFileErrorResponse(args.NetworkMessageId, "Failed to create token: Operation not found");
                 return;
             }
-
-            try
-            {
-                Guid token = CreateTokensForOperation(operation, timeout);
-
-                //we need to keep track of which tokens are assoicated with which transfer
-
-                if (operation.OperationId == ddController.CurrentOperation?.OperationId)
-                    ddController.CurrentOperation.AssociatedAccessToken = token;
-                else
-                    currentClipboardOperation.AssociatedAccessTokens.Add(token);
-
-                ISLogger.Write("added associated access token " + token);
-                socket.SendTokenRequestReponse(args.NetworkMessageId, token);
-            }catch(Exception ex)
-            {
-                socket.SendFileErrorResponse(args.NetworkMessageId, "Failed to create token: " + ex.Message);
-                ISLogger.Write("Failed to create access token for operation: " + ex.Message);
-                return;
-            }
-            
         }
 
-        private Guid CreateTokensForOperation(DataOperation operation, int timeout)
+        private void Server_EdgesChanged(object sender, ISClientSocket.BoundEdges e)
         {
-            ClipboardVirtualFileData fd = operation.Data as ClipboardVirtualFileData;
-
-            Guid[] ids = new Guid[fd.AllFiles.Count];
-            string[] sources = new string[fd.AllFiles.Count];
-            for (int i = 0; i < fd.AllFiles.Count; i++)
-            {
-                ids[i] = fd.AllFiles[i].FileRequestId;
-                sources[i] = fd.AllFiles[i].FullPath;
-            }
-            return fileController.CreateFileReadTokenForGroup(new FileAccessController.FileAccessInfo(ids, sources), timeout);
+            assignedEdges.Bottom = e.Bottom;
+            assignedEdges.Left = e.Left;
+            assignedEdges.Right = e.Right;
+            assignedEdges.Top = e.Top;
         }
 
-
-        private void Socket_EdgesChanged(object sender, ISClientSocket.BoundEdges e)
-        {
-            edges.Bottom = e.Bottom;
-            edges.Left = e.Left;
-            edges.Right = e.Right;
-            edges.Top = e.Top;
-        }
-
-
-        private void OnActiveClientChange(object sender, bool active)
-        {
-            ActiveClient = active;
-            if (active)
-            {
-                if (!curMon.Running)
-                    curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
-
-                outMan.ResetKeyStates();
-            }
-            else
-            {
-                if (curMon.Running)
-                    curMon.StopMonitoring();
-
-                outMan.ResetKeyStates();
-            }
-            ActiveClientChanged?.Invoke(this, ActiveClient);
-        }
-
-        private void OnInputReceived(object sender, byte[] data)
+        private void Server_InputDataReceived(object sender, byte[] data)
         {
             ISInputData input = new ISInputData(data);
 
-            if(input.Code == ISInputCode.IS_SENDSAS)
+            if (input.Code == ISInputCode.IS_SENDSAS)
             {
                 SasRequested?.Invoke(this, new EventArgs());
                 return;
@@ -375,96 +289,12 @@ namespace InputshareLib.Client
             outMan.Send(new Input.ISInputData(data));
         }
 
-        private void OnConnectionFailed(object sender, string reason)
-        {
-            ISLogger.Write("Connection failed: " + reason);
-            ConnectionFailed?.Invoke(this, reason);
-        }
-
-        private void OnConnectionError(object sender, string reason)
-        {
-            ISLogger.Write("Connection error: " + reason);
-            ConnectionError?.Invoke(this, reason);
-
-            if (curMon.Running)
-                curMon.StopMonitoring();
-            
-        }
-
-        private void OnConnected(object sender, EventArgs e)
-        {
-            ISLogger.Write("Connected");
-            Connected?.Invoke(this, socket.ServerAddress);
-        }
-
-        private async void OnClipboardDataReceived(object sender, NetworkSocket.ClipboardDataReceivedArgs args)
-        {
-            try
-            {
-                ISLogger.Write("Got clipboard operation " + args.OperationId);
-                ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
-                
-
-                if(cbData is ClipboardVirtualFileData cbFiles)
-                {
-                    Guid id = await socket.RequestFileTokenAsync(args.OperationId);
-
-                    if (id == Guid.Empty)
-                        return;
-
-                    for (int i = 0; i < cbFiles.AllFiles.Count; i++)
-                    {
-                        cbFiles.AllFiles[i].RemoteAccessToken = id;
-                        cbFiles.AllFiles[i].ReadDelegate = File_RequestDataAsync;
-                        cbFiles.AllFiles[i].ReadComplete += VirtualFile_ReadComplete;
-                        cbFiles.AllFiles[i].FileOperationId = args.OperationId;
-                    }
-                }
-
-                currentClipboardOperation = new DataOperation(args.OperationId, cbData);
-                clipboardMan.SetClipboardData(cbData);
-            }
-            catch(Exception ex)
-            {
-                ISLogger.Write("Failed to set clipboard data: " + ex.Message);
-            }
-
-            ClipboardDataCopied?.Invoke(this, null);
-        }
-
-        private void VirtualFile_ReadComplete(object sender, EventArgs e)
-        {
-
-        }
-
-        private async Task<byte[]> File_RequestDataAsync(Guid token, Guid operationId, Guid fileId, int readLen)
-        {
-            return await socket.RequestReadStreamAsync(token, fileId, readLen);
-        }
-
         private struct ClientEdges
         {
             public bool Left;
             public bool Right;
             public bool Top;
             public bool Bottom;
-        }
-
-        struct DataOperation
-        {
-            public DataOperation(Guid operationId, ClipboardDataBase data)
-            {
-                OperationId = operationId;
-                Data = data;
-                AssociatedAccessTokens = new List<Guid>();
-                Completed = false;
-            }
-            public Guid OperationId { get; }
-            public ClipboardDataBase Data { get; }
-
-            public bool Completed { get; set; }
-
-            public List<Guid> AssociatedAccessTokens { get; set; }
         }
     }
 }

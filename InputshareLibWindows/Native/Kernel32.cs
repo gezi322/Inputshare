@@ -39,9 +39,9 @@ namespace InputshareLibWindows.Native
         public static extern IntPtr GetModuleHandle(string lpModuleName);
 
         [DllImport("Kernel32")]
-        public static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+        public static extern bool SetConsoleCtrlHandler(ConsoleEventHandler handler, bool add);
 
-        public delegate bool EventHandler(CtrlType sig);
+        public delegate bool ConsoleEventHandler(CtrlType sig);
         public enum CtrlType
         {
             CTRL_C_EVENT = 0,

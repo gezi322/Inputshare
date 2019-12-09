@@ -11,9 +11,9 @@ namespace InputshareLib.Net.Messages
         {
             byte[] data = WritePacketInfo(this, cbData.Length + 20);
             Buffer.BlockCopy(OperationId.ToByteArray(), 0, data, 21, 16);
-            Buffer.BlockCopy(BitConverter.GetBytes(cbData.Length), 0, data, 21+16, 4);
-            Buffer.BlockCopy(cbData, 0, data, 25+16, cbData.Length);
-            
+            Buffer.BlockCopy(BitConverter.GetBytes(cbData.Length), 0, data, 21 + 16, 4);
+            Buffer.BlockCopy(cbData, 0, data, 25 + 16, cbData.Length);
+
             return data;
         }
 
@@ -28,9 +28,9 @@ namespace InputshareLib.Net.Messages
             byte[] idData = new byte[16];
             Buffer.BlockCopy(data, 21, idData, 0, 16);
             OperationId = new Guid(idData);
-            int pSize = BitConverter.ToInt32(data, 21+16);
+            int pSize = BitConverter.ToInt32(data, 21 + 16);
             cbData = new byte[pSize];
-            Buffer.BlockCopy(data, 25+16, cbData, 0, pSize);
+            Buffer.BlockCopy(data, 25 + 16, cbData, 0, pSize);
         }
     }
 }

@@ -30,6 +30,5 @@
         RemoteFileError = 25,
         FileStreamCloseRequest = 26,
         CancelAnyDragDrop = 27,
-        DragDropComplete = 28,
     }
 }

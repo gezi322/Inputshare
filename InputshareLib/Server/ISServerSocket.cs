@@ -6,8 +6,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using static InputshareLib.Displays.DisplayManagerBase;
-
 namespace InputshareLib.Server
 {
     /// <summary>
@@ -19,6 +17,12 @@ namespace InputshareLib.Server
         /// Dummy client allows localhost to be treated as a client
         /// </summary>
         public static ISServerSocket Localhost = new ISServerSocket(true);
+
+        public static ISServerSocket None = new ISServerSocket(true)
+        {
+            ClientName = "None",
+            ClientId = Guid.NewGuid()
+        };
 
         /// <summary>
         /// Occurs when the client sends an update display configuration
@@ -38,19 +42,19 @@ namespace InputshareLib.Server
         /// <summary>
         /// The client below this client
         /// </summary>
-        public ISServerSocket BottomClient { get; set; }
+        public ISServerSocket BottomClient { get; private set; }
         /// <summary>
         /// The client above this client
         /// </summary>
-        public ISServerSocket TopClient { get; set; }
+        public ISServerSocket TopClient { get; private set; }
         /// <summary>
         /// The client to the left of this client
         /// </summary>
-        public ISServerSocket LeftClient { get; set; }
+        public ISServerSocket LeftClient { get; private set; }
         /// <summary>
         /// The client to the right of this client
         /// </summary>
-        public ISServerSocket RightClient { get; set; }
+        public ISServerSocket RightClient { get; private set; }
 
         /// <summary>
         /// The name of this client
@@ -107,7 +111,11 @@ namespace InputshareLib.Server
             IsLocalhost = true;
         }
 
-        public Hotkey CurrentHotkey { get; set; }
+        private Hotkey currentHotkey;
+        public Hotkey CurrentHotkey { get { return currentHotkey; } set { currentHotkey = value; HotkeyChanged?.Invoke(this, null); } }
+        public event EventHandler HotkeyChanged;
+
+        public event EventHandler<Edge> ClientEdgeUpdated;
 
         /// <summary>
         /// Returns the client at the specified edge of this client.
@@ -147,23 +155,54 @@ namespace InputshareLib.Server
         /// <param name="client"></param>
         public void SetClientAtEdge(Edge edge, ISServerSocket client)
         {
+
             switch (edge)
             {
                 case Edge.Bottom:
                     BottomClient = client;
-                    return;
+                    break;
                 case Edge.Left:
                     LeftClient = client;
-                    return;
+                    break;
                 case Edge.Right:
                     RightClient = client;
-                    return;
+                    break;
                 case Edge.Top:
                     TopClient = client;
-                    return;
+                    break;
             }
 
-            throw new ArgumentException("Invalid edge");
+            if (client != null)
+                ISLogger.Write("Set {0} of {1} to {2}", edge, ClientName, client.ClientName);
+            else
+                ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
+
+            ClientEdgeUpdated?.Invoke(this, edge);
+        }
+
+        public void SetClientAtEdgeNoUpdate(Edge edge, ISServerSocket client)
+        {
+            switch (edge)
+            {
+                case Edge.Bottom:
+                    BottomClient = client;
+                    break;
+                case Edge.Left:
+                    LeftClient = client;
+                    break;
+                case Edge.Right:
+                    RightClient = client;
+                    break;
+                case Edge.Top:
+                    TopClient = client;
+                    break;
+            }
+
+            if (client != null)
+                ISLogger.Write("Set {0} of {1} to {2}", edge, ClientName, client.ClientName);
+            else
+                ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
+
         }
 
         /// <summary>
@@ -251,7 +290,8 @@ namespace InputshareLib.Server
         /// <param name="clientVer"></param>
         public void DeclineClient(ClientDeclinedReason reason, string clientVer = null)
         {
-            switch (reason) {
+            switch (reason)
+            {
                 case ClientDeclinedReason.DuplicateGuid:
                     SendMessage(new ClientDeclinedMessage("Guid in use"));
                     break;
@@ -296,15 +336,15 @@ namespace InputshareLib.Server
             base.HandleMessage(data);
             MessageType type = (MessageType)data[4];
 
-            if(type == MessageType.ClientInitialInfo)
+            if (type == MessageType.ClientInitialInfo)
             {
                 HandleInitialInfoMessage(new ClientInitialMessage(data));
             }
-            else if(type == MessageType.DisplayConfig)
+            else if (type == MessageType.DisplayConfig)
             {
                 HandleDisplayConfigMessage(new DisplayConfigMessage(data));
             }
-            else if(type >= MessageType.EdgeHitTop && type <= MessageType.EdgeHitLeft)
+            else if (type >= MessageType.EdgeHitTop && type <= MessageType.EdgeHitLeft)
             {
                 HandleEdgeHit(type);
             }
@@ -331,7 +371,8 @@ namespace InputshareLib.Server
         /// <param name="type"></param>
         private void HandleEdgeHit(MessageType type)
         {
-            switch (type){
+            switch (type)
+            {
                 case MessageType.EdgeHitLeft:
                     EdgeHit?.Invoke(this, Edge.Left);
                     break;
@@ -366,7 +407,7 @@ namespace InputshareLib.Server
             {
                 DisplayConfiguration = new DisplayConfig(message.DisplayConfig);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 HandleConnectionClosed("Invalid display data");
                 return;
@@ -384,7 +425,7 @@ namespace InputshareLib.Server
         private void HandleDisplayConfigMessage(DisplayConfigMessage message)
         {
             DisplayConfiguration = new DisplayConfig(message.ConfigData);
-            ClientDisplayConfigUpdated.Invoke(this, DisplayConfiguration);
+            ClientDisplayConfigUpdated?.Invoke(this, DisplayConfiguration);
         }
 
         public enum ClientDeclinedReason

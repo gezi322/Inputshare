@@ -1,224 +1,96 @@
-﻿using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.Displays;
-using InputshareLib.DragDrop;
+﻿using System;
+using System.Collections.Generic;
+using InputshareLib.Clipboard;
+using InputshareLib.FileController;
 using InputshareLib.Input;
 using InputshareLib.Input.Hotkeys;
+using InputshareLib.Input.Keys;
 using InputshareLib.Net;
-using InputshareLib.Output;
-using InputshareLib.Server.API;
-using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
+using InputshareLib.PlatformModules.Clipboard;
+using InputshareLib.PlatformModules.Displays;
+using InputshareLib.PlatformModules.DragDrop;
+using InputshareLib.PlatformModules.Input;
+using InputshareLib.PlatformModules.Output;
+
 namespace InputshareLib.Server
 {
     public sealed class ISServer
     {
-
-        //API events
         public event EventHandler Started;
         public event EventHandler Stopped;
         public event EventHandler<ClientInfo> ClientConnected;
         public event EventHandler<ClientInfo> ClientDisconnected;
-        public event EventHandler<ClientInfo> ClientDisplayConfigChanged;
         public event EventHandler<ClientInfo> InputClientSwitched;
-        public event EventHandler<CurrentClipboardData> GlobalClipboardContentChanged;
+        public event EventHandler ClientConfigUpdate;
 
         public bool Running { get; private set; }
-        public bool LocalInput { get; private set; }
-        public ClientInfo CurrentInputClient { get => GetCurrentInputClient(); }
-        public IPEndPoint BoundAddress { get; private set; }
 
-
-        //OS dependant classes/interfaces
-        private readonly Displays.DisplayManagerBase displayMan;
-        private readonly InputManagerBase inputMan;
-        private readonly Cursor.CursorMonitorBase curMon;
-        private readonly IDragDropManager dragDropMan;
-        private readonly IOutputManager outMan;
+        //OS dependant abstractions
+        private DisplayManagerBase displayMan;
+        private InputManagerBase inputMan;
+        private DragDropManagerBase dragDropMan;
+        private OutputManagerBase outMan;
+        private ClipboardManagerBase cbManager;
 
         private ISClientListener clientListener;
         private ClientManager clientMan;
-
         private ISUdpServer udpHost;
 
-        /// <summary>
-        /// Timer used to prevent switching back and forth between clients insantly
-        /// </summary>
-        private readonly Stopwatch clientSwitchTimer = new Stopwatch();
-
-        /// <summary>
-        /// Client that is currently being controlled
-        /// </summary>
-        private ISServerSocket inputClient = ISServerSocket.Localhost;
-
-
+        private GlobalDragDropController ddController;
         private GlobalClipboardController cbController;
         private FileAccessController fileController;
-        private GlobalDragDropController ddController;
+        private GlobalInputController inputController;
 
+        private ISServerSocket inputClient = ISServerSocket.Localhost;
+        private StartOptions startArgs;
 
-
-        public ISServer(ISServerDependencies dependencies)
+        public ISServer()
         {
-            displayMan = dependencies.DisplayManager;
-            inputMan = dependencies.InputManager;
-            curMon = dependencies.CursorMonitor;
-            dragDropMan = dependencies.DragDropManager;
-            outMan = dependencies.OutputManager;
-
-            fileController = new FileAccessController();
-            clientMan = new ClientManager(12);
-            ddController = new GlobalDragDropController(clientMan, dragDropMan, fileController);
-            cbController = new GlobalClipboardController(clientMan, fileController, SetClipboardData);
-
-            cbController.GlobalCLipboardChanged += (object o, GlobalClipboardController.ClipboardOperation data) =>
-            {
-                GlobalClipboardContentChanged?.Invoke(this, GetGlobalClipboardData());
-            };
-
-            inputMan.ClipboardDataChanged += cbController.OnLocalClipboardDataCopied;
-
-            AssignEvents();
+            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => { if (Running) OnClientEdgeChanged(ISServerSocket.Localhost, e); };
+            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => { if (Running) Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey); };
         }
 
-        #region init
-
-        public void Start(int port)
+        public void Start(ISServerDependencies dependencies, StartOptions args, int port)
         {
-            try
-            {
-                if (Running)
-                    throw new InvalidOperationException("Server already running");
+            if (Running)
+                throw new InvalidOperationException("Server already running");
 
-                clientSwitchTimer.Restart();
+            ISLogger.EnableConsole = true;
 
-                ISLogger.Write("Server: Starting server...");
-
-                StartClientListener(new IPEndPoint(IPAddress.Any, port));
-                clientListener.ClientConnected += ClientListener_ClientConnected;
-
-                InitUdp(port);
-
-                StartInputManager();
-                StartDisplayManager();
-                StartCursorMonitor();
-
-
-                Running = true;
-                clientMan.AddClient(ISServerSocket.Localhost);
-                ISLogger.Write("Server: Inputshare server started");
-                Started?.Invoke(this, null);
-            }
-            catch (Exception ex)
-            {
-                Stop();
-                throw ex;
-            }
+            ISLogger.Write("Starting server...");
+            Running = true;
+            clientMan = new ClientManager(16);
+            startArgs = args;
+            StartUdpHost(args, port);
+            StartModules(args, dependencies);
+            clientListener = new ISClientListener(port);
+            AssignLocalEvents();
+            SetDefaultHotkeys();
+            clientMan.AddClient(ISServerSocket.Localhost);
+            ClientConfig.ReloadClientConfigs(clientMan);
+            
+            Started?.Invoke(this, null);
         }
 
-        private void InitUdp(int port)
-        {
-            try
-            {
-                udpHost = new ISUdpServer(clientMan, port);
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Failed to bind UDP! " + ex.Message);
-            }
-        }
-
-        private void SetClipboardData(ClipboardDataBase cbData)
-        {
-            inputMan.SetClipboardData(cbData);
-        }
-
-        private void StartClientListener(IPEndPoint bind)
-        {
-            clientListener = new ISClientListener(bind.Port, bind.Address);
-            BoundAddress = clientListener.BoundAddress;
-
-        }
-
-        private void StartInputManager()
-        {
-            inputMan.Start();
-
-            HotkeyModifiers mods = HotkeyModifiers.Alt | HotkeyModifiers.Ctrl | HotkeyModifiers.Shift;
-            inputMan.AddUpdateFunctionHotkey(new Input.Hotkeys.FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
-            inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
-            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
-            ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
-        }
-
-        private void StartCursorMonitor()
-        {
-            curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
-        }
-
-        private void StartDisplayManager()
-        {
-            displayMan.UpdateConfigManual();
-            ISServerSocket.Localhost.DisplayConfiguration = displayMan.CurrentConfig;
-            displayMan.StartMonitoring();
-        }
-
-        private void AssignEvents()
-        {
-            displayMan.DisplayConfigChanged += DisplayMan_DisplayConfigChanged;
-            curMon.EdgeHit += CurMon_EdgeHit;
-            inputMan.InputReceived += InputMan_InputReceived;
-            inputMan.ClientHotkeyPressed += InputMan_ClientHotkeyPressed;
-            inputMan.FunctionHotkeyPressed += InputMan_FunctionHotkeyPressed;
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Stops the inputshare server
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if the server is not running</exception>"
         public void Stop()
         {
             if (!Running)
                 throw new InvalidOperationException("Server not running");
 
-            ISLogger.Write("Server: Stopping server...");
-
-
             try
             {
+                ISLogger.Write("Stopping server...");
+                StopModules();
+
                 foreach (var client in clientMan.AllClients)
-                {
-                    try
-                    {
-                        client.Close(NetworkSocket.CloseNotifyMode.ServerStopped);
-                    }
-                    catch (Exception) { }
-                }
+                    client.Dispose();
 
-                clientMan.ClearClients();
-
-                if (clientListener != null && clientListener.Listening)
-                    clientListener.Stop();
-                if (inputMan.Running)
-                    inputMan.Stop();
-                if (displayMan.Running)
-                    displayMan.StopMonitoring();
-                if (curMon.Running)
-                    curMon.StopMonitoring();
-                if (dragDropMan.Running)
-                    dragDropMan.Stop();
-
+                clientListener?.Stop();
                 udpHost?.Dispose();
-
-                ISLogger.Write("Server: server stopped.");
-
-            }
-            catch(Exception ex)
+            }catch(Exception ex)
             {
-                ISLogger.Write("An error occurred while stopping server: " + ex.Message);
+                ISLogger.Write("Exception while stopping server!");
+                ISLogger.Write(ex.Message);
                 ISLogger.Write(ex.StackTrace);
             }
             finally
@@ -226,628 +98,301 @@ namespace InputshareLib.Server
                 Running = false;
                 Stopped?.Invoke(this, null);
             }
-
         }
 
-        /// <summary>
-        /// Switches the input client to the specified client and disables local input
-        /// </summary>
-        /// <param name="targetClient">The GUID of the target client</param>
-        private void SwitchToClientInput(Guid targetClient)
+        private void StartModules(StartOptions args, ISServerDependencies dependencies)
         {
-            //prevents a bug where if the mouse was on the very edge of the screen and not moving,
-            //it would rapidly switch between clients
-            if (clientSwitchTimer.ElapsedMilliseconds < 200)
-                return;
+            cbManager = args.HasArg(StartArguments.NoClipboard) ? new NullClipboardManager() : dependencies.ClipboardManager;
+            dragDropMan = args.HasArg(StartArguments.NoDragDrop) ? new NullDragDropManager() : dependencies.DragDropManager;
+            inputMan = dependencies.InputManager;
+            outMan = dependencies.OutputManager;
+            displayMan = dependencies.DisplayManager;
 
-            ISServerSocket client = clientMan.GetClientById(targetClient);
+            cbController = new GlobalClipboardController(cbManager, clientMan);
+            ddController = new GlobalDragDropController(dragDropMan, clientMan);
+            fileController = new FileAccessController();
+            inputController = new GlobalInputController(clientMan, inputMan, udpHost);
 
-            if(client == null)
-            {
-                ISLogger.Write("Server: Failed to switch to client: client not found");
-                return;
-            }
-
-            //We need to know the client that we are switching from to determine 
-            //what to do if the user is dragging a file, specifically if we are switching 
-            //from localhost
-            ISServerSocket oldClient = inputClient;
-
-            //We dont care where the local cursor position is 
-            if (curMon.Running)
-                curMon.StopMonitoring();
-
-            client.NotifyActiveClient(true);
-            inputClient = client;
-
-            //Disable local input
-            inputMan.SetInputBlocked(true);
-
-            clientSwitchTimer.Restart();
-
-            //let the dragdrop controller determine if anything needs to be done or sent to the client
-            ddController.HandleClientSwitch(inputClient, oldClient);
-            InputClientSwitched?.Invoke(this, GenerateClientInfo(client));
-
+            cbManager.Start();
+            dragDropMan.Start();
+            inputMan.Start();
+            outMan.Start();
+            displayMan.Start();
         }
 
-        /// <summary>
-        /// Switches input back to localhost, and enables local input.
-        /// </summary>
-        private void SwitchToLocalInput()
+        private void StopModules()
         {
-            if (clientSwitchTimer.ElapsedMilliseconds < 200)
+            if (cbManager.Running)
+                cbManager.Stop();
+            if (dragDropMan.Running)
+                dragDropMan.Stop();
+            if (inputMan.Running)
+                inputMan.Stop();
+            if (outMan.Running)
+                outMan.Stop();
+            if (displayMan.Running)
+                displayMan.Stop();
+
+            fileController?.DeleteAllTokens();
+        }
+
+        private void StartUdpHost(StartOptions args, int bindPort)
+        {
+            if (args.HasArg(StartArguments.NoUdp))
                 return;
 
-            //If the previous client is still connected, let them know they are no longer
-            //the input client
-            if (inputClient != null && inputClient.IsConnected)
-                inputClient.NotifyActiveClient(false);
+            udpHost = new ISUdpServer(clientMan, bindPort);
+        }
 
-            ISServerSocket oldClient = inputClient;
-            inputClient = ISServerSocket.Localhost;
+        private void AssignLocalEvents()
+        {
+            inputMan.FunctionHotkeyPressed += HandleFunctionHotkey;
+            inputMan.ClientHotkeyPressed += (object o, Guid id) => inputController.HandleClientHotkey(id);
+            inputMan.InputReceived += (object o, ISInputData d) => inputController.HandleInputReceived(d);
+            displayMan.EdgeHit += (object o, Edge e) => inputController.HandleEdgeHit(ISServerSocket.Localhost, e);
+            displayMan.DisplayConfigChanged += DisplayMan_DisplayConfigChanged;
+            clientListener.ClientConnected += HandleClientConnected;
+            inputController.InputClientSwitched += InputController_InputClientSwitched;
+        }
 
-            //enable local input
-            inputMan.SetInputBlocked(false);
-
-            if (!curMon.Running)
-                curMon.StartMonitoring(displayMan.CurrentConfig.VirtualBounds);
-
-
-            clientSwitchTimer.Restart();
-            ddController.HandleClientSwitch(inputClient, oldClient);
+        private ISServerSocket oldInputClient = ISServerSocket.Localhost;
+        private void InputController_InputClientSwitched(object sender, ISServerSocket newClient)
+        {
+            ddController.HandleClientSwitch(oldInputClient, newClient);
+            oldInputClient = newClient;
             outMan.ResetKeyStates();
-            InputClientSwitched?.Invoke(this, GenerateLocalhostInfo());
+            InputClientSwitched?.Invoke(this, new ClientInfo(newClient, clientMan));
         }
 
-        /// <summary>
-        /// Sets the position of a client relative to another client
-        /// </summary>
-        /// <param name="clientA"></param>
-        /// <param name="sideof"></param>
-        /// <param name="clientB"></param>
-        private void SetClientEdge(ISServerSocket clientA, Edge sideof, ISServerSocket clientB)
+        private void DisplayMan_DisplayConfigChanged(object sender, Displays.DisplayConfig e)
         {
-            if (clientA == null || clientB == null)
-                throw new ArgumentNullException("client was null");
-
-            if(clientA.ClientName == clientB.ClientName)
-            {
-                throw new ArgumentException("Cannot set X sideof X");
-            }
-
-            clientB.SetClientAtEdge(sideof, clientA);
-            clientA.SetClientAtEdge(sideof.Opposite(), clientB);
-            ISLogger.Write("Server: Set {0} {1}of {2}", clientA.ClientName, sideof, clientB.ClientName);
-            clientA.SendClientEdgesUpdate();
-            clientB.SendClientEdgesUpdate();
+            ISServerSocket.Localhost.DisplayConfiguration = e;
         }
 
-        #region localhost events
-
-        private void InputMan_InputReceived(object sender, ISInputData input)
+        private void HandleFunctionHotkey(object o, Hotkeyfunction function)
         {
-            if(inputClient != ISServerSocket.Localhost)
-            {
-                if (inputClient.IsConnected)
-                {
-                    if (inputClient.UdpEnabled)
-                        udpHost.SendInput(input, inputClient);
-                    else
-                        inputClient.SendInputData(input.ToBytes());
-                }
-            }
-        }
-
-        /// <summary>
-        /// Occurs when the cursor hits the edge of the local virtual screen
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void CurMon_EdgeHit(object sender, Edge e)
-        {
-            if (inputClient != ISServerSocket.Localhost)
-                return;
-
-            ISServerSocket target = ISServerSocket.Localhost.GetClientAtEdge(e);
-
-            if (target == null || !target.IsConnected)
-            {
-                ISServerSocket.Localhost.SetClientAtEdge(e, null);
-                return;
-            }
-
-            if (target != null && target.IsConnected)
-                SwitchToClientInput(target.ClientId);
-            else
-                ISServerSocket.Localhost.SetClientAtEdge(e, null);
-
-        }
-
-        /// <summary>
-        /// Fired by the inputmanager when a function hotkey is pressed
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void InputMan_FunctionHotkeyPressed(object sender, Input.Hotkeys.Hotkeyfunction e)
-        {
-            if (e == Hotkeyfunction.StopServer)
-            {
+            if (function == Hotkeyfunction.StopServer)
                 Stop();
-            }
-            else if(e == Hotkeyfunction.SendSas)
+            else if (function == Hotkeyfunction.SendSas)
+                if (!inputController.CurrentInputClient.IsLocalhost)
+                    inputController.CurrentInputClient.SendInputData(new ISInputData(ISInputCode.IS_SENDSAS, 0, 0).ToBytes());
+        }
+
+        private void HandleClientConnected(object o, ISClientListener.ClientConnectedArgs args)
+        {
+            ISServerSocket client = args.Socket;
+
+            if (!TryAcceptClient(client))
+                return;
+
+            client.DisplayConfiguration = new Displays.DisplayConfig(args.DisplayConfig);
+            client.AcceptClient();
+            AssignClientEvents(client);
+
+            if (!startArgs.HasArg(StartArguments.NoUdp))
             {
-                if(!inputClient.IsLocalhost)
-                    inputClient.SendInputData(new ISInputData(ISInputCode.IS_SENDSAS, 0, 0).ToBytes());
+                if (udpHost.SocketBound)
+                    udpHost.InitClient(client);
             }
-        }
-
-        /// <summary>
-        /// Fired by the inputmanager when a hotkey associated with a client is pressed
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="targetClient"></param>
-        private void InputMan_ClientHotkeyPressed(object sender, Guid targetClient)
-        {
-            if (targetClient == Guid.Empty)
-                SwitchToLocalInput();
             else
-                SwitchToClientInput(targetClient);
+            {
+                client.SetUdpEnabled(false);
+            }
+
+            ClientConfig.ReloadClientConfigs(clientMan);
+            ClientConnected?.Invoke(this, new ClientInfo(client, clientMan));
         }
 
-
-        private void DisplayMan_DisplayConfigChanged(object sender, DisplayConfig conf)
+        private bool TryAcceptClient(ISServerSocket client)
         {
-            ISServerSocket.Localhost.DisplayConfiguration = conf;
-        }
-
-
-        #endregion
-
-        #region client events
-
-        /// <summary>
-        /// Fired by the ISClientListener when a client has connected and sent initial info.
-        /// We call client.AcceptClient() here to let the client know that it has properly connected
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void ClientListener_ClientConnected(object sender, ISClientListener.ClientConnectedArgs e)
-        {
-            ISServerSocket client = e.Socket;
             try
             {
                 clientMan.AddClient(client);
+                return true;
             }
-            catch (ClientManager.DuplicateGuidException)
+            catch (Exception ex)
             {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate GUID");
-                client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateGuid);
-                client.Dispose();
-                return;
-            }
-            catch (ClientManager.DuplicateNameException)
-            {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate name");
+                if (ex is ClientManager.DuplicateGuidException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate GUID");
+                else if (ex is ClientManager.DuplicateNameException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "Duplicate name");
+                else if (ex is ClientManager.DuplicateNameException)
+                    ISLogger.Write("client {0} declined: {1}", client.ClientName, "client limit reached");
+
                 client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateName);
+                //todo - possible race condition here? messages need to be sent before the client is disposed
                 client.Dispose();
-                return;
+                return false;
             }
-            catch (ClientManager.ClientLimitException)
-            {
-                ISLogger.Write("client {0} declined: {1}", client.ClientName, "client limit reached");
-                client.DeclineClient(ISServerSocket.ClientDeclinedReason.MaxClientsReached);
-                client.Dispose();
-                return;
-            }
-
-            ISLogger.Write("Server: {1} connected as {0}", e.ClientName, client.ClientEndpoint);
-            CreateClientEventHandlers(client);
-            client.DisplayConfiguration = new DisplayConfig(e.DisplayConfig);
-            client.AcceptClient();
-
-            if(udpHost.SocketBound)
-                udpHost.InitClient(client);
-
-            ClientConnected?.Invoke(this, GenerateClientInfo(client));
         }
 
-        /// <summary>
-        /// Assigns event handlers for a client
-        /// </summary>
-        /// <param name="socket"></param>
-        private void CreateClientEventHandlers(ISServerSocket socket)
+        private void AssignClientEvents(ISServerSocket client)
         {
-            socket.ClientDisplayConfigUpdated += Client_ClientDisplayConfigUpdated;
-            socket.ConnectionError += Client_ConnectionError;
-            socket.ClipboardDataReceived += cbController.OnClientClipboardDataReceived;
-            socket.EdgeHit += Socket_EdgeHit;
-            socket.RequestedStreamRead += Socket_RequestedStreamRead;
-            socket.RequestedCloseStream += Socket_RequestedCloseStream;
-            socket.RequestedFileToken += Socket_RequestedFileToken;
-            socket.DragDropDataReceived += ddController.Client_DataDropped;
-            socket.DragDropCancelled += ddController.Client_DragDropCancelled;
-            socket.DragDropSuccess += ddController.Client_DragDropSuccess;
-            socket.DragDropOperationComplete += ddController.Client_DragDropComplete;
+            //client.ClientDisplayConfigUpdated 
+            client.ConnectionError += (object o, string e) => HandleClientDisconnect(client);
+            client.ClipboardDataReceived += cbController.OnClientClipboardChange;
+            client.EdgeHit += (object o, Edge edge) => inputController.HandleEdgeHit(client, edge);
+            client.RequestedStreamRead += fileController.Client_RequestedStreamRead;
+            client.RequestedFileToken += Client_RequestedFileToken;
+            client.DragDropDataReceived += ddController.OnClientDataDropped;
+            client.DragDropCancelled += ddController.OnClientDropCancelled;
+            client.DragDropCancelled += ddController.OnClientDropSuccess;
+            client.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(client, client.CurrentHotkey);
+            client.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(client, e);
         }
 
-        private async void Socket_RequestedStreamRead(object sender, NetworkSocket.RequestStreamReadArgs args)
+        private void OnClientEdgeChanged(ISServerSocket client, Edge e)
         {
-            ISServerSocket client = sender as ISServerSocket;
-            try
-            {
-                var ddOperation = ddController.GetOperationFromToken(args.Token);
-
-                //We need to check if this token is associated with the drag drop operation file token.
-                //If it is, and localhost is not the host of the operation, then we need to request the data from the host
-                if (ddOperation != null)
-                {
-                    if (ddOperation.ReceiverClient != client)
-                    {
-                        ISLogger.Write("Server: Client {0} attempted to access dragdrop operation files when they are not the drop target", client.ClientName);
-                        client.SendFileErrorResponse(args.NetworkMessageId, "Data has been dropped by another client");
-                        return;
-                    }
-
-
-                    //if localhost is not the host of the dragdrop operation, we need to get data from whichever client has the files
-                    if (!ddOperation.Host.IsLocalhost)
-                    {
-                        await ReplyWithExternalFileDataAsync(client, ddOperation.Host, args.NetworkMessageId , args.Token, args.File, args.ReadLen);
-                        return;
-                    }
-                }
-
-                byte[] data = new byte[args.ReadLen];
-                int readLen = fileController.ReadStream(args.Token, args.File, data, 0, args.ReadLen);
-                //resize the buffer so we don't send a buffer that ends with empty data.
-                byte[] resizedBuffer = new byte[readLen];
-                Buffer.BlockCopy(data, 0, resizedBuffer, 0, readLen);
-                client.SendReadRequestResponse(args.NetworkMessageId, resizedBuffer);
+            /*
+            //Set the opposite edge without causing stack overflow
+            switch (e) {
+                case Edge.Bottom:
+                    client.GetClientAtEdge(e).TopClient = client;
+                    break;
+                case Edge.Right:
+                    client.GetClientAtEdge(e).LeftClient = client;
+                    break;
+                case Edge.Left:
+                    client.GetClientAtEdge(e).RightClient = client;
+                    break;
+                case Edge.Top:
+                    client.GetClientAtEdge(e).BottomClient = client;
+                    break;
             }
-            catch(Exception ex)
-            {
-                client.SendFileErrorResponse(args.NetworkMessageId, ex.Message);
-            }
+            */
+
+            ClientConfig.SaveClientEdge(client, e);
+            OnClientSettingChanged();
+            client.SendClientEdgesUpdate();
         }
 
+        private void OnClientSettingChanged()
+        {
+            ClientConfigUpdate?.Invoke(this, null);
+        }
 
-        /// <summary>
-        /// Requests data from the specified host client and forwards it to the specified reciever client
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="host"></param>
-        /// <param name="networkMessageId"></param>
-        /// <param name="token"></param>
-        /// <param name="fileId"></param>
-        /// <param name="readLen"></param>
-        private async Task ReplyWithExternalFileDataAsync(ISServerSocket client, ISServerSocket host, Guid networkMessageId, Guid token, Guid fileId, int readLen)
+        private void Client_HotkeyChanged(ISServerSocket client, Hotkey hk)
         {
             try
             {
-                byte[] fileData = await host.RequestReadStreamAsync(token, fileId, readLen);
-                client.SendReadRequestResponse(networkMessageId, fileData);
-            }
-            catch(Exception ex)
+                inputMan.AddUpdateClientHotkey(new ClientHotkey(hk.Key, hk.Modifiers, client.ClientId));
+                ClientConfig.SaveClientHotkey(client, hk);
+                OnClientSettingChanged();
+            }catch(Exception ex)
             {
-                //let the client know that the read failed
-                client.SendFileErrorResponse(networkMessageId, ex.Message);
+                ISLogger.Write("Failed to set hotkey: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Occurs when a client has fully read a file.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        private void Socket_RequestedCloseStream(object sender, NetworkSocket.RequestCloseStreamArgs args)
-        {
-            if(!fileController.CloseStream(args.Token, args.File))
-            {
-                //If the filecontroller can't find the file ID, dragdropcontroller needs to check 
-                //if an external client owns the access token
-                ddController.Client_RequestCloseStream(sender, args);
-            }
-        }
-
-        /// <summary>
-        /// Called when a client requests an access token to access a clipboard or dragdrop operation
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        private async void Socket_RequestedFileToken(object sender, NetworkSocket.FileTokenRequestArgs args)
+        private async void Client_RequestedFileToken(object sender, NetworkSocket.FileTokenRequestArgs args)
         {
             ISServerSocket client = sender as ISServerSocket;
+            Guid token;
+            //We need to find the dataoperation that the client requested access too (if it exists)
+            ServerDataOperation op = null;
 
-            //If the specified operation is the current dragdrop operation
-            if(args.FileGroupId == ddController.CurrentOperation?.OperationId)
+            //Check if the specified operation is the active clipboard or dragdrop operation
+            if (cbController.CurrentOperation != null && cbController.CurrentOperation.OperationGuid == args.DataOperationId)
+                op = cbController.CurrentOperation;
+            else if (ddController.CurrentOperation != null && ddController.CurrentOperation.OperationGuid == args.DataOperationId)
+                op = ddController.CurrentOperation;
+
+
+            //If we can't find the operation, let the client know
+            if (op == null || op.Data.DataType != Clipboard.DataTypes.ClipboardDataType.File)
             {
-                //If operation host is localhost
-                if(ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && ddController.CurrentOperation.Host.IsLocalhost)
-                {
-                    client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
-                    ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
-                    return;
-                }
-                //If the operation host is another client
-                else if(ddController.CurrentOperation != null && ddController.CurrentOperation.Host != null && !ddController.CurrentOperation.Host.IsLocalhost)
-                {
-                    client.SendTokenRequestReponse(args.NetworkMessageId, ddController.CurrentOperation.RemoteFileAccessToken);
-                    ISLogger.Write("Server: Sent {0} access token {1}", client.ClientName, ddController.CurrentOperation.RemoteFileAccessToken);
-                }
-            }
-            //If the operation is not current the dragdrop operatiomn
-            else
-            {
-                //check if the operation a clipboard file operation
-                var cbOperation = cbController.GetOperationFromId(args.FileGroupId);
-
-                if(cbOperation == null)
-                {
-                    ISLogger.Write("Server: Denied {0} request to access files that are not part of an operation", client.ClientName);
-                    client.SendFileErrorResponse(args.NetworkMessageId, "Operation not found");
-                    return;
-                }
-
-                Guid token = await cbController.GenerateAccessToken(cbOperation.OperationId);
-
-                if(token == Guid.Empty)
-                {
-                    client.SendFileErrorResponse(args.NetworkMessageId, "Failed to generate token");
-                    return;
-                }
-
-                client.SendTokenRequestReponse(args.NetworkMessageId, token);
-                ISLogger.Write("Sent clipboard operation access token to {0}", client.ClientName);
-            }
-        }
-
-        private void Socket_EdgeHit(object sender, Edge edge)
-        {
-            ISServerSocket client = sender as ISServerSocket;
-
-            if (client != inputClient)
+                client.SendFileErrorResponse(args.NetworkMessageId, "Data operation not found");
                 return;
-
-            ISServerSocket target = client.GetClientAtEdge(edge);
-
-            if (target == ISServerSocket.Localhost)
-            {
-                SwitchToLocalInput();
             }
-            else if (target != null && target.IsConnected)
+
+            //If localhost is the host of the operation, we can just create an access token using FileAccessController
+            //otherwise, we need to get a token from the host client
+            if (op.Host == ISServerSocket.Localhost)
             {
-                SwitchToClientInput(target.ClientId);
+                //We want the token to timeout if it is not access for 10 seconds. The token is only generated for a client
+                //when it pastes the files, so having a timeout will ensure that all filestreams are closed when the client
+                //has finished pasting all files
+                token = fileController.CreateTokenForOperation(op, 10000);
             }
             else
             {
-                client.SetClientAtEdge(edge, null);
+                try
+                {
+                    token = await op.Host.RequestFileTokenAsync(op.OperationGuid);
+                    fileController.AddRemoteAccessToken(op.Host, token);
+                }
+                catch (Exception ex)
+                {
+                    client.SendFileErrorResponse(args.NetworkMessageId, "Failed to get access token from remote client: " + ex.Message);
+                    return;
+                }
             }
+
+            client.SendTokenRequestReponse(args.NetworkMessageId, token);
         }
 
-        private void Client_ConnectionError(object sender, string error)
+        private void HandleClientDisconnect(ISServerSocket client)
         {
-            ISServerSocket client = sender as ISServerSocket;
-            if (client == inputClient)
-                SwitchToLocalInput();
+            if (inputController.CurrentInputClient == client)
+                inputController.SetInputClient(ISServerSocket.Localhost);
 
-            try
-            {
-                clientMan.RemoveClient(client);
-            }
-            catch (Exception) { }
+            clientMan.RemoveClient(client);
+            ISLogger.Write("Client {0} lost connection", client.ClientName);
 
-
-            ISLogger.Write("Server: Connection error on {0}: {1}", client.ClientName, error);
-
+            //Remove the clients hotkey if it exists
             if (inputMan.GetClientHotkey(client.ClientId) != null)
                 inputMan.RemoveClientHotkey(client.ClientId);
-            RemoveClientFromEdges(client);
-            ClientDisconnected?.Invoke(this, GenerateClientInfo(client));
+
+            ClientDisconnected?.Invoke(this, new ClientInfo(client, clientMan));
             client.Dispose();
         }
 
-        private void RemoveClientFromEdges(ISServerSocket client)
+        private void SetDefaultHotkeys()
         {
-            foreach(var c in clientMan.AllClients.ToArray())
+            try
             {
-                if (c == client)
-                    continue;
-
-                if (c.RightClient == client)
-                    c.RightClient = null;
-                if (c.LeftClient == client)
-                    c.LeftClient = null;
-                if (c.TopClient == client)
-                    c.TopClient = null;
-                if (c.BottomClient == client)
-                    c.BottomClient = null;
+                HotkeyModifiers mods = HotkeyModifiers.Alt | HotkeyModifiers.Ctrl | HotkeyModifiers.Shift;
+                inputMan.AddUpdateFunctionHotkey(new Input.Hotkeys.FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
+                inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
+            }
+            catch (Exception ex)
+            {
+                ISLogger.Write("Failed to set default hotkeys: " + ex.Message);
             }
         }
 
-        private void RemoveEdgeFromClient(ISServerSocket client, Edge edge)
+        public List<ClientInfo> GetAllClients()
         {
-            switch (edge)
+            List<ClientInfo> info = new List<ClientInfo>();
+            foreach (var client in clientMan.AllClients)
             {
-                case Edge.Bottom:
-                    client.BottomClient = null;
-                    break;
-                case Edge.Top:
-                    client.TopClient = null;
-                    break;
-                case Edge.Left:
-                    client.LeftClient = null;
-                    break;
-                case Edge.Right:
-                    client.RightClient = null;
-                    break;
-
-            }
-        }
-
-        private void Client_ClientDisplayConfigUpdated(object sender, DisplayConfig config)
-        {
-            ISServerSocket client = sender as ISServerSocket;
-            ISLogger.Write("Server: Display config changed for {0}", client.ClientName);
-            ClientDisplayConfigChanged?.Invoke(this, GenerateClientInfo(client));
-        }
-
-        #endregion
-
-        #region API
-        public ClientInfo[] GetAllClients()
-        {
-            ClientInfo[] info = new ClientInfo[clientMan.ClientCount];
-            int index = 0;
-            foreach(var client in clientMan.AllClients)
-            {
-                info[index] = GenerateClientInfo(client, true);
-                index++;
-            }
-            return info;
-        }
-
-        public void SetMouseInputMode(MouseInputMode mode, int interval = 0)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            inputMan.SetMouseInputMode(mode, interval);
-        }
-
-        /// <summary>
-        /// Sets a client to the edge of another client
-        /// </summary>
-        /// <param name="clientA"></param>
-        /// <param name="sideOf"></param>
-        /// <param name="clientB"></param>
-        /// <exception cref="ArgumentException">The client cannot be found</exception>
-        public void SetClientEdge(ClientInfo clientA, Edge sideOf, ClientInfo clientB)
-        {
-            ISServerSocket cA = clientMan.GetClientFromInfo(clientA);
-            ISServerSocket cB = clientMan.GetClientFromInfo(clientB);
-
-            if (cA == null)
-                throw new ArgumentException("Invalid clientA");
-            if (cB == null)
-                throw new ArgumentException("Invalid clientB");
-
-            SetClientEdge(cA, sideOf, cB);
-        }
-        public void RemoveClientEdge(ClientInfo client, Edge side)
-        {
-            ISServerSocket cA = clientMan.GetClientFromInfo(client);
-            if (cA == null)
-                throw new ArgumentException("Invalid client");
-
-            RemoveEdgeFromClient(cA, side);
-        }
-
-        public FunctionHotkey GetHotkeyForFunction(Hotkeyfunction function)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            return inputMan.GetFunctionHotkey(function);
-        }
-
-        public Hotkey GetHotkeyForClient(ClientInfo client)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            return inputMan.GetClientHotkey(client.Id);
-        }
-
-        public void SetHotkeyForClient(ClientInfo client, Hotkey key)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            inputMan.AddUpdateClientHotkey(new ClientHotkey(key.Key, key.Modifiers, client.Id));
-
-            clientMan.GetClientById(client.Id).CurrentHotkey = key;
-        }
-
-        public void SetHotkeyForFunction(Hotkey key, Hotkeyfunction function)
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(key.Key, key.Modifiers, function));
-        }
-
-        private ClientInfo GenerateClientInfo(ISServerSocket client, bool includeEdges = false)
-        {
-            if(client == ISServerSocket.Localhost)
-            {
-                return GenerateLocalhostInfo();
-            }
-
-            ClientHotkey hk = inputMan.GetClientHotkey(client.ClientId);
-            DisplayConfig dConf = client.DisplayConfiguration;
-
-            ClientInfo info = new ClientInfo(client.ClientName, client.ClientId, dConf, hk, client.ClientEndpoint, client.UdpEnabled);
-            info.InputClient = inputClient == client;
-
-            if (includeEdges)
-            {
-                AssignClientEdges(info, client);
+                info.Add(new ClientInfo(client, clientMan));
             }
 
             return info;
         }
 
-        private ClientInfo GenerateLocalhostInfo()
+        public ClientInfo GetLocalhost()
         {
-            ISServerSocket local = ISServerSocket.Localhost;
-            ClientInfo info = new ClientInfo(local.ClientName, local.ClientId, local.DisplayConfiguration,
-                inputMan.GetClientHotkey(local.ClientId), new IPEndPoint(IPAddress.Parse("127.0.0.1"), BoundAddress.Port), local.UdpEnabled);
-
-            info.InputClient = inputClient == local;
-
-            AssignClientEdges(info, local);
-            return info;
+            return new ClientInfo(ISServerSocket.Localhost, clientMan);
         }
 
-        private void AssignClientEdges(ClientInfo info, ISServerSocket client)
+        public Hotkey GetHotkey(Hotkeyfunction function)
         {
-            if (client.BottomClient != null)
-                info.BottomClient = GenerateClientInfo(client.BottomClient);
-            if (client.TopClient != null)
-                info.TopClient = GenerateClientInfo(client.TopClient);
-            if (client.RightClient != null)
-                info.RightClient = GenerateClientInfo(client.RightClient);
-            if (client.LeftClient != null)
-                info.LeftClient = GenerateClientInfo(client.LeftClient);
+            Hotkey hk = inputMan.GetFunctionHotkey(function);
+            return hk == null ? new Hotkey(0, 0) : hk;
         }
 
-        public void SetClientUdpEnabled(ClientInfo client, bool udpEnabled)
+        public void SetHotkey(Hotkeyfunction function, Hotkey hk)
         {
-            var c = clientMan.GetClientFromInfo(client);
-
-            if (c == null)
-                throw new ArgumentException("Client " + client.Name + " not found");
-
-            c.SetUdpEnabled(udpEnabled);
+            try
+            {
+                inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(hk.Key, hk.Modifiers, function));
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to set hotkey for {0}: {1}", function, ex.Message);
+            }
         }
-
-        private ClientInfo GetCurrentInputClient()
-        {
-            return GenerateClientInfo(inputClient, true);
-        }
-
-        public CurrentClipboardData GetGlobalClipboardData()
-        {
-            if (!Running)
-                throw new InvalidOperationException("Server not running");
-
-            if (cbController.currentOperation == null)
-                return new CurrentClipboardData(CurrentClipboardData.ClipboardDataType.None, GenerateLocalhostInfo(), DateTime.Now);
-
-            return new CurrentClipboardData((CurrentClipboardData.ClipboardDataType)cbController.currentOperation.DataType, GenerateClientInfo(cbController.currentOperation.Host), DateTime.Now);
-        }
-
-        #endregion
     }
 }
+ 

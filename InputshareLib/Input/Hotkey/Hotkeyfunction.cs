@@ -2,7 +2,7 @@
 {
     public enum Hotkeyfunction
     {
-        StopServer,
-        SendSas,
+        StopServer = 1,
+        SendSas = 2
     }
 }

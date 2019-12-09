@@ -1,11 +1,9 @@
 ﻿using InputshareLib.Input;
 using InputshareLib.Net.Udp;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace InputshareLib.Server
@@ -34,19 +32,19 @@ namespace InputshareLib.Server
         private void UdpCheckTimerCallback(object sync)
         {
             //Checks for any client that we have not had a UDP response from. incase the first response packet got lost.
-            foreach(var client in clientMan.AllClients.Where(c =>!c.IsLocalhost && !c.UdpConnected && c.UdpAddress != null))
+            foreach (var client in clientMan.AllClients.Where(c => !c.IsLocalhost && !c.UdpConnected && c.UdpAddress != null))
             {
                 SendMessage(UdpMessageType.HostOK, client);
             }
         }
 
-         private void SocketReceiveFromCallback(IAsyncResult ar)
+        private void SocketReceiveFromCallback(IAsyncResult ar)
         {
             try
             {
                 int bytesIn = udpSocket.EndReceiveFrom(ar, ref _recvAddrBuffer);
                 byte[] dg = new byte[bytesIn];
-                Buffer.BlockCopy(readBuff, 1, dg, 0, bytesIn-1);
+                Buffer.BlockCopy(readBuff, 1, dg, 0, bytesIn - 1);
                 HandleDatagram((UdpMessageType)readBuff[0], dg, _recvAddrBuffer as IPEndPoint);
 
                 udpSocket.BeginReceiveFrom(readBuff, 0, readBuff.Length, 0, ref _recvAddrBuffer, SocketReceiveFromCallback, null);
@@ -63,8 +61,8 @@ namespace InputshareLib.Server
         private void HandleDatagram(UdpMessageType type, byte[] data, IPEndPoint senderAddress)
         {
             var sender = clientMan.GetClientFromUdpAddress(senderAddress);
-            
-            if(sender == null)
+
+            if (sender == null)
             {
                 ISLogger.Write("ISUdpServer: Ignoring UDP packet from unknown address {0}", senderAddress);
                 return;
@@ -108,7 +106,8 @@ namespace InputshareLib.Server
             try
             {
                 udpSocket.EndSendTo(ar);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 ISLogger.Write("ISUdpServer: Send error {0}", ex.Message);
             }

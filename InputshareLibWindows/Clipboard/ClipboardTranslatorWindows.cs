@@ -8,54 +8,13 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
-using DirectoryAttributes = InputshareLib.Clipboard.DataTypes.ClipboardVirtualFileData.DirectoryAttributes;
-using FileAttributes = InputshareLib.Clipboard.DataTypes.ClipboardVirtualFileData.FileAttributes;
+using DirectoryAttributes = InputshareLib.Clipboard.DataTypes.DirectoryAttributes;
+using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
 
 namespace InputshareLibWindows.Clipboard
 {
-    /// <summary>
-    /// Extension of InputshareLib.Clipboard.ClipboardTranslator using the windows IDataObject interface
-    /// </summary>
     public static class ClipboardTranslatorWindows
     {
-
-        /// <summary>
-        /// Converts an inputshare clipboard data type into a windows dataobject
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public static InputshareDataObject ConvertToWindows(ClipboardDataBase data, Guid operationId)
-        {
-            if (data is ClipboardVirtualFileData fd)
-            {
-                List<FileAttributes> files = fd.AllFiles;
-                InputshareDataObject o = new InputshareDataObject(files, operationId);
-                return o;
-            }
-            else if (data is ClipboardImageData imgData)
-            {
-                try
-                {
-                    using (MemoryStream ms = new MemoryStream(imgData.ImageData))
-                    {
-                        Image bmp = Image.FromStream(ms);
-                        return new InputshareDataObject(bmp, operationId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ISLogger.Write("Error converting image data: " + ex.Message);
-                    return null;
-                }
-            }
-            else if (data is ClipboardTextData textData)
-            {
-                return new InputshareDataObject(textData, operationId);
-            }
-
-            throw new ArgumentException("Unrecognized data type " + data.GetType().FullName);
-        }
-
         /// <summary>
         /// Converts a window dataobject to an inputshare clipboard data object
         /// </summary>
@@ -73,7 +32,7 @@ namespace InputshareLibWindows.Clipboard
                     {
                         using (MemoryStream ms = new MemoryStream())
                         {
-                            i.Save(ms, ImageFormat.Jpeg);
+                            i.Save(ms, Settings.ImageEncodeFormat);
                             return new ClipboardImageData(ms.ToArray(), true);
                         }
                     }
@@ -89,6 +48,11 @@ namespace InputshareLibWindows.Clipboard
 
                 else
                 {
+                    ISLogger.Write("possible data formats: ");
+                    foreach(var format in data.GetFormats()){
+                        ISLogger.Write(format);
+                    }
+
                     throw new ClipboardTranslationException("Dataobject not implemented");
                 }
             }
@@ -155,6 +119,12 @@ namespace InputshareLibWindows.Clipboard
             {
                 try
                 {
+
+                    //Todo - this is a cheap fix to stop massive folders with thousands of files being copied
+                    //File transfer needs to be changed to allow better support for a large ammount of files
+                    if (fCount > Settings.MaxFileTransferFiles)
+                        throw new ClipboardTranslationException("File count limit reached - " + fCount);
+
                     DirectoryAttributes subda = new DirectoryAttributes(new DirectoryInfo(subd));
                     string p = Path.Combine(current, subda.Name);
                     subda.RelativePath = p;
@@ -170,11 +140,12 @@ namespace InputshareLibWindows.Clipboard
 
                     AddDirectoriesRecursive(subda, Path.Combine(current, subda.Name), ref fCount);
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
                 {
                     ISLogger.Write("An error occurred while reading directory {0}.\n{1}", subd, ex.Message);
                 }
 
+                
             }
             return folder;
         }

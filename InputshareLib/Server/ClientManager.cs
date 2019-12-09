@@ -1,5 +1,4 @@
-﻿using InputshareLib.Server.API;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -22,7 +21,7 @@ namespace InputshareLib.Server
         /// Returns a read only list of all connected clients
         /// 
         /// </summary>
-        public ReadOnlyCollection<ISServerSocket> AllClients { get => new ReadOnlyCollection<ISServerSocket>(clients); }
+        public ReadOnlyCollection<ISServerSocket> AllClients { get { return new ReadOnlyCollection<ISServerSocket>(new List<ISServerSocket>(clients)); } }
         private List<ISServerSocket> clients;
 
         public ClientManager(int maxClients)
@@ -80,6 +79,18 @@ namespace InputshareLib.Server
         {
             return clients.Where(item => item.ClientName == name).FirstOrDefault();
         }
+
+        public bool TryGetClientByName(string name, out ISServerSocket client)
+        {
+            if (name == "Localhost")
+            {
+                client = ISServerSocket.Localhost;
+                return true;
+            }
+
+            client = clients.Where(item => item.ClientName == name).FirstOrDefault();
+            return client != null;
+        }
         /// <summary>
         /// Returns a client with a matching guid (NULL IF NONE)
         /// </summary>
@@ -88,6 +99,12 @@ namespace InputshareLib.Server
         public ISServerSocket GetClientById(Guid id)
         {
             return clients.Where(item => item.ClientId == id).FirstOrDefault();
+        }
+
+        public bool TryGetClientById(Guid id, out ISServerSocket client)
+        {
+            client = GetClientById(id);
+            return client != null;
         }
 
         /// <summary>

@@ -124,7 +124,7 @@ namespace InputshareLibWindows.IPC.NetIpc
             else if (message.MessageType == IpcMessageType.NetIpcDisableAutoReconnect)
                 HandleSetAutoReconnect(false);
             else if (message.MessageType == IpcMessageType.NetIpcAutoReconnectRequest)
-                HandleGetAutoReconnect(message);
+                HandleGetAutoReconnect(message);  
         }
 
         private void HandleSetAutoReconnect(bool enabled)
@@ -141,7 +141,7 @@ namespace InputshareLibWindows.IPC.NetIpc
 
         private void HandleSetName(NetIpcSetNameMessage message)
         {
-            client.SetClientName(message.Name);
+            client.ClientName = message.Name;
             SendLogMessage("Name set to " + client.ClientName);
         }
 
@@ -157,7 +157,7 @@ namespace InputshareLibWindows.IPC.NetIpc
         private void HandleConnectMessage(NetIpcConnectMessage message)
         {
             if (!client.IsConnected)
-                client.Connect(message.Address.Address.ToString(), message.Address.Port);
+                client.Connect(message.Address);
         }
 
         private void HandleNameRequest(IpcMessage message)

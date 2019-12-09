@@ -5,6 +5,9 @@ namespace InputshareLibWindows.Native
 {
     public static class User32
     {
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint RegisterClipboardFormatA(string formatName);
+
         public const int CX_VIRTUALSCREEN = 78;
         public const int CY_VIRTUALSCREEN = 79;
         public static int UOI_NAME = 2;

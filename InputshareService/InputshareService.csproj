@@ -3,31 +3,22 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-
-    <Version>1.0.1</Version>
     <Authors>Sam Barraclough</Authors>
     <Company>Sbarrac1</Company>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
-    <ApplicationIcon />
-    <StartupObject />
-    <Platforms>AnyCPU;x86</Platforms>
+    <Platforms>AnyCPU</Platforms>
+    <Configurations>Linux;Windows</Configurations>
+
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <PlatformTarget>x64</PlatformTarget>
-    <OutputPath>..\builds\release64</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <PlatformTarget>x86</PlatformTarget>
-    <OutputPath>..\builds\release32</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <PlatformTarget>x64</PlatformTarget>
-    <OutputPath>..\builds\debug64</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
+    <OutputPath>..\build_windows</OutputPath>
+    <Optimize>true</Optimize>
+    <DefineConstants />
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using InputshareLib.Input.Keys;
+using System;
 
 namespace InputshareLib.Input.Hotkeys
 {

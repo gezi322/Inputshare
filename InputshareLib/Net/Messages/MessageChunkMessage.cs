@@ -9,14 +9,14 @@ namespace InputshareLib.Net.Messages
 
         public override byte[] ToBytes()
         {
-            byte[] data = WritePacketInfo(this, MessageData.Length+8);
+            byte[] data = WritePacketInfo(this, MessageData.Length + 8);
             Buffer.BlockCopy(BitConverter.GetBytes(MessageSize), 0, data, 21, 4);
             Buffer.BlockCopy(BitConverter.GetBytes(MessageData.Length), 0, data, 25, 4);
             Buffer.BlockCopy(MessageData, 0, data, 29, MessageData.Length);
             return data;
         }
 
-        public MessageChunkMessage(Guid messageId, byte[] data, int messageSize) : base(MessageType.MessagePart,messageId)
+        public MessageChunkMessage(Guid messageId, byte[] data, int messageSize) : base(MessageType.MessagePart, messageId)
         {
             MessageData = data;
             MessageSize = messageSize;

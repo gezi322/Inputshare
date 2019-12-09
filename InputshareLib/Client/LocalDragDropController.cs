@@ -1,6 +1,7 @@
-﻿using InputshareLib.Clipboard.DataTypes;
-using InputshareLib.DragDrop;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Clipboard.DataTypes;
 using InputshareLib.Net;
+using InputshareLib.PlatformModules.DragDrop;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,33 +10,27 @@ namespace InputshareLib.Client
 {
     internal class LocalDragDropController
     {
-        internal DragDropOperation CurrentOperation { get; private set; }
+        internal ClientDataOperation CurrentOperation { get; private set; }
 
-        private readonly FileAccessController fileController;
-        private readonly IDragDropManager ddManager;
-        public ISClientSocket Server { get; set; }
-        private Dictionary<Guid, DragDropOperation> previousOperations = new Dictionary<Guid, DragDropOperation>();
+        internal bool DragDropEnabled { get; set; } = true;
 
-        internal LocalDragDropController(FileAccessController fc, IDragDropManager dragDropManager)
+        private readonly DragDropManagerBase ddManager;
+        private readonly ISClientSocket server;
+
+        public LocalDragDropController(DragDropManagerBase dragDropManager, ISClientSocket serverConnection)
         {
             ddManager = dragDropManager;
-            fileController = fc;
+            server = serverConnection;
+            ddManager.DataDropped += Local_DataDropped;
+            ddManager.DragDropCancelled += Local_DragDropCancelled;
+            ddManager.DragDropSuccess += Local_DragDropSuccess;
+            server.DragDropDataReceived += Socket_DragDropReceived;
+            server.CancelAnyDragDrop += Socket_CancelAnyDragDrop;
         }
 
         internal void Socket_DragDropReceived(object sender, NetworkSocket.DragDropDataReceivedArgs args)
         {
             BeginReceivedOperation(args);
-
-        }
-
-        internal void Socket_DragDropCancelled(object sender, Guid operationId)
-        {
-            ddManager.CancelDrop();
-
-            if(operationId == CurrentOperation.OperationId)
-            {
-                fileController.DeleteToken(CurrentOperation.AssociatedAccessToken);
-            }
         }
 
         internal void Socket_CancelAnyDragDrop(object sender, EventArgs _)
@@ -43,148 +38,67 @@ namespace InputshareLib.Client
             ddManager.CancelDrop();
         }
 
-        internal void Socket_DragDropComplete(object sender, Guid operationId)
-        {
-            if (operationId == CurrentOperation?.OperationId)
-            {
-                if (CurrentOperation.Completed)
-                    return;
-
-                CurrentOperation.Completed = true;
-                fileController.DeleteToken(CurrentOperation.AssociatedAccessToken);
-                if (!previousOperations.ContainsKey(CurrentOperation.OperationId))
-                    previousOperations.Add(CurrentOperation.OperationId, CurrentOperation);
-
-            }
-            else if (previousOperations.ContainsKey(operationId))
-            {
-                if (previousOperations.TryGetValue(operationId, out DragDropOperation operation))
-                {
-                    fileController.DeleteToken(operation.AssociatedAccessToken);
-
-                    operation.Completed = true;
-                }
-            }
-            else
-            {
-                ISLogger.Write("LocalDragDropController: Failed to mark dragdrop operation as complete: Could not find operation ID");
-            }
-        }
-
         internal void Local_DataDropped(object sender, ClipboardDataBase cbData)
         {
-            if (!Server.IsConnected)
+            if (!server.IsConnected)
                 return;
 
-            if (CurrentOperation != null && !previousOperations.ContainsKey(CurrentOperation.OperationId))
-            {
-                previousOperations.Add(CurrentOperation.OperationId, CurrentOperation);
-            }
-
-            if (Server.IsConnected)
+            if (server.IsConnected)
             {
                 Guid opId = Guid.NewGuid();
-                CurrentOperation = new DragDropOperation(opId, cbData);
+                CurrentOperation = new ClientDataOperation(cbData, opId);
                 ISLogger.Write("LocalDragDropController: Started dragdrop operation " + opId);
-                Server.SendDragDropData(cbData.ToBytes(), opId);
+                server.SendDragDropData(cbData.ToBytes(), opId);
             }
         }
 
-        internal void Local_DragDropSuccess(object sender, Guid id)
+        internal void Local_DragDropSuccess(object sender, EventArgs _)
         {
-            if (!Server.IsConnected)
+            if (!server.IsConnected)
                 return;
-
-            Server?.NotifyDragDropSuccess(id, true);
+            server?.NotifyDragDropSuccess(true);
         }
 
-        internal void Local_DragDropComplete(object sender, Guid operationId)
+        internal void Local_DragDropCancelled(object sender, EventArgs _)
         {
-            if (!Server.IsConnected)
+            if (!server.IsConnected)
                 return;
 
-            Server?.SendDragDropComplete(operationId);
+            server?.NotifyDragDropSuccess(false);
         }
 
-        internal void Local_DragDropCancelled(object sender, Guid operationId)
+        private void BeginReceivedOperation(NetworkSocket.DragDropDataReceivedArgs args)
         {
-            if (!Server.IsConnected)
-                return;
-
-            Server?.NotifyDragDropSuccess(operationId, false);
-        }
-
-        private async void BeginReceivedOperation(NetworkSocket.DragDropDataReceivedArgs args)
-        {
-            //Check if the received operation has previously been received
-            if (CurrentOperation?.OperationId == args.OperationId)
+            if (!DragDropEnabled)
             {
-                ddManager.DoDragDrop(CurrentOperation.Data, args.OperationId);
+                server.NotifyDragDropSuccess(false);
                 return;
             }
 
-            if (CurrentOperation != null && !previousOperations.ContainsKey(CurrentOperation.OperationId))
-                previousOperations.Add(CurrentOperation.OperationId, CurrentOperation);
-
+            //Check if the received operation has previously been received
+            if (CurrentOperation?.OperationGuid == args.OperationId)
+            {
+                ddManager.DoDragDrop(CurrentOperation.Data);
+                return;
+            }
 
             ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
-            
+            cbData.OperationId = args.OperationId;
 
             //We need to setup the virtual files if this is a file drop
             if (cbData is ClipboardVirtualFileData cbFiles)
             {
-                //Get an access token for the files from the server
-                Guid token;
-                try
-                {
-                    token = await Server.RequestFileTokenAsync(args.OperationId);
-                }
-                catch (Exception ex)
-                {
-                    ISLogger.Write("LocalDragDropController: Failed to get access token for dragdrop operation: " + ex.Message);
-                    return;
-                }
+                cbFiles.RequestPartMethod = server.RequestReadStreamAsync;
+                cbFiles.RequestTokenMethod = server.RequestFileTokenAsync;
 
+                ISLogger.Write("Copied files");
 
-                for (int i = 0; i < cbFiles.AllFiles.Count; i++)
-                {
-                    cbFiles.AllFiles[i].RemoteAccessToken = token;
-                    cbFiles.AllFiles[i].ReadComplete += VirtualFile_ReadComplete;
-                    cbFiles.AllFiles[i].ReadDelegate = VirtualFile_RequestDataAsync;
-                    cbFiles.AllFiles[i].FileOperationId = args.OperationId;
-                }
+                foreach (var file in cbFiles.AllFiles)
+                    ISLogger.Write(file.FullPath);
             }
 
-            CurrentOperation = new DragDropOperation(args.OperationId, cbData);
-            ddManager.DoDragDrop(cbData, args.OperationId);
-        }
-
-        private void VirtualFile_ReadComplete(object sender, EventArgs e)
-        {
-            if (!Server.IsConnected)
-                return;
-
-            ClipboardVirtualFileData.FileAttributes file = sender as ClipboardVirtualFileData.FileAttributes;
-            Server.RequestCloseStream(file.RemoteAccessToken, file.FileRequestId);
-        }
-
-        private async Task<byte[]> VirtualFile_RequestDataAsync(Guid token, Guid operationId, Guid fileId, int readLen)
-        {
-            return await Server.RequestReadStreamAsync(token, fileId, readLen);
-        }
-
-        internal class DragDropOperation
-        {
-            public DragDropOperation(Guid operationId, ClipboardDataBase data)
-            {
-                OperationId = operationId;
-                Data = data;
-            }
-
-            public bool Completed { get; set; }
-            public Guid AssociatedAccessToken { get; set; }
-            public Guid OperationId { get; }
-            public ClipboardDataBase Data { get; }
+            CurrentOperation = new ClientDataOperation(cbData, args.OperationId);
+            ddManager.DoDragDrop(cbData);
         }
     }
 }

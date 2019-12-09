@@ -17,12 +17,12 @@ namespace InputshareLib.Net
         /// <summary>
         /// Occurs when a client successfully drops the current dragdrop operation files to a droptarget
         /// </summary>
-        public event EventHandler<Guid> DragDropSuccess;
+        public event EventHandler DragDropSuccess;
 
         /// <summary>
         /// Occurs when the client or server cancels the current drag drop operation
         /// </summary>
-        public event EventHandler<Guid> DragDropCancelled;
+        public event EventHandler DragDropCancelled;
 
         /// <summary>
         /// Occurs when an urecoverable connection error occurs
@@ -70,12 +70,8 @@ namespace InputshareLib.Net
         /// that would be too large to fit in the socket buffer
         /// </summary>
         private readonly List<LargeMessageHandler> messageHandlers = new List<LargeMessageHandler>();
-
-        public event EventHandler<Guid> DragDropOperationComplete;
-
         public event EventHandler<FileTokenRequestArgs> RequestedFileToken;
         public event EventHandler<RequestStreamReadArgs> RequestedStreamRead;
-        public event EventHandler<RequestCloseStreamArgs> RequestedCloseStream;
 
 
         //Used to wait for a response to a request
@@ -134,6 +130,7 @@ namespace InputshareLib.Net
         /// <returns></returns>
         public async Task<Guid> RequestFileTokenAsync(Guid fileGroupId)
         {
+            ISLogger.Write(new Exception().StackTrace);
             ISLogger.Write("Sending token request");
             NetworkMessage response = await SendRequestAsync(new RequestGroupTokenMessage(fileGroupId));
             ISLogger.Write("Server responded to token request!");
@@ -145,9 +142,7 @@ namespace InputshareLib.Net
                     return resp.Token;
                 case MessageType.RemoteFileError:
                     FileErrorMessage err = response as FileErrorMessage;
-                    ISLogger.Write("File token request returned error: " + err.ErrorMessage);
-                    return Guid.Empty;
-
+                    throw new Exception("File token request failed: Server side error: " + err.ErrorMessage);
                 default:
                     ISLogger.Write("Debug: Server sent unexpected reply when requesting file access token");
                     return Guid.Empty;
@@ -189,9 +184,11 @@ namespace InputshareLib.Net
         /// <returns></returns>
         public async Task<byte[]> RequestReadStreamAsync(Guid token, Guid file, int readLen)
         {
+            
             NetworkMessage response = await SendRequestAsync(new FileStreamReadRequestMessage(token, file, readLen));
 
-            switch (response.Type) {
+            switch (response.Type)
+            {
                 case MessageType.FileStreamReadResponse:
                     FileStreamReadResponseMessage resp = response as FileStreamReadResponseMessage;
                     return resp.ReadData;
@@ -250,12 +247,12 @@ namespace InputshareLib.Net
         /// Notifies the host that either the dragdrop files were dropped, or the operation was cancelled
         /// </summary>
         /// <param name="successful"></param>
-        public void NotifyDragDropSuccess(Guid operationId, bool successful)
+        public void NotifyDragDropSuccess(bool successful)
         {
             if (successful)
-                SendMessage(new DragDropSuccessMessage(operationId));
+                SendMessage(new NetworkMessage(MessageType.DragDropSuccess));
             else
-                SendMessage(new DragDropCancelledMessage(operationId));
+                SendMessage(new NetworkMessage(MessageType.DragDropCancelled));
         }
 
         /// <summary>
@@ -274,7 +271,8 @@ namespace InputshareLib.Net
         /// <param name="ar"></param>
         protected void TcpSocket_ConnectCallback(IAsyncResult ar)
         {
-            try {
+            try
+            {
                 Socket soc = (Socket)ar.AsyncState;
                 soc.EndConnect(ar);
 
@@ -288,7 +286,7 @@ namespace InputshareLib.Net
             {
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 HandleConnectedFailed(ex.Message);
             }
@@ -334,7 +332,7 @@ namespace InputshareLib.Net
                 if (tcpSocket != null && tcpSocket.Connected)
                     tcpSocket.BeginSend(data, 0, data.Length, SocketFlags.None, TcpSocket_SendCallback, tcpSocket);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ISLogger.Write("Sendmessage error: " + ex.Message);
             }
@@ -347,7 +345,8 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         private void SendLargeMessage(NetworkMessage message)
         {
-            Task.Run(() => {
+            Task.Run(() =>
+            {
                 byte[] data = message.ToBytes();
                 Guid transferId = Guid.NewGuid();
 
@@ -414,15 +413,15 @@ namespace InputshareLib.Net
                     return;
                 }
 
-                while(bytesIn < 4)
+                while (bytesIn < 4)
                     bytesIn += soc.Receive(socketBuff, bytesIn, 4 - bytesIn, SocketFlags.None);
 
                 //Read the size of the packet from the header (-4 as header is already read)
-                int packetBodySize = BitConverter.ToInt32(socketBuff, 0)-4;
+                int packetBodySize = BitConverter.ToInt32(socketBuff, 0) - 4;
                 //Make sure the packet will fit in the socket buffer
-                if(packetBodySize > socketBuff.Length-4 || 0 > packetBodySize)
+                if (packetBodySize > socketBuff.Length - 4 || 0 > packetBodySize)
                 {
-                    HandleConnectionClosed("Client sent packet larger than buffer (" + packetBodySize +")");
+                    HandleConnectionClosed("Client sent packet larger than buffer (" + packetBodySize + ")");
                     return;
                 }
 
@@ -439,7 +438,8 @@ namespace InputshareLib.Net
             catch (ObjectDisposedException)
             {
                 return;
-            }catch (SocketException ex)
+            }
+            catch (SocketException ex)
             {
                 HandleConnectionClosed(ex.Message);
             }
@@ -463,11 +463,6 @@ namespace InputshareLib.Net
             SendMessage(new ClipboardDataMessage(data, operationId));
         }
 
-        public void SendDragDropComplete(Guid operationId)
-        {
-            SendMessage(new DragDropCompleteMessage(operationId));
-        }
-
         /// <summary>
         /// Handles incoming messages and checks for message chunks,
         /// which are then read into the appropriate LargeMessageHandler
@@ -484,14 +479,14 @@ namespace InputshareLib.Net
 
             MessageType type = (MessageType)source[4];
 
-            if(type == MessageType.InputData)
+            if (type == MessageType.InputData)
             {
                 byte[] input = new byte[5];
                 Buffer.BlockCopy(source, 5, input, 0, 5);
                 HandleInputData(input);
                 return;
             }
-            else if(type == MessageType.MessagePart)
+            else if (type == MessageType.MessagePart)
             {
                 HandleMessageChunkReceived(new MessageChunkMessage(socketBuff));
                 return;
@@ -515,7 +510,7 @@ namespace InputshareLib.Net
         }
 
 
-        readonly List<Guid>  ProcessedMessageIds = new List<Guid>();
+        readonly List<Guid> ProcessedMessageIds = new List<Guid>();
         /// <summary>
         /// Handles messages received from the client/server. Derived
         /// classes must override this method to process messages. Derived 
@@ -548,11 +543,11 @@ namespace InputshareLib.Net
             }
             else if (type == MessageType.DragDropSuccess)
             {
-                DragDropSuccess?.Invoke(this, new DragDropSuccessMessage(rawMessage).OperationId);
+                DragDropSuccess?.Invoke(this, new EventArgs());
             }
             else if (type == MessageType.DragDropCancelled)
             {
-                DragDropCancelled?.Invoke(this, new DragDropCancelledMessage(rawMessage).OperationId);
+                DragDropCancelled?.Invoke(this, new EventArgs());
             }
             else if (type == MessageType.RequestFileGroupToken)
             {
@@ -563,13 +558,6 @@ namespace InputshareLib.Net
             {
                 FileStreamReadRequestMessage requestMsg = new FileStreamReadRequestMessage(rawMessage);
                 RequestedStreamRead?.Invoke(this, new RequestStreamReadArgs(requestMsg.MessageId, requestMsg.Token, requestMsg.FileRequestId, requestMsg.ReadSize));
-            }else if(type == MessageType.FileStreamCloseRequest)
-            {
-                FileStreamCloseStreamMessage closeMsg = new FileStreamCloseStreamMessage(rawMessage);
-                RequestedCloseStream?.Invoke(this, new RequestCloseStreamArgs(closeMsg.Token, closeMsg.FileId));
-            }else if(type == MessageType.DragDropComplete) {
-                DragDropCompleteMessage ddcMsg = new DragDropCompleteMessage(rawMessage);
-                DragDropOperationComplete?.Invoke(this, ddcMsg.OperationId);
             }
         }
 
@@ -617,7 +605,7 @@ namespace InputshareLib.Net
         {
             LargeMessageHandler handler = GetMessageHandlerFromId(message.MessageId);
 
-            if(handler == null)
+            if (handler == null)
             {
                 //ISLogger.Write("Incoming large packet (" + message.MessageSize / 1024 + "KB)");
                 handler = new LargeMessageHandler(message.MessageId, message.MessageSize);
@@ -646,7 +634,7 @@ namespace InputshareLib.Net
             {
                 tcpSocket.BeginSend(data, 0, data.Length, 0, TcpSocket_SendCallback, tcpSocket);
             }
-            catch(SocketException ex)
+            catch (SocketException ex)
             {
                 HandleConnectionClosed(ex.Message);
             }
@@ -660,7 +648,6 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         protected virtual void HandleClipboardData(ClipboardDataMessage message)
         {
-            ISLogger.Write(message.OperationId);
             ClipboardDataReceived?.Invoke(this, new ClipboardDataReceivedArgs(message.cbData, message.OperationId));
         }
 
@@ -668,7 +655,8 @@ namespace InputshareLib.Net
         /// Cleans up after a connection error or a call to Close()
         /// </summary>
         /// <param name="error"></param>
-        protected virtual void HandleConnectionClosed(string error) {
+        protected virtual void HandleConnectionClosed(string error)
+        {
             IsConnected = false;
 
             if (!errorHandled)
@@ -735,10 +723,10 @@ namespace InputshareLib.Net
             public FileTokenRequestArgs(Guid networkMessageId, Guid fileGroupId)
             {
                 NetworkMessageId = networkMessageId;
-                FileGroupId = fileGroupId;
+                DataOperationId = fileGroupId;
             }
             public Guid NetworkMessageId { get; }
-            public Guid FileGroupId { get; }
+            public Guid DataOperationId { get; }
         }
         public class ClipboardDataReceivedArgs : EventArgs
         {
@@ -792,12 +780,13 @@ namespace InputshareLib.Net
             {
                 if (disposing)
                 {
-                    foreach(var handle in messageHandlers)
+                    foreach (var handle in messageHandlers)
                     {
                         handle.Close();
                     }
 
-                    tcpSocket.Dispose();
+                    IsConnected = false;
+                    tcpSocket?.Dispose();
                     socketBuff = null;
                 }
 

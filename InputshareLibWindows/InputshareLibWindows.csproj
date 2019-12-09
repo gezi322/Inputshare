@@ -4,30 +4,29 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>True</UseWindowsForms>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <Platforms>AnyCPU;x86;x64</Platforms>
-
-    <Version>1.0.1</Version>
+    <Platforms>AnyCPU</Platforms>
+    
     <Company>Sbarrac1</Company>
     <Product>Inputshare</Product>
     <PackageProjectUrl>https://github.com/sbarrac1/Inputshare</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sbarrac1/Inputshare</RepositoryUrl>
     <Authors>Sam Barraclough</Authors>
+    <Configurations>Linux;Windows</Configurations>
+
+
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <OutputPath>../builds/debug32</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
+    <OutputPath>..\build_windows</OutputPath>
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <OutputPath>..\builds\release32</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutputPath>..\builds\release64</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutputPath>..\builds\debug64</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

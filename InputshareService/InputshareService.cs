@@ -22,11 +22,11 @@ namespace InputshareService
         private ISClient clientInstance;
 
         private AnonIpcHost iHostMain;
-        private AnonIpcHost iHostDragDrop;
+        private AnonIpcHost iHostClipboard;
         private NetIpcHost appHost;
 
         private IpcHandle spMainHandle = new IpcHandle();
-        private IpcHandle spDragDropHandle = new IpcHandle();
+        private IpcHandle spClipboardHandle = new IpcHandle();
 
         /// <summary>
         /// True if the service is stopping.
@@ -53,27 +53,35 @@ namespace InputshareService
             ISLogger.Write("----------------------------------------------");
             ISLogger.Write("Inputshare service starting...");
             ISLogger.Write("Console session state: " + Session.ConsoleSessionState);
-            SetPriority();
-            SetLogDirPermissions();
+            Config.LoadFile();
+            ISLogger.Write("Loaded config");
 
+            SetPriority();
+            
+           
             Task.Run(() => { SpDragDropTaskLoop(); });
             Task.Run(() => { SpMainTaskLoop(); });
 
+            //todo
+            Thread.Sleep(1500);
+            Task.Run(() => { LoadAndStart(); });
 
-            LoadAndStart();
 
             base.OnStart(args);
         }
 
         private void SpDragDropTaskLoop()
         {
-            iHostDragDrop = new AnonIpcHost("Dragdrop process");
-            spDragDropHandle.host = iHostDragDrop;
+            iHostClipboard = new AnonIpcHost("Dragdrop process");
+            spClipboardHandle.host = iHostClipboard;
 
             while (!stopping)
             {
                 try
                 {
+                    while (!Session.ConsoleSessionLoggedIn)
+                        Thread.Sleep(500);
+
                     Process proc = LaunchSPDragDrop();
                     proc.WaitForExit();
                 }
@@ -104,71 +112,40 @@ namespace InputshareService
             }
         }
 
-        private LoadedConfiguration LoadConfig()
-        {
-            try
-            {
-                string name = Config.Read(Config.ConfigProperty.LastClientName);
-                Guid id = new Guid(Config.Read(Config.ConfigProperty.LastClientGuid));
-                bool connected = Config.Read(Config.ConfigProperty.LastConnectionState) == "True";
-                IPEndPoint.TryParse(Config.Read(Config.ConfigProperty.LastConnectedAddress), out IPEndPoint address);
-
-                IPEndPoint lastAddr = new IPEndPoint(IPAddress.Any, 0);
-                if (address != null)
-                    lastAddr = address;
-
-                bool autoReconnect = Config.Read(Config.ConfigProperty.AutoReconnectEnabled) == "True";
-                return new LoadedConfiguration(connected, lastAddr, name, id, autoReconnect);
-
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Failed to load configuration: " + ex.Message);
-                return new LoadedConfiguration(false, new IPEndPoint(IPAddress.Any, 0), Environment.MachineName, Guid.NewGuid(), false) ;
-            }
-            
-        }
 
         private void ClientInstance_Disconnected(object sender, EventArgs e)
         {
-            OnStateChange();
-            ISLogger.Write("Disconnected.");
+
         }
 
         private void ClientInstance_Connected(object sender, System.Net.IPEndPoint e)
         {
-            OnStateChange();
+            Config.TryWriteProperty(ServiceConfigProperties.LastConnectedAddress, e.ToString());
         }
 
         private void ClientInstance_ConnectionFailed(object sender, string error)
         {
-            OnStateChange();
+
         }
 
         private void ClientInstance_ConnectionError(object sender, string error)
         {
-            OnStateChange();
-        }
 
-        private void OnStateChange()
-        {
-            SaveConfig();
         }
-
 
         private void LoadAndStart()
         {
             try
             {
-                LoadedConfiguration conf = LoadConfig();
-                clientInstance = new ISClient(WindowsDependencies.GetServiceDependencies(spMainHandle, spDragDropHandle));
-                
+                clientInstance = new ISClient();
+                clientInstance.Start(new StartOptions(new System.Collections.Generic.List<string>(new string[] { "Verbose" })) ,WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle));
 
                 clientInstance.ConnectionError += ClientInstance_ConnectionError;
                 clientInstance.ConnectionFailed += ClientInstance_ConnectionFailed;
                 clientInstance.Connected += ClientInstance_Connected;
                 clientInstance.SasRequested += (object a, EventArgs b) => InputshareLibWindows.Native.Sas.SendSAS(false);
                 clientInstance.Disconnected += ClientInstance_Disconnected;
-                clientInstance.AutoReconnect = conf.AutoReconnect;
+                clientInstance.AutoReconnect = true;
 
                 try
                 {
@@ -177,24 +154,17 @@ namespace InputshareService
                 {
                     ISLogger.Write("Failed to create NetIPC host: " + ex.Message);
                 }
-                
 
-                if (conf.ClientName != "")
-                    clientInstance.SetClientName(conf.ClientName);
-
-                if (conf.ClientGuid != Guid.Empty)
-                    clientInstance.SetClientGuid(conf.ClientGuid);
-
-
-                if (conf.Address.ToString() != "0.0.0.0:0" && conf.Address.Port != 0)
-                {
-                    clientInstance.Connect(conf.Address.Address.ToString(), conf.Address.Port);
+                if(Config.TryReadProperty(ServiceConfigProperties.LastConnectedAddress, out string addrStr)){
+                    if (IPEndPoint.TryParse(addrStr, out IPEndPoint addr))
+                    {
+                        clientInstance.Connect(addr);
+                    }
+                    else
+                    {
+                        ISLogger.Write("Invalid address in config");
+                    }
                 }
-                else
-                {
-                    ISLogger.Write("No previous server address found.");
-                }
-
 
                 ISLogger.Write("Service started...");
             }
@@ -206,27 +176,6 @@ namespace InputshareService
             }
         }
 
-        private void SaveConfig()
-        {
-            try
-            {
-                Config.Write(Config.ConfigProperty.LastConnectionState, clientInstance.IsConnected.ToString());
-
-                if (clientInstance.ServerAddress != null && clientInstance.ServerAddress.ToString() != "0.0.0.0:0")
-                    Config.Write(Config.ConfigProperty.LastConnectedAddress, clientInstance.ServerAddress.ToString());
-
-                Config.Write(Config.ConfigProperty.LastClientName, clientInstance.ClientName);
-                Config.Write(Config.ConfigProperty.LastClientGuid, clientInstance.ClientId.ToString());
-                Config.Write(Config.ConfigProperty.AutoReconnectEnabled, clientInstance.AutoReconnect.ToString());
-            }
-            catch (ConfigurationErrorsException)
-            {
-                ISLogger.Write("Failed to write to settings file");
-            }
-        }
-
-    
-
         private Process LaunchSPMain()
         {
             IntPtr sysToken = IntPtr.Zero;
@@ -235,7 +184,13 @@ namespace InputshareService
                 iHostMain?.Dispose();
                 iHostMain = new AnonIpcHost("SP main");
                 ISLogger.Write("Launching SP default process");
-                sysToken = Token.GetSystemToken(Session.ConsoleSessionId);
+
+
+                if(Settings.DEBUG_SPECIFYSPSESSION != -1)
+                    sysToken = unchecked(Token.GetSystemToken((uint)Settings.DEBUG_SPECIFYSPSESSION));
+                else
+                    sysToken = Token.GetSystemToken(Session.ConsoleSessionId);
+
                 Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Default, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostMain, sysToken);
                 Token.CloseToken(sysToken);
                 spMainHandle.host = iHostMain;
@@ -259,19 +214,20 @@ namespace InputshareService
             IntPtr userToken = IntPtr.Zero;
             try
             {
-                iHostDragDrop?.Dispose();
-                iHostDragDrop = new AnonIpcHost("SP dragdrop");
+                iHostClipboard?.Dispose();
+                iHostClipboard = new AnonIpcHost("SP dragdrop");
                 ISLogger.Write("Launching SP dragdrop process");
                 userToken = Token.GetUserToken();
-                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.DragDrop, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostDragDrop, userToken);
+                Process proc = ProcessLauncher.LaunchSP(ProcessLauncher.SPMode.Clipboard, WindowsDesktop.Default, Settings.DEBUG_SPCONSOLEENABLED, iHostClipboard, userToken);
                 Token.CloseToken(userToken);
-                spDragDropHandle.host = iHostDragDrop;
-                spDragDropHandle.NotifyHandleUpdate();
+                spClipboardHandle.host = iHostClipboard;
+                spClipboardHandle.NotifyHandleUpdate();
                 return proc;
             }
             catch (Exception ex)
             {
                 ISLogger.Write("Failed to launch inputshareSP dragdrop process: " + ex.Message);
+                
                 return null;
             }
             finally
@@ -291,7 +247,7 @@ namespace InputshareService
 
                 ISLogger.Write("Killing child processes...");
 
-                iHostDragDrop?.Dispose();
+                iHostClipboard?.Dispose();
                 iHostMain?.Dispose();
 
                 if (ISLogger.BufferedMessages > 0)
@@ -299,6 +255,9 @@ namespace InputshareService
 
                 foreach (var proc in Process.GetProcessesByName("inputsharesp"))
                     proc.Kill();
+
+                if (clientInstance.Running)
+                    clientInstance.Stop();
 
             }
             catch(Exception ex)
@@ -324,24 +283,6 @@ namespace InputshareService
             }
         }
 
-        /// <summary>
-        /// Enables any user to write to the log folder. (allows SP dragdrop to write logs)
-        /// </summary>
-        private void SetLogDirPermissions()
-        {
-            try
-            {
-                DirectoryInfo dInfo = new DirectoryInfo(ISLogger.LogFolder);
-                DirectorySecurity dSecurity = dInfo.GetAccessControl();
-                dSecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), FileSystemRights.FullControl, InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit, PropagationFlags.NoPropagateInherit, AccessControlType.Allow));
-                dInfo.SetAccessControl(dSecurity);
-            }
-            catch(Exception ex)
-            {
-                ISLogger.Write("Failed to set log folder permissions: " + ex.Message);
-            }
-        }
-
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Exception ex = e.ExceptionObject as Exception;
@@ -352,24 +293,6 @@ namespace InputshareService
             ISLogger.Write("---------------------------------");
             Thread.Sleep(2000);
             Stop(); 
-        }
-
-        class LoadedConfiguration
-        {
-            public LoadedConfiguration(bool connected, IPEndPoint address, string clientName, Guid clientGuid, bool autoReconnect)
-            {
-                Connected = connected;
-                Address = address;
-                ClientName = clientName;
-                ClientGuid = clientGuid;
-                AutoReconnect = autoReconnect;
-            }
-
-            public bool Connected { get; }
-            public IPEndPoint Address { get; }
-            public string ClientName { get; }
-            public Guid ClientGuid { get; }
-            public bool AutoReconnect { get; }
         }
     }
 }

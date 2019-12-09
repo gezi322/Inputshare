@@ -1,16 +1,16 @@
 ﻿using InputshareLib.Client;
 using InputshareLib.Clipboard;
-using InputshareLib.Cursor;
 using InputshareLib.Displays;
-using InputshareLib.DragDrop;
 using InputshareLib.Server;
 using InputshareLibWindows.Clipboard;
-using InputshareLibWindows.Cursor;
 using InputshareLibWindows.Displays;
-using InputshareLibWindows.DragDrop;
-using InputshareLibWindows.Input;
 using InputshareLibWindows.IPC.AnonIpc;
 using InputshareLibWindows.Output;
+using InputshareLibWindows.PlatformModules.Clipboard;
+using InputshareLibWindows.PlatformModules.Displays;
+using InputshareLibWindows.PlatformModules.DragDrop;
+using InputshareLibWindows.PlatformModules.Input;
+using InputshareLibWindows.PlatformModules.Output;
 
 namespace InputshareLibWindows
 {
@@ -21,33 +21,31 @@ namespace InputshareLibWindows
             return new ISServerDependencies
             {
                 DisplayManager = new WindowsDisplayManager(),
-                CursorMonitor = new WindowsCursorMonitor(),
                 DragDropManager = new WindowsDragDropManager(),
                 InputManager = new WindowsInputManager(),
-                OutputManager = new WindowsOutputManager()
+                OutputManager = new WindowsOutputManager(),
+                ClipboardManager = new WindowsClipboardManager()
             };
         }
 
-        public static ClientDependencies GetClientDependencies()
+        public static ISClientDependencies GetClientDependencies()
         {
-            return new ClientDependencies
+            return new ISClientDependencies
             {
                 clipboardManager = new WindowsClipboardManager(),
-                cursorMonitor = new WindowsCursorMonitor(),
                 displayManager = new WindowsDisplayManager(),
                 dragDropManager = new WindowsDragDropManager(),
                 outputManager = new WindowsOutputManager()
             };
         }
 
-        public static ClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle dragDropHost)
+        public static ISClientDependencies GetServiceDependencies(IpcHandle mainHost, IpcHandle clipboardHost)
         {
-            return new ClientDependencies
+            return new ISClientDependencies
             {
-                clipboardManager = new ServiceClipboardManager(mainHost),
-                cursorMonitor = new ServiceCursorMonitor(mainHost),
+                clipboardManager = new ServiceClipboardManager(clipboardHost),
                 displayManager = new ServiceDisplayManager(mainHost),
-                dragDropManager = new ServiceDragDropManager(mainHost, dragDropHost),
+                dragDropManager = new ServiceDragDropManager(clipboardHost),
                 outputManager = new ServiceOutputManager(mainHost)
             };
         }

@@ -1,0 +1,22 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Inputshare.Views.ClientView">
+
+	<Grid>
+		<StackPanel>
+			<TextBlock Text="Address:"/>
+			<TextBox Text="{Binding AddressEntryText}"/>
+			<TextBlock Text="Port"/>
+			<TextBox Text="{Binding PortEntryText}"/>
+			<TextBlock Text="Client name"/>
+			<TextBox Text="{Binding ClientName}"/>
+			<Button Content="Connect" Command="{Binding CommandConnect}"/>
+			<CheckBox Content="Enable Drag/Drop" IsChecked="{Binding EnableDragDropChecked}"/>
+			<CheckBox Content="Enable clipboard sharing" IsChecked="{Binding EnableClipboardChecked}"/>
+		</StackPanel>
+	</Grid>
+	
+</UserControl>

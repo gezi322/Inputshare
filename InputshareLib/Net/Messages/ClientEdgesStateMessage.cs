@@ -4,7 +4,7 @@ namespace InputshareLib.Net.Messages
 {
     internal class ClientEdgesStateMessage : NetworkMessage
     {
-        public ClientEdgesStateMessage(bool clientTop, bool clientBottom, 
+        public ClientEdgesStateMessage(bool clientTop, bool clientBottom,
             bool clientLeft, bool clientRight,
             Guid messageId = default) : base(MessageType.ClientEdgeStates, messageId)
         {
@@ -25,7 +25,7 @@ namespace InputshareLib.Net.Messages
 
         public override byte[] ToBytes()
         {
-            byte[] data = WritePacketInfo(this,4);
+            byte[] data = WritePacketInfo(this, 4);
             data[21] = Convert.ToByte(ClientTop);
             data[22] = Convert.ToByte(ClientBottom);
             data[23] = Convert.ToByte(ClientLeft);

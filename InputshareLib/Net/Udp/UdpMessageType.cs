@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace InputshareLib.Net.Udp
+﻿namespace InputshareLib.Net.Udp
 {
     public enum UdpMessageType
     {

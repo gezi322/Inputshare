@@ -25,15 +25,23 @@ namespace InputshareLib
         private readonly static Task logWriteTask;
         private readonly static BlockingCollection<LogMessage> logWriteQueue;
         private readonly static object queueLock = new object();
-        public static string LogFolder { get => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\sbarrac1\inputshare\"; }
-        
+        public static string LogFolder = SetLogFolder();
+
         static ISLogger()
         {
-            SetLogFileName("Inputshare.log");
             cancelSource = new CancellationTokenSource();
             logWriteTask = new Task(LogWriteLoop);
             logWriteQueue = new BlockingCollection<LogMessage>();
             logWriteTask.Start();
+        }
+
+        private static string  SetLogFolder()
+        {
+#if LinuxBuild
+            return Environment.GetFolderPath(Environment.SpecialFolder.Personal) + @"/Inputshare";
+#elif WindowsBuild
+            return Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"/Inputshare"; 
+#endif
         }
 
         public static void Exit()
@@ -47,13 +55,15 @@ namespace InputshareLib
             {
                 Directory.CreateDirectory(LogFolder);
 
-                if (!File.Exists(LogFolder + fName))
+                if (!File.Exists(LogFolder + "/"+fName))
                 {
-                    File.Create(LogFolder + fName).Dispose();
+                    File.Create(LogFolder +"/"+  fName).Dispose();
                 }
 
-                LogFilePath = LogFolder + "\\"+  fName;
-            }catch(Exception ex)
+                LogFilePath = LogFolder + "/" + fName;
+                ISLogger.Write("Log location: " + LogFilePath);
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine("ISLogger: Failed to set log file path: " + ex.Message);
             }
@@ -66,6 +76,9 @@ namespace InputshareLib
 
         public static void Write(string message, params object[] args)
         {
+            if (message == null)
+                return;
+
             try
             {
                 lock (queueLock)
@@ -79,10 +92,10 @@ namespace InputshareLib
                         logWriteQueue.Add(new LogMessage(string.Format(message, args)));
                     }
                 }
-                
+
             }
             catch { logWriteQueue.Add(new LogMessage(message)); };
-            
+
         }
 
         private static void LogWriteLoop()
@@ -108,35 +121,34 @@ namespace InputshareLib
                         Debug.WriteLine(message);
 
                     if (EnableConsole)
-                        Console.WriteLine(message);
+                        Console.WriteLine("Verbose: " + message);
 
                     LogCount++;
 
                     if (EnableLogFile && LogFilePath != null)
-                        File.AppendAllText(LogFilePath, message+"\n");
-
-                    
+                        File.AppendAllText(LogFilePath, message + "\n");
 
                     LogMessageOut?.Invoke(null, message);
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Console.WriteLine("ISLogger: Error writing message: " + ex.Message);
                 }
-               
+
             }
         }
 
         private static string GenerateParamaterString(ParameterInfo[] info)
         {
-            if(info == null || info.Length == 0)
+            if (info == null || info.Length == 0)
                 return "()";
 
             string paramsStr = "(";
-            for(int i = 0; i < info.Length; i++)
+            for (int i = 0; i < info.Length; i++)
             {
                 ParameterInfo current = info[i];
 
-                if(i == info.Length-1)
+                if (i == info.Length - 1)
                 {
                     paramsStr = paramsStr + current.ParameterType + " " + current.Name + ")";
                 }

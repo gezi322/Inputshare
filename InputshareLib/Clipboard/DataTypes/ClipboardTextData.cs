@@ -20,7 +20,7 @@ namespace InputshareLib.Clipboard.DataTypes
             byte[] data = new byte[nameBuff.Length + 1];
             data[0] = (byte)ClipboardDataType.Text;
             Buffer.BlockCopy(nameBuff, 0, data, 1, nameBuff.Length);
-            return data; 
+            return data;
         }
 
         public string Text { get; }
