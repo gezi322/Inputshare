@@ -23,7 +23,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(IsLinux)'=='true'">
-		<DefineConstants>LinuxBuild</DefineConstants>
+		<DefineConstants>TRACE;LinuxBuild</DefineConstants>
 		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 	</PropertyGroup>
 	

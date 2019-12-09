@@ -25,15 +25,23 @@ namespace InputshareLib
         private readonly static Task logWriteTask;
         private readonly static BlockingCollection<LogMessage> logWriteQueue;
         private readonly static object queueLock = new object();
-        public static string LogFolder { get => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\sbarrac1\inputshare\"; }
+        public static string LogFolder = SetLogFolder();
 
         static ISLogger()
         {
-            SetLogFileName("Inputshare.log");
             cancelSource = new CancellationTokenSource();
             logWriteTask = new Task(LogWriteLoop);
             logWriteQueue = new BlockingCollection<LogMessage>();
             logWriteTask.Start();
+        }
+
+        private static string  SetLogFolder()
+        {
+#if LinuxBuild
+            return Environment.GetFolderPath(Environment.SpecialFolder.Personal) + @"/Inputshare";
+#elif WindowsBuild
+            return Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"/Inputshare"; 
+#endif
         }
 
         public static void Exit()
@@ -47,12 +55,13 @@ namespace InputshareLib
             {
                 Directory.CreateDirectory(LogFolder);
 
-                if (!File.Exists(LogFolder + fName))
+                if (!File.Exists(LogFolder + "/"+fName))
                 {
-                    File.Create(LogFolder + fName).Dispose();
+                    File.Create(LogFolder +"/"+  fName).Dispose();
                 }
 
-                LogFilePath = LogFolder + "\\" + fName;
+                LogFilePath = LogFolder + "/" + fName;
+                ISLogger.Write("Log location: " + LogFilePath);
             }
             catch (Exception ex)
             {

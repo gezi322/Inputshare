@@ -4,7 +4,7 @@ using System;
 using System.ComponentModel;
 using System.Net;
 
-namespace InputshareLib.Server.API
+namespace InputshareLib.Server
 {
     /// <summary>
     /// Represents a client connected to the inputshare server (for use with a UI)

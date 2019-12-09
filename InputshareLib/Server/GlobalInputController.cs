@@ -66,7 +66,7 @@ namespace InputshareLib.Server
         public void HandleEdgeHit(ISServerSocket client, Edge edge)
         {
             //Prevent rapid switching when mouse is on border
-            if (clientSwitchStopwatch.ElapsedMilliseconds < 100)
+            if (clientSwitchStopwatch.ElapsedMilliseconds < 50)
                 return;
 
             if (client.IsLocalhost)

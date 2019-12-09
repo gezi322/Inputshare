@@ -25,6 +25,10 @@ namespace Inputshare
         // container, etc.
         private static void AppMain(Application app, string[] args)
         {
+            ISLogger.EnableConsole = true;
+            ISLogger.EnableLogFile = true;
+            ISLogger.SetLogFileName("Inputshare.log");
+
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             StartOptions options = new StartOptions(new System.Collections.Generic.List<string>(args));

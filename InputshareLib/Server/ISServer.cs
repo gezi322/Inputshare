@@ -11,7 +11,6 @@ using InputshareLib.PlatformModules.Displays;
 using InputshareLib.PlatformModules.DragDrop;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
-using InputshareLib.Server.API;
 
 namespace InputshareLib.Server
 {
@@ -59,6 +58,7 @@ namespace InputshareLib.Server
 
             try
             {
+                ISLogger.Write("Starting server...");
                 Running = true;
                 startArgs = args;
                 clientMan = new ClientManager(16);
@@ -86,6 +86,7 @@ namespace InputshareLib.Server
 
             try
             {
+                ISLogger.Write("Stopping server...");
                 StopModules();
                 clientListener?.Stop();
                 udpHost?.Dispose();

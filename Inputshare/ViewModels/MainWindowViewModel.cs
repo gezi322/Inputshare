@@ -28,9 +28,6 @@ namespace Inputshare.ViewModels
 
         public MainWindowViewModel()
         {
-            ISLogger.EnableConsole = true;
-            ISLogger.EnableLogFile = false;
-
             serverInstance = new ISServer();
 
             serverView = new ServerStoppedViewModel(serverInstance);

@@ -12,7 +12,6 @@ namespace Inputshare.Cli
 
         public CliMain(StartOptions options)
         {
-            ISLogger.EnableConsole = true;
             args = options;
 
             Console.WriteLine("Starting CLI mode");

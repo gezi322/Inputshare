@@ -9,7 +9,6 @@ using InputshareLib;
 using InputshareLib.Input.Hotkeys;
 using InputshareLib.Input.Keys;
 using InputshareLib.Server;
-using InputshareLib.Server.API;
 using ReactiveUI;
 using Key = Avalonia.Input.Key;
 using KeyEventArgs = Avalonia.Input.KeyEventArgs;
@@ -250,12 +249,12 @@ namespace Inputshare.ViewModels
             UpdateClientList();
         }
 
-        private void Server_InputClientSwitched(object sender, InputshareLib.Server.API.ClientInfo client)
+        private void Server_InputClientSwitched(object sender, ClientInfo client)
         {
             UpdateCurrentInputClient(client);
         }
 
-        private void Server_ClientConnected(object sender, InputshareLib.Server.API.ClientInfo client)
+        private void Server_ClientConnected(object sender, ClientInfo client)
         {
             UpdateClientList();
             client.PropertyChanged += Client_PropertyChanged;
