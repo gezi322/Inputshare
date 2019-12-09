@@ -75,53 +75,61 @@ namespace InputshareLib.Client
         /// <param name="info"></param>
         public void Connect(IPEndPoint address, ConnectionInfo info)
         {
-            //Todo - this should be awaitable
-
-            if (IsConnected)
-                throw new InvalidOperationException("Socket already connected");
-
-            if (AttemptingConnection)
-                tcpSocket.Dispose();
-
-            IsConnected = false;
-
-            conInfo = info;
-
-            if (tcpSocket != null)
-                tcpSocket.Dispose();
-
-            ServerAddress = address;
-            
-            if (allowudp)
+            //TODO - unsure why but this method would not work properly on linux on whichever thread was calling it
+            //running a new task seems to work for now
+            Task.Run(() =>
             {
-                udpC?.Dispose();
-                udpC = new ISUdpClient(ServerAddress);
-                udpC.InputReceived += UdpC_InputReceived;
-            }
+                if (IsConnected)
+                    throw new InvalidOperationException("Socket already connected");
+
+                if (AttemptingConnection)
+                    tcpSocket.Dispose();
+
+                conInfo = info;
+
+                if (tcpSocket != null)
+                    tcpSocket.Dispose();
+
+                ServerAddress = address;
+
+                if (allowudp)
+                {
+                    udpC?.Dispose();
+                    udpC = new ISUdpClient(ServerAddress);
+                    udpC.InputReceived += UdpC_InputReceived;
+                }
 
 
-            AttemptingConnection = true;
-            tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-            {
-                NoDelay = true //Disable nagles algorithm!
-            };
+                AttemptingConnection = true;
+                tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                {
+                    NoDelay = true //Disable nagles algorithm!
+                };
 
-            serverResponded = false;
-            errorHandled = false;
+                serverResponded = false;
+                errorHandled = false;
 
-            ISLogger.Write("Attempting to connect to {0} as {1}", address, info.Name);
+                ISLogger.Write("Attempting to connect to {0} as {1}", address, info.Name);
 
-            try{
-                tcpSocket.BeginConnect(address, TcpSocket_ConnectCallback, tcpSocket);
-            }catch(Exception ex){
-                ISLogger.Write("BeginConnect threw " + ex.Message);
-                ConnectionFailed?.Invoke(this, ex.Message);
-                return;
-            }
+                try
+                {
+                    tcpSocket.BeginConnect(address, TcpSocket_ConnectCallback, tcpSocket);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    ISLogger.Write("BeginConnect threw " + ex.Message);
+                    ConnectionFailed?.Invoke(this, ex.Message);
+                    return;
+                }
 
-            
-            serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
+                serverReplyTimer = new Timer(cb, null, 5000, 0);
+            });
+
         }
+
+
+        private TimerCallback cb;
 
         private void UdpC_InputReceived(object sender, byte[] input)
         {
@@ -291,7 +299,7 @@ namespace InputshareLib.Client
             if (AutoReconnect)
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(2000);
+                Thread.Sleep(150);
                 Connect(ServerAddress, conInfo);
             }
             AttemptingConnection = false;
@@ -308,7 +316,7 @@ namespace InputshareLib.Client
             if (AutoReconnect)
             {
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(1000);
+                Thread.Sleep(150);
                 Connect(ServerAddress, conInfo);
             }
         }
@@ -327,7 +335,7 @@ namespace InputshareLib.Client
             {
 
                 ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(2000);
+                Thread.Sleep(150);
                 Connect(ServerAddress, conInfo);
             }
             else

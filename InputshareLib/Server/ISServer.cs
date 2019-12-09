@@ -88,6 +88,10 @@ namespace InputshareLib.Server
             {
                 ISLogger.Write("Stopping server...");
                 StopModules();
+
+                foreach (var client in clientMan.AllClients)
+                    client.Dispose();
+
                 clientListener?.Stop();
                 udpHost?.Dispose();
             }catch(Exception ex)
