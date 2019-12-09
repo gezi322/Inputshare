@@ -18,6 +18,7 @@ using DragDropEffects = System.Windows.Forms.DragDropEffects;
 using Point = System.Drawing.Point;
 using Size = System.Drawing.Size;
 using IDataObject = System.Runtime.InteropServices.ComTypes.IDataObject;
+using InputshareLib.Input.Keys;
 
 namespace InputshareLibWindows.PlatformModules.DragDrop
 {
@@ -122,7 +123,10 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         {
             dropSourceAllowDrop = false;
             cancelDrop = true;
-           
+            outMan.Send(new ISInputData(ISInputCode.IS_KEYDOWN, (short)WindowsVirtualKey.Escape, 0));
+            Thread.Sleep(50);
+            outMan.Send(new ISInputData(ISInputCode.IS_KEYUP, (short)WindowsVirtualKey.Escape, 0));
+
         }
 
         private void DoDragDrop(ClipboardDataBase data)

@@ -112,7 +112,6 @@ namespace InputshareLib.Server
                 return;
             else if (!target.IsConnected && !target.IsLocalhost)
             {
-                ISServerSocket.Localhost.SetClientAtEdge(edge, null);
                 return;
             }
 
@@ -132,7 +131,6 @@ namespace InputshareLib.Server
 
             if (!target.IsConnected && !target.IsLocalhost)
             {
-                client.SetClientAtEdgeNoUpdate(edge, null);
                 return;
             }
                 

@@ -115,22 +115,23 @@ namespace InputshareService
 
         private void ClientInstance_Disconnected(object sender, EventArgs e)
         {
-
+            ISLogger.Write("Disconnected");
         }
 
         private void ClientInstance_Connected(object sender, System.Net.IPEndPoint e)
         {
+            ISLogger.Write("Connected to server");
             Config.TryWriteProperty(ServiceConfigProperties.LastConnectedAddress, e.ToString());
         }
 
         private void ClientInstance_ConnectionFailed(object sender, string error)
         {
-
+            ISLogger.Write("Failed to connect: "+  error);
         }
 
         private void ClientInstance_ConnectionError(object sender, string error)
         {
-
+            ISLogger.Write("Connection error: "+ error);
         }
 
         private void LoadAndStart()

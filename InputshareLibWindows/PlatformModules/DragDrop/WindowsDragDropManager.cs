@@ -85,7 +85,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
                 dropTargetWindow.InputshareDataDropped = false;
                 return;
             }
-            
+
             DragDropSuccess?.Invoke(this, null);
         }
 

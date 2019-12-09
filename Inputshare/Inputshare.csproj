@@ -19,16 +19,17 @@
   </PropertyGroup>
 
 	<PropertyGroup Condition="'$(IsWindows)'=='true'">
-		<DefineConstants>WindowsBuild</DefineConstants>
+		<DefineConstants>TRACE;WindowsBuild</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(IsLinux)'=='true'">
-		<DefineConstants>TRACE;LinuxBuild</DefineConstants>
+		<DefineConstants>LinuxBuild</DefineConstants>
 		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 	</PropertyGroup>
 	
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Windows|netcoreapp3.0|AnyCPU'">
     <OutputPath>..\build_windows</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Linux|netcoreapp3.0|AnyCPU'">
     <OutputPath>..\build_linux</OutputPath>
@@ -106,7 +107,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Inputshare.dll.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

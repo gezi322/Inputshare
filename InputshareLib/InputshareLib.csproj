@@ -19,22 +19,23 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
-    <DefineConstants>TRACE;WindowsBuild</DefineConstants>
+    <DefineConstants>WindowsBuild</DefineConstants>
     <OutputPath>..\build_windows\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsLinux)'=='true'">
-    <DefineConstants>TRACE;LinuxBuild</DefineConstants>
+    <DefineConstants>LinuxBuild</DefineConstants>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <OutputPath>..\build_linux\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
 
