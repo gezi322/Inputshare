@@ -142,9 +142,7 @@ namespace InputshareLib.Net
                     return resp.Token;
                 case MessageType.RemoteFileError:
                     FileErrorMessage err = response as FileErrorMessage;
-                    ISLogger.Write("File token request returned error: " + err.ErrorMessage);
-                    return Guid.Empty;
-
+                    throw new Exception("File token request failed: Server side error: " + err.ErrorMessage);
                 default:
                     ISLogger.Write("Debug: Server sent unexpected reply when requesting file access token");
                     return Guid.Empty;

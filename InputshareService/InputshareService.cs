@@ -138,7 +138,7 @@ namespace InputshareService
             try
             {
                 clientInstance = new ISClient();
-                clientInstance.Start(new StartOptions(new System.Collections.Generic.List<string>()) ,WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle));
+                clientInstance.Start(new StartOptions(new System.Collections.Generic.List<string>(new string[] { "Verbose" })) ,WindowsDependencies.GetServiceDependencies(spMainHandle, spClipboardHandle));
 
                 clientInstance.ConnectionError += ClientInstance_ConnectionError;
                 clientInstance.ConnectionFailed += ClientInstance_ConnectionFailed;

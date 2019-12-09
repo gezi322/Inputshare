@@ -74,6 +74,8 @@ namespace InputshareLibWindows.Clipboard
         private void Host_HandleUpdated(object sender, EventArgs e)
         {
             host.host.ClipboardDataReceived += Host_ClipboardDataReceived;
+            host.host.RequestedFileToken += Host_RequestedFileToken;
+            host.host.RequestedReadStream += Host_RequestedReadStream;
         }
 
         private void Host_ClipboardDataReceived(object sender, ClipboardDataBase data)

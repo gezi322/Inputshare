@@ -126,12 +126,14 @@ namespace InputshareLib.Server
                     cbController.GlobalClipboardEnabled = false;
 
                 clientMan.AddClient(ISServerSocket.Localhost);
-                LoadClientEdgesConfig(ISServerSocket.Localhost);
+                LoadClientSettings(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
                 Started?.Invoke(this, null);
             }
             catch (Exception ex)
             {
+                ISLogger.Write("An error occurred while starting server: " + ex.Message);
+                ISLogger.Write(ex.StackTrace);
                 Stop();
                 throw ex;
             }
@@ -158,11 +160,18 @@ namespace InputshareLib.Server
 
         private void AssignInitialHotkeys()
         {
-            HotkeyModifiers mods = HotkeyModifiers.Ctrl | HotkeyModifiers.Alt | HotkeyModifiers.Shift;
-            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
-            inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
-            inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
-            ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
+            try
+            {
+                HotkeyModifiers mods = HotkeyModifiers.Ctrl | HotkeyModifiers.Alt | HotkeyModifiers.Shift;
+                inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.Q, mods, Input.Hotkeys.Hotkeyfunction.StopServer));
+                inputMan.AddUpdateClientHotkey(new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty));
+                inputMan.AddUpdateFunctionHotkey(new FunctionHotkey(WindowsVirtualKey.P, HotkeyModifiers.Alt | HotkeyModifiers.Ctrl, Hotkeyfunction.SendSas));
+                ISServerSocket.Localhost.CurrentHotkey = new ClientHotkey(WindowsVirtualKey.Z, HotkeyModifiers.Shift, Guid.Empty);
+            }catch(Exception ex)
+            {
+                ISLogger.Write("Failed to assign initial hotkeys: " + ex.Message);
+            }
+            
         }
 
         private void StartDisplayManager()
@@ -414,6 +423,7 @@ namespace InputshareLib.Server
                 client.DeclineClient(ISServerSocket.ClientDeclinedReason.DuplicateName);
                 //todo - possible race condition here? messages need to be sent before the client is disposed
                 client.Dispose();
+                return;
             }
 
             ISLogger.Write("Server: {1} connected as {0}", e.ClientName, client.ClientEndpoint);
@@ -432,7 +442,7 @@ namespace InputshareLib.Server
                 client.SetUdpEnabled(false);
             }
 
-            LoadClientEdgesConfig(client);
+            LoadClientSettings(client);
             ClientConnected?.Invoke(this, GenerateClientInfo(client, true));
         }
 
@@ -645,10 +655,10 @@ namespace InputshareLib.Server
             ISLogger.Write("Server: Set {0} {1}of {2}", clientA.ClientName, sideof, clientB.ClientName);
             clientA.SendClientEdgesUpdate();
             clientB.SendClientEdgesUpdate();
-            SaveEdgesConfig();
+            SaveClientSettings();
         }
 
-        private void SaveEdgesConfig()
+        private void SaveClientSettings()
         {
             foreach(var client in clientMan.AllClients)
             {
@@ -657,10 +667,12 @@ namespace InputshareLib.Server
                 Config.TryWrite(client.ClientName + "-top", client.TopClient == null ? "None" : client.TopClient.ClientName);
                 Config.TryWrite(client.ClientName + "-bottom", client.BottomClient == null ? "None" : client.BottomClient.ClientName);
 
+                Config.TryWrite(client.ClientName+"-hotkey", client.CurrentHotkey == null ? "None" : client.CurrentHotkey.ToSettingsString());
+
             }
         }
 
-        private void LoadClientEdgesConfig(ISServerSocket client)
+        private void LoadClientSettings(ISServerSocket client)
         {
             if (Config.TryRead(client + "-left", out string target))
                 SetEdgeIfExists(client, Edge.Left, target);
@@ -670,6 +682,9 @@ namespace InputshareLib.Server
                 SetEdgeIfExists(client, Edge.Top, target);
             if (Config.TryRead(client + "-bottom", out target))
                 SetEdgeIfExists(client, Edge.Bottom, target);
+
+            if (Config.TryRead(client + "-hotkey", out target))
+                SetHotkey(client, target);
         }
 
         private void SetEdgeIfExists(ISServerSocket client, Edge edge, string targetClient)
@@ -678,6 +693,12 @@ namespace InputshareLib.Server
                 return;
 
             SetClientEdge(target, edge, client);
+        }
+
+        private void SetHotkey(ISServerSocket client, string hkStr)
+        {
+            if (Hotkey.TryFromSettingsString(hkStr, out Hotkey hk))
+                SetHotkeyForClient(GenerateClientInfo(client), hk); //todo
         }
 
         public void SetMouseInputMode(MouseInputMode mode, int interval = 0)
@@ -745,11 +766,19 @@ namespace InputshareLib.Server
             if (!Running)
                 throw new InvalidOperationException("Server not running");
 
-            inputMan.AddUpdateClientHotkey(new ClientHotkey(key.Key, key.Modifiers, client.Id));
+            try
+            {
+                inputMan.AddUpdateClientHotkey(new ClientHotkey(key.Key, key.Modifiers, client.Id));
 
-            ISServerSocket c = clientMan.GetClientById(client.Id);
-            c.CurrentHotkey = key;
-            ClientInfoUpdated?.Invoke(this, GenerateClientInfo(c, true));
+                ISServerSocket c = clientMan.GetClientById(client.Id);
+                c.CurrentHotkey = key;
+                SaveClientSettings();
+                ClientInfoUpdated?.Invoke(this, GenerateClientInfo(c, true));
+            }catch(ArgumentException ex)
+            {
+                ISLogger.Write("Failed to set hotkey {0} for client {1}: {2}",key, client.Name, ex.Message);
+            }
+            
         }
 
         public void SetHotkeyForFunction(Hotkey key, Hotkeyfunction function)

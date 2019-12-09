@@ -1,4 +1,6 @@
-﻿using InputshareLib.Input.Keys;
+﻿using System;
+using System.Text;
+using InputshareLib.Input.Keys;
 
 namespace InputshareLib.Input.Hotkeys
 {
@@ -60,6 +62,56 @@ namespace InputshareLib.Input.Hotkeys
         public static bool operator !=(Hotkey hk1, Hotkey hk2)
         {
             return !(hk1 == hk2);
+        }
+
+        public string ToSettingsString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Key);
+            foreach(var mod in (HotkeyModifiers[])Enum.GetValues(typeof(HotkeyModifiers)))
+            {
+                if (mod == HotkeyModifiers.Windows || mod == HotkeyModifiers.None)
+                    continue;
+
+                if(Modifiers.HasFlag(mod))
+                    sb.Append(":" + mod);
+            }
+
+            return sb.ToString();
+        }
+
+        public static bool TryFromSettingsString(string hkStr, out Hotkey key)
+        {
+            key = FromSettingsString(hkStr);
+            return key != null;
+        }
+
+        private static Hotkey FromSettingsString(string hkStr)
+        {
+            string[] args = hkStr.Split(':');
+
+            if (args.Length == 0)
+                return null;
+
+            if (!WindowsVirtualKey.TryParse(typeof(WindowsVirtualKey), args[0], true, out var keyObj))
+                return null;
+
+            WindowsVirtualKey key = (WindowsVirtualKey)keyObj;
+            HotkeyModifiers mods = 0;
+
+            for(int i = 1; i < args.Length; i++)
+            {
+                string modStr = args[i];
+
+                if (modStr == HotkeyModifiers.Alt.ToString())
+                    mods |= HotkeyModifiers.Alt;
+                else if (modStr == HotkeyModifiers.Ctrl.ToString())
+                    mods |= HotkeyModifiers.Ctrl;
+                else if (modStr == HotkeyModifiers.Shift.ToString())
+                    mods |= HotkeyModifiers.Shift;
+            }
+
+            return new Hotkey(key, mods);
         }
 
     }

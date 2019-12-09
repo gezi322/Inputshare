@@ -45,7 +45,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         private void DropHost_HandleUpdated(object sender, EventArgs e)
         {
             clipboardHost.host.LeftMouseStateUpdated += (object s, bool state) => { LeftMouseState = state; };
-            clipboardHost.host.DataDropped += (object s, ClipboardDataBase data) => { ISLogger.Write("SP DROPPED DATA"); DataDropped?.Invoke(this, data); };
+            clipboardHost.host.DataDropped += (object s, ClipboardDataBase data) => { DataDropped?.Invoke(this, data); };
             clipboardHost.host.DragDropCancelled += (object s, EventArgs _) => { DragDropCancelled?.Invoke(this, null); };
             clipboardHost.host.DragDropSuccess += (object s, EventArgs _) => { DragDropSuccess?.Invoke(this, null); };
             clipboardHost.host.RequestedReadStream += Host_RequestedReadStream;

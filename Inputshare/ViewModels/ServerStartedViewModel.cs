@@ -92,7 +92,6 @@ namespace Inputshare.ViewModels
         public void ExecHotkeyCommand()
         {
             hotkeyEntering = !hotkeyEntering;
-            ISLogger.Write("Hotkey entering = " + hotkeyEntering);
         }
 
         public void HandleKeyDown(KeyEventArgs args)

@@ -16,12 +16,14 @@ namespace InputshareLib.Client
 
         private readonly DragDropManagerBase ddManager;
         private readonly ISClientSocket server;
-        private Dictionary<Guid, ClientDataOperation> previousOperations = new Dictionary<Guid, ClientDataOperation>();
 
         public LocalDragDropController(DragDropManagerBase dragDropManager, ISClientSocket serverConnection)
         {
             ddManager = dragDropManager;
             server = serverConnection;
+            ddManager.DataDropped += Local_DataDropped;
+            ddManager.DragDropCancelled += Local_DragDropCancelled;
+            ddManager.DragDropSuccess += Local_DragDropSuccess;
             server.DragDropDataReceived += Socket_DragDropReceived;
             server.CancelAnyDragDrop += Socket_CancelAnyDragDrop;
         }
@@ -41,11 +43,6 @@ namespace InputshareLib.Client
             if (!server.IsConnected)
                 return;
 
-            if (CurrentOperation != null && !previousOperations.ContainsKey(CurrentOperation.OperationGuid))
-            {
-                previousOperations.Add(CurrentOperation.OperationGuid, CurrentOperation);
-            }
-
             if (server.IsConnected)
             {
                 Guid opId = Guid.NewGuid();
@@ -59,7 +56,6 @@ namespace InputshareLib.Client
         {
             if (!server.IsConnected)
                 return;
-
             server?.NotifyDragDropSuccess(true);
         }
 
@@ -85,10 +81,6 @@ namespace InputshareLib.Client
                 ddManager.DoDragDrop(CurrentOperation.Data);
                 return;
             }
-
-            if (CurrentOperation != null && !previousOperations.ContainsKey(CurrentOperation.OperationGuid))
-                previousOperations.Add(CurrentOperation.OperationGuid, CurrentOperation);
-
 
             ClipboardDataBase cbData = ClipboardDataBase.FromBytes(args.RawData);
             cbData.OperationId = args.OperationId;

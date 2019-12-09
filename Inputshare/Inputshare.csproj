@@ -106,7 +106,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Inputshare.dll.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

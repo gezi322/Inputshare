@@ -113,7 +113,6 @@ namespace InputshareLib.FileController
                 if (fileSourceDictionary.TryGetValue(file, out string source))
                 {
                     FileStream fs = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    ISLogger.Write("Debug: Filestream created for " + source);
                     openFileStreams.Add(file, fs);
                     int read = await fs.ReadAsync(buffer, offset, readLen);
 
