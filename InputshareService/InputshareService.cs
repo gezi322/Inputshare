@@ -120,7 +120,7 @@ namespace InputshareService
 
         private void ClientInstance_Connected(object sender, System.Net.IPEndPoint e)
         {
-            Config.TryWrite(ServiceConfigProperties.LastConnectedAddress, e.ToString());
+            Config.TryWriteProperty(ServiceConfigProperties.LastConnectedAddress, e.ToString());
         }
 
         private void ClientInstance_ConnectionFailed(object sender, string error)

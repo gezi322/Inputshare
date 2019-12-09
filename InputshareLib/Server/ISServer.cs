@@ -126,6 +126,7 @@ namespace InputshareLib.Server
                     cbController.GlobalClipboardEnabled = false;
 
                 clientMan.AddClient(ISServerSocket.Localhost);
+                LoadClientEdgesConfig(ISServerSocket.Localhost);
                 ISLogger.Write("Server: Inputshare server started");
                 Started?.Invoke(this, null);
             }
@@ -431,7 +432,7 @@ namespace InputshareLib.Server
                 client.SetUdpEnabled(false);
             }
 
-
+            LoadClientEdgesConfig(client);
             ClientConnected?.Invoke(this, GenerateClientInfo(client, true));
         }
 
@@ -644,6 +645,39 @@ namespace InputshareLib.Server
             ISLogger.Write("Server: Set {0} {1}of {2}", clientA.ClientName, sideof, clientB.ClientName);
             clientA.SendClientEdgesUpdate();
             clientB.SendClientEdgesUpdate();
+            SaveEdgesConfig();
+        }
+
+        private void SaveEdgesConfig()
+        {
+            foreach(var client in clientMan.AllClients)
+            {
+                Config.TryWrite(client.ClientName + "-left", client.LeftClient == null ? "None" : client.LeftClient.ClientName);
+                Config.TryWrite(client.ClientName + "-right", client.RightClient == null ? "None" : client.RightClient.ClientName);
+                Config.TryWrite(client.ClientName + "-top", client.TopClient == null ? "None" : client.TopClient.ClientName);
+                Config.TryWrite(client.ClientName + "-bottom", client.BottomClient == null ? "None" : client.BottomClient.ClientName);
+
+            }
+        }
+
+        private void LoadClientEdgesConfig(ISServerSocket client)
+        {
+            if (Config.TryRead(client + "-left", out string target))
+                SetEdgeIfExists(client, Edge.Left, target);
+            if (Config.TryRead(client + "-right", out target))
+                SetEdgeIfExists(client, Edge.Right, target);
+            if (Config.TryRead(client + "-top", out target))
+                SetEdgeIfExists(client, Edge.Top, target);
+            if (Config.TryRead(client + "-bottom", out target))
+                SetEdgeIfExists(client, Edge.Bottom, target);
+        }
+
+        private void SetEdgeIfExists(ISServerSocket client, Edge edge, string targetClient)
+        {
+            if (!clientMan.TryGetClientByName(targetClient, out var target))
+                return;
+
+            SetClientEdge(target, edge, client);
         }
 
         public void SetMouseInputMode(MouseInputMode mode, int interval = 0)

@@ -80,6 +80,12 @@ namespace InputshareLib.Server
         {
             return clients.Where(item => item.ClientName == name).FirstOrDefault();
         }
+
+        public bool TryGetClientByName(string name, out ISServerSocket client)
+        {
+            client = clients.Where(item => item.ClientName == name).FirstOrDefault();
+            return client != null;
+        }
         /// <summary>
         /// Returns a client with a matching guid (NULL IF NONE)
         /// </summary>

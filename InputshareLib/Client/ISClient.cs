@@ -69,7 +69,6 @@ namespace InputshareLib.Client
                 ISLogger.Write("Starting inputshare client...");
                 ISLogger.Write("Using args:");
                 startArgs.PrintArgs();
-
                 InitDependencies(dependencies);
                 InitSocket();
                 fileController = new FileAccessController();
@@ -78,6 +77,9 @@ namespace InputshareLib.Client
                 AssignSocketEvents();
                 AssignModuleEvents();
                 StartModules();
+
+                AutoReconnect = args.HasArg(StartArguments.AutoReconnect);
+
                 Running = true;
             }catch(Exception ex)
             {

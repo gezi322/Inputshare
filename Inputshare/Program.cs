@@ -27,6 +27,14 @@ namespace Inputshare
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
+            StartOptions options = new StartOptions(new System.Collections.Generic.List<string>(args));
+
+            if (options.HasArg(StartArguments.NoGui))
+            {
+                new Cli.CliMain(options);
+                return;
+            }
+
             var window = new MainWindow
             {
                 DataContext = new MainWindowViewModel(),

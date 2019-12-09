@@ -24,13 +24,16 @@ namespace InputshareLib
             }
         }
 
-        public static bool TryReadProperty(Enum prop, out string value)
+        public static bool TryRead(string prop, out string value)
         {
             lock (configLock)
             {
+                if (config == null)
+                    LoadFile();
+
                 try
                 {
-                    value = config.AppSettings.Settings[prop.ToString()].Value;
+                    value = config.AppSettings.Settings[prop].Value;
                     return true;
                 }
                 catch (Exception)
@@ -39,23 +42,37 @@ namespace InputshareLib
                     return false;
                 }
             }
-            
         }
 
-        public static bool TryWrite(Enum prop, string value)
+        public static bool TryReadProperty(Enum prop, out string value)
+        {
+            return TryRead(prop.ToString(),out value);
+        }
+
+        public static bool TryWriteProperty(Enum prop, string value)
+        {
+            return TryWrite(prop.ToString(), value);
+        }
+
+        public static bool TryWrite(string prop, string value)
         {
             lock (configLock)
             {
+                if (config == null)
+                    LoadFile();
+
+
                 try
                 {
-                    if (config.AppSettings.Settings[prop.ToString()] == null)
-                        config.AppSettings.Settings.Add(prop.ToString(), value);
+                    if (config.AppSettings.Settings[prop] == null)
+                        config.AppSettings.Settings.Add(prop, value);
                     else
-                        config.AppSettings.Settings[prop.ToString()].Value = value;
+                        config.AppSettings.Settings[prop].Value = value;
 
                     config.Save();
                     return true;
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     ISLogger.Write("Failed to save configuration: " + ex.Message);
                     return false;
