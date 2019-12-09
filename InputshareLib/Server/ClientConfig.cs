@@ -49,7 +49,7 @@ namespace InputshareLib.Server
             {
                 return;
             }
-            client.SetClientAtEdgeNoUpdate(edge, target);
+            client.SetClientAtEdge(edge, target);
         }
     }
 }

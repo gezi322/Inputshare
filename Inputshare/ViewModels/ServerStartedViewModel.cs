@@ -216,7 +216,7 @@ namespace Inputshare.ViewModels
             }
             
 
-            foreach (var c in ClientListItems)
+            foreach (var c in new List<ClientInfo>(ClientListItems))
                 if (c.Id == oldSelected)
                     SelectedClient = c;
         }
@@ -226,7 +226,7 @@ namespace Inputshare.ViewModels
         {
             ClientListExcludeSelected.Clear();
             ClientListExcludeSelected.Add(ClientInfo.None);
-            foreach(var client in ClientListItems)
+            foreach(var client in new List<ClientInfo>(ClientListItems))
             {
                 if (client == selectedClient)
                     continue;

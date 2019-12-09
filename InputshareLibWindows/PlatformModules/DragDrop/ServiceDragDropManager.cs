@@ -102,7 +102,8 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
         {
             if(data is ClipboardVirtualFileData cbFiles)
             {
-                callbacks.Add(cbFiles.OperationId, new CallbackHolder(cbFiles.RequestPartMethod, cbFiles.RequestTokenMethod));
+                if(!callbacks.ContainsKey(cbFiles.OperationId))
+                    callbacks.Add(cbFiles.OperationId, new CallbackHolder(cbFiles.RequestPartMethod, cbFiles.RequestTokenMethod));
             }
 
             clipboardHost.host.SendDoDragDrop(data, data.OperationId);

@@ -21,7 +21,7 @@ namespace InputshareLib
         /// </summary>
         public const int NetworkMessageChunkSizeNoHeader = NetworkMessageChunkSize - 100;
 
-        public const string InputshareVersion = "0.0.0.5";
+        public const string InputshareVersion = "0.0.0.6";
 
         /// <summary>
         /// Encoder used to encode text to send over TCP socket

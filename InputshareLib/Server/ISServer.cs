@@ -235,7 +235,7 @@ namespace InputshareLib.Server
             client.RequestedStreamRead += fileController.Client_RequestedStreamRead;
             client.RequestedFileToken += Client_RequestedFileToken;
             client.DragDropDataReceived += ddController.OnClientDataDropped;
-            client.DragDropCancelled += ddController.OnClientDropCancelled;
+            client.DragDropSuccess += ddController.OnClientDropCancelled;
             client.DragDropCancelled += ddController.OnClientDropSuccess;
             client.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(client, client.CurrentHotkey);
             client.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(client, e);

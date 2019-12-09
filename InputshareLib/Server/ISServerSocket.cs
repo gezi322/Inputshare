@@ -177,6 +177,7 @@ namespace InputshareLib.Server
             else
                 ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
 
+            SendClientEdgesUpdate();
             ClientEdgeUpdated?.Invoke(this, edge);
         }
 
@@ -198,11 +199,11 @@ namespace InputshareLib.Server
                     break;
             }
 
+            SendClientEdgesUpdate();
             if (client != null)
                 ISLogger.Write("Set {0} of {1} to {2}", edge, ClientName, client.ClientName);
             else
                 ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
-
         }
 
         /// <summary>

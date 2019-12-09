@@ -71,6 +71,12 @@ namespace InputshareLib.Server
                 return;
             }
 
+            if(state == ServerDragDropDataOperation.DragDropState.Cancelled && CurrentOperation.State != ServerDragDropDataOperation.DragDropState.Dragging)
+            {
+                ISLogger.Write("Client {0} tried to set dragdrop state to invalid state {1} (from state {2})", client.ClientName, state, CurrentOperation.State);
+                return;
+            }
+
             SetState(state);
             ISLogger.Write("Client {0} set dragdrop state to {1}", client, state);
         }
@@ -86,7 +92,7 @@ namespace InputshareLib.Server
                 else
                     CurrentOperation.State = ServerDragDropDataOperation.DragDropState.Complete;
 
-            if(state == ServerDragDropDataOperation.DragDropState.Cancelled)
+            if(state == ServerDragDropDataOperation.DragDropState.Cancelled || state == ServerDragDropDataOperation.DragDropState.Dropped)
             {
                 ddManager.CancelDrop();
 
@@ -139,7 +145,7 @@ namespace InputshareLib.Server
             if (CurrentOperation != null && CurrentOperation.State == ServerDragDropDataOperation.DragDropState.Dragging)
             {
                 //If the dragdrop gets sent back to the operation host, cancel the operation.
-                if(newActiveClient == CurrentOperation.Host)
+                if (newActiveClient == CurrentOperation.Host)
                 {
                     ISLogger.Write("Dragdrop returned to sender, cancelling dragdrop operation");
                     SetState(ServerDragDropDataOperation.DragDropState.Cancelled);
@@ -148,16 +154,19 @@ namespace InputshareLib.Server
 
                 CurrentOperation.TargetClient = newActiveClient;
 
+                if (!oldActiveClient.IsLocalhost && oldActiveClient.IsConnected)
+                {
+                    oldActiveClient.SendCancelDragDrop();
+                }
+                else if (oldActiveClient.IsLocalhost)
+                {
+                    ddManager.CancelDrop();
+                }
+
                 if (!oldActiveClient.IsLocalhost && newActiveClient.IsLocalhost)
                     DoLocalDragDrop();
                 else if (oldActiveClient.IsLocalhost && !newActiveClient.IsLocalhost && newActiveClient.IsConnected)
                     newActiveClient.SendDragDropData(CurrentOperation.Data.ToBytes(), CurrentOperation.OperationGuid);
-
-                if(!oldActiveClient.IsLocalhost && oldActiveClient.IsConnected)
-                {
-                    oldActiveClient.SendCancelDragDrop();
-                }
-
             }else if(oldActiveClient.IsLocalhost && !newActiveClient.IsLocalhost && ddManager.LeftMouseState)
             {
                 ISLogger.Write("Checking for drop!");
