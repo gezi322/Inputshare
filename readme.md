@@ -1,5 +1,5 @@
 
-﻿# Inputshare
+﻿#Inputshare
 
 Inputshare allows you to use one keyboard and mouse across multiple PCs. Inputshare currently runs on Linux & windows using dotnet core. This project is still unfinished but progress is being made.
 
