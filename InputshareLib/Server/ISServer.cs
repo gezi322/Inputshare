@@ -276,6 +276,7 @@ namespace InputshareLib.Server
             try
             {
                 inputMan.AddUpdateClientHotkey(new ClientHotkey(hk.Key, hk.Modifiers, client.ClientId));
+                ClientConfig.SaveClientHotkey(client, hk);
                 OnClientSettingChanged();
             }catch(Exception ex)
             {

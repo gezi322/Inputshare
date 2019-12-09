@@ -19,6 +19,11 @@ namespace InputshareLib.Server
                 Config.TryWrite(client.ClientName + "-left", client.LeftClient == null ? "None" : client.LeftClient.ClientName);
         }
 
+        internal static void SaveClientHotkey(ISServerSocket client, Hotkey hk)
+        {
+            Config.TryWrite(client.ClientName + "-hotkey", hk == null ? "None" : hk.ToSettingsString());
+        }
+
         internal static void ReloadClientConfigs(ClientManager clientMan)
         {
             foreach(var client in clientMan.AllClients)
