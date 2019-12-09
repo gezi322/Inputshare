@@ -42,19 +42,19 @@ namespace InputshareLib.Server
         /// <summary>
         /// The client below this client
         /// </summary>
-        public ISServerSocket BottomClient { get; set; }
+        public ISServerSocket BottomClient { get; private set; }
         /// <summary>
         /// The client above this client
         /// </summary>
-        public ISServerSocket TopClient { get; set; }
+        public ISServerSocket TopClient { get; private set; }
         /// <summary>
         /// The client to the left of this client
         /// </summary>
-        public ISServerSocket LeftClient { get; set; }
+        public ISServerSocket LeftClient { get; private set; }
         /// <summary>
         /// The client to the right of this client
         /// </summary>
-        public ISServerSocket RightClient { get; set; }
+        public ISServerSocket RightClient { get; private set; }
 
         /// <summary>
         /// The name of this client
@@ -155,6 +155,7 @@ namespace InputshareLib.Server
         /// <param name="client"></param>
         public void SetClientAtEdge(Edge edge, ISServerSocket client)
         {
+
             switch (edge)
             {
                 case Edge.Bottom:
@@ -171,7 +172,37 @@ namespace InputshareLib.Server
                     break;
             }
 
+            if (client != null)
+                ISLogger.Write("Set {0} of {1} to {2}", edge, ClientName, client.ClientName);
+            else
+                ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
+
             ClientEdgeUpdated?.Invoke(this, edge);
+        }
+
+        public void SetClientAtEdgeNoUpdate(Edge edge, ISServerSocket client)
+        {
+            switch (edge)
+            {
+                case Edge.Bottom:
+                    BottomClient = client;
+                    break;
+                case Edge.Left:
+                    LeftClient = client;
+                    break;
+                case Edge.Right:
+                    RightClient = client;
+                    break;
+                case Edge.Top:
+                    TopClient = client;
+                    break;
+            }
+
+            if (client != null)
+                ISLogger.Write("Set {0} of {1} to {2}", edge, ClientName, client.ClientName);
+            else
+                ISLogger.Write("Removed edge {0} of {1}", edge, ClientName);
+
         }
 
         /// <summary>

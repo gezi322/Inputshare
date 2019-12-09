@@ -123,13 +123,10 @@ namespace InputshareLib.Client
                     return;
                 }
 
-                serverReplyTimer = new Timer(cb, null, 5000, 0);
+                serverReplyTimer = new Timer(ServerReplyTimerCallback, null, 5000, 0);
             });
 
         }
-
-
-        private TimerCallback cb;
 
         private void UdpC_InputReceived(object sender, byte[] input)
         {

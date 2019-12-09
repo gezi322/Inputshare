@@ -78,7 +78,10 @@ namespace InputshareLib.Server
 
         public void SetEdge(Edge e, ClientInfo info)
         {
-            host.SetClientAtEdge(e, clientMan.GetClientFromInfo(info));
+            if(info.Name == "None")
+                host.SetClientAtEdge(e, null);
+            else
+                host.SetClientAtEdge(e, clientMan.GetClientFromInfo(info));
         }
 
         public void SetHotkey(Hotkey hk)

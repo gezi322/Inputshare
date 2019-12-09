@@ -32,6 +32,12 @@ namespace InputshareLib.Server
 
         public void SetInputClient(ISServerSocket client)
         {
+            if(client == null)
+            {
+                SetInputLocal();
+                return;
+            }
+
             if (client.IsLocalhost)
                 SetInputLocal();
             else
@@ -88,6 +94,10 @@ namespace InputshareLib.Server
                     else
                         CurrentInputClient.SendInputData(input.ToBytes());
                 }
+                else
+                {
+                    ISLogger.Write("TARGET NOT CONNECTED");
+                }
             }
         }
 
@@ -100,7 +110,7 @@ namespace InputshareLib.Server
 
             if (target == null)
                 return;
-            else if (!target.IsConnected)
+            else if (!target.IsConnected && !target.IsLocalhost)
             {
                 ISServerSocket.Localhost.SetClientAtEdge(edge, null);
                 return;
@@ -120,6 +130,13 @@ namespace InputshareLib.Server
             if (target == null)
                 return;
 
+            if (!target.IsConnected && !target.IsLocalhost)
+            {
+                client.SetClientAtEdge(edge, null);
+                return;
+            }
+                
+
             SetInputClient(target);
         }
 
@@ -136,7 +153,7 @@ namespace InputshareLib.Server
 
         private void SetInputExternal(ISServerSocket client)
         {
-            if(!CurrentInputClient.IsLocalhost)
+            if(!CurrentInputClient.IsLocalhost && CurrentInputClient.IsConnected)
                 CurrentInputClient.NotifyActiveClient(false);
 
             inputMan.SetInputBlocked(true);

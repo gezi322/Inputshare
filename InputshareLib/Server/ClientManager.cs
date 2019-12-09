@@ -82,6 +82,12 @@ namespace InputshareLib.Server
 
         public bool TryGetClientByName(string name, out ISServerSocket client)
         {
+            if (name == "Localhost")
+            {
+                client = ISServerSocket.Localhost;
+                return true;
+            }
+
             client = clients.Where(item => item.ClientName == name).FirstOrDefault();
             return client != null;
         }

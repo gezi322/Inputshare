@@ -76,7 +76,13 @@ namespace Inputshare.ViewModels
             server.ClientConnected += Server_ClientConnected;
             server.InputClientSwitched += Server_InputClientSwitched;
             server.ClientDisconnected += Server_ClientDisconnected;
+            server.ClientConfigUpdate += Server_ClientConfigUpdate;
             BuildFunctionList();
+        }
+
+        private void Server_ClientConfigUpdate(object sender, EventArgs e)
+        {
+            UpdateClientList();
         }
 
         private void Server_ClientDisconnected(object sender, ClientInfo e)

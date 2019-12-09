@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Inputshare": {
-      "commandName": "Project",
-      "commandLineArgs": "nogui client connect 192.168.0.8:4441 verbose autoreconnect"
+      "commandName": "Project"
     }
   }
 }

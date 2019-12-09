@@ -21,6 +21,7 @@ namespace InputshareLib.Server
         public event EventHandler<ClientInfo> ClientConnected;
         public event EventHandler<ClientInfo> ClientDisconnected;
         public event EventHandler<ClientInfo> InputClientSwitched;
+        public event EventHandler ClientConfigUpdate;
 
         public bool Running { get; private set; }
 
@@ -45,8 +46,7 @@ namespace InputshareLib.Server
 
         public ISServer()
         {
-            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(ISServerSocket.Localhost, e);
-            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey);
+            
         }
 
         public void Start(ISServerDependencies dependencies, StartOptions args, int port)
@@ -56,27 +56,20 @@ namespace InputshareLib.Server
 
             ISLogger.EnableConsole = true;
 
-            try
-            {
-                ISLogger.Write("Starting server...");
-                Running = true;
-                startArgs = args;
-                clientMan = new ClientManager(16);
-                StartUdpHost(args, port);
-                StartModules(args, dependencies);
-                clientListener = new ISClientListener(port);
-                AssignLocalEvents();
-                SetDefaultHotkeys();
-                ClientConfig.LoadClientConfig(ISServerSocket.Localhost, clientMan);
-                Started?.Invoke(this, null);
-            }catch(Exception ex)
-            {
-                ISLogger.Write("Exception while starting server!");
-                ISLogger.Write(ex.Message);
-                ISLogger.Write(ex.StackTrace);
-                Stop();
-                throw ex;
-            }
+            ISLogger.Write("Starting server...");
+            Running = true;
+            clientMan = new ClientManager(16);
+            startArgs = args;
+            StartUdpHost(args, port);
+            StartModules(args, dependencies);
+            clientListener = new ISClientListener(port);
+            AssignLocalEvents();
+            SetDefaultHotkeys();
+            clientMan.AddClient(ISServerSocket.Localhost);
+            ClientConfig.ReloadClientConfigs(clientMan);
+            ISServerSocket.Localhost.ClientEdgeUpdated += (object o, Edge e) => OnClientEdgeChanged(ISServerSocket.Localhost, e);
+            ISServerSocket.Localhost.HotkeyChanged += (object o, EventArgs e) => Client_HotkeyChanged(ISServerSocket.Localhost, ISServerSocket.Localhost.CurrentHotkey);
+            Started?.Invoke(this, null);
         }
 
         public void Stop()
@@ -167,6 +160,7 @@ namespace InputshareLib.Server
         {
             ddController.HandleClientSwitch(oldInputClient, newClient);
             oldInputClient = newClient;
+            outMan.ResetKeyStates();
             InputClientSwitched?.Invoke(this, new ClientInfo(newClient, clientMan));
         }
 
@@ -205,7 +199,7 @@ namespace InputshareLib.Server
                 client.SetUdpEnabled(false);
             }
 
-            ClientConfig.LoadClientConfig(client, clientMan);
+            ClientConfig.ReloadClientConfigs(clientMan);
             ClientConnected?.Invoke(this, new ClientInfo(client, clientMan));
         }
 
@@ -252,6 +246,7 @@ namespace InputshareLib.Server
             if(client.GetClientAtEdge(e) == null)
                 return;
 
+            /*
             //Set the opposite edge without causing stack overflow
             switch (e) {
                 case Edge.Bottom:
@@ -267,11 +262,16 @@ namespace InputshareLib.Server
                     client.GetClientAtEdge(e).BottomClient = client;
                     break;
             }
+            */
 
-            ClientConfig.SaveClientConfig(client.GetClientAtEdge(e));
-            ClientConfig.SaveClientConfig(client);
+            OnClientSettingChanged();
             client.SendClientEdgesUpdate();
-            client.GetClientAtEdge(e).SendClientEdgesUpdate();
+        }
+
+        private void OnClientSettingChanged()
+        {
+            ClientConfig.SaveAllClientConfigs(clientMan);
+            ClientConfigUpdate?.Invoke(this, null);
         }
 
         private void Client_HotkeyChanged(ISServerSocket client, Hotkey hk)
@@ -279,7 +279,7 @@ namespace InputshareLib.Server
             try
             {
                 inputMan.AddUpdateClientHotkey(new ClientHotkey(hk.Key, hk.Modifiers, client.ClientId));
-                ClientConfig.SaveClientConfig(client);
+                OnClientSettingChanged();
             }catch(Exception ex)
             {
                 ISLogger.Write("Failed to set hotkey: " + ex.Message);
@@ -366,14 +366,11 @@ namespace InputshareLib.Server
         public List<ClientInfo> GetAllClients()
         {
             List<ClientInfo> info = new List<ClientInfo>();
-            int index = 0;
             foreach (var client in clientMan.AllClients)
             {
                 info.Add(new ClientInfo(client, clientMan));
-                index++;
             }
 
-            info.Add(new ClientInfo(ISServerSocket.Localhost, clientMan));
             return info;
         }
 
@@ -400,3 +397,4 @@ namespace InputshareLib.Server
         }
     }
 }
+ 

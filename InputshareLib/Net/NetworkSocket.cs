@@ -785,7 +785,8 @@ namespace InputshareLib.Net
                         handle.Close();
                     }
 
-                    tcpSocket.Dispose();
+                    IsConnected = false;
+                    tcpSocket?.Dispose();
                     socketBuff = null;
                 }
 
