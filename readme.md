@@ -44,6 +44,7 @@ The service also allows the server to send alt+ctrl+delete to access the windows
 The windows service must be installed before use, which is done via CMD. To install the service, run command prompt as admin and enter the command 
 
 'sc create Inputshareservice binpath= "path/to/inputshareservice.exe" start= auto'
+
 The service can then be started with 'sc start inputshareservice'
 
 ### Allowing alt+ctrl+delete
