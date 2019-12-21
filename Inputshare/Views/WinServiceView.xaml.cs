@@ -1,13 +1,12 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Inputshare.ViewModels;
 
 namespace Inputshare.Views
 {
-    public class ModeSelectView : UserControl
+    public class WinServiceView : UserControl
     {
-        public ModeSelectView()
+        public WinServiceView()
         {
             this.InitializeComponent();
         }

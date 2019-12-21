@@ -51,7 +51,7 @@ namespace InputshareLibWindows
             wndThread.SetApartmentState(ApartmentState.STA);
             wndThread.Start();
 
-            if (!windowHandleCreateEvent.WaitOne(2500))
+            if (!windowHandleCreateEvent.WaitOne(5000))
                 throw new Exception("Timed out waiting for window handle creation");
         }
 

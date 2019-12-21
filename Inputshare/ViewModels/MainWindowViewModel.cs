@@ -1,111 +1,142 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Inputshare.Views;
+﻿using Inputshare.Models;
 using InputshareLib;
-using InputshareLib.Client;
-using InputshareLib.Server;
 using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Reactive;
+using System.Text;
 
 namespace Inputshare.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
-        public bool ServiceOptionEnabled { get; private set; }
+        public event EventHandler CloseWindow;
 
-        private ServerStoppedViewModel serverView;
-        private ServerStartedViewModel serverStartedView;
-        private ClientViewModel clientView;
-        private ClientConnectedViewModel clientConnectedView;
-        private WindowsServiceViewModel serviceView;
+        public ViewModelBase CurrentView { get; private set; }
+        public ReactiveCommand<Unit, Unit> CommandBottomButton { get; }
 
-        private ModeSelectViewModel selectView;
+        private ISServerModel serverModel;
+        private ISClientModel clientModel;
 
-        public ViewModelBase CurrentModel { get; private set; }
-
-        private ISServer serverInstance;
-        private ISClient clientInstance;
+        private ServerRunningViewModel serverRunningVM;
+        private ServerStoppedViewModel serverStoppedVM;
+        private ClientDisconnectedViewModel clientDisconnectedVM;
+        private ClientConnectedViewModel clientConnectedVM;
+#if WindowsBuild
+        private WinServiceViewModel winServiceVM;
+#endif
+        private HomeViewModel homeVM;
 
         public MainWindowViewModel()
         {
-            serverInstance = new ISServer();
+            ISLogger.EnableConsole = true;
+            homeVM = new HomeViewModel();
+            homeVM.SwitchWinService += HomeVM_SwitchWinService;
+            homeVM.SwitchClient += HomeVM_SwitchClient;
+            homeVM.SwitchServer += HomeVM_SwitchServer;
+            homeVM.Leave += HomeVM_Leave;
 
-            serverView = new ServerStoppedViewModel(serverInstance);
-            serverStartedView = new ServerStartedViewModel(serverInstance);
-            serverInstance.Started += Server_Started;
-            serverInstance.Stopped += Server_Stopped;
+            serverModel = new ISServerModel();
+            serverRunningVM = new ServerRunningViewModel(serverModel);
+            serverStoppedVM = new ServerStoppedViewModel(serverModel);
+            serverStoppedVM.Leave += ServerStoppedVM_Leave;
+            serverModel.ServerStarted += ServerModel_ServerStarted;
+            serverModel.ServerStopped += ServerModel_ServerStopped;
+            
 
-            selectView = new ModeSelectViewModel();
-            selectView.Switchserver += SelectView_Switchserver;
-            selectView.SwitchClient += SelectView_SwitchClient;
-            selectView.SwitchService += SelectView_SwitchService;
+            clientModel = new ISClientModel();
+            clientDisconnectedVM = new ClientDisconnectedViewModel(clientModel);
+            clientDisconnectedVM.Leave += ClientDisconnectedVM_Leave;
+            clientConnectedVM = new ClientConnectedViewModel(clientModel);
+            clientModel.Connected += ClientModel_Connected;
+            clientModel.Disconnected += ClientModel_Disconnected;
 
-            clientInstance = new ISClient();
-            clientView = new ClientViewModel(clientInstance);
-            clientConnectedView = new ClientConnectedViewModel(clientInstance);
+#if WindowsBuild
+            winServiceVM = new WinServiceViewModel();
+            winServiceVM.Leave += WinServiceVM_Leave;
+#endif
 
-            clientInstance.Connected += Client_Connected;
-            clientInstance.ConnectionError += Client_ConnectionError;
-            clientInstance.Disconnected += Client_Disconnected;
-
-            serviceView = new WindowsServiceViewModel();
-
-            CurrentModel = selectView;
+            SetViewModel(homeVM);
+            CommandBottomButton = ReactiveCommand.Create(OnBottomButtonPress);
         }
 
-        private void SelectView_SwitchService(object sender, EventArgs e)
+        private void HomeVM_Leave(object sender, EventArgs e)
         {
-            ChangeViewModel(serviceView);
+            CloseWindow?.Invoke(this, null);
         }
 
-        private void Client_Disconnected(object sender, EventArgs e)
+        private void WinServiceVM_Leave(object sender, EventArgs e)
         {
-            ChangeViewModel(clientView);
+            SetViewModel(homeVM);
         }
 
-        private void Client_ConnectionError(object sender, string e)
+        private void HomeVM_SwitchWinService(object sender, EventArgs e)
         {
-            ChangeViewModel(clientView);
+#if WindowsBuild
+            SetViewModel(winServiceVM);
+#endif
         }
 
-        private void Client_Connected(object sender, System.Net.IPEndPoint e)
+        private void ClientDisconnectedVM_Leave(object sender, EventArgs e)
         {
-            ChangeViewModel(clientConnectedView);
+            SetViewModel(homeVM);
         }
 
-        private void Server_Stopped(object sender, EventArgs e)
+        private void ServerStoppedVM_Leave(object sender, EventArgs e)
         {
-            ChangeViewModel(serverView);
+            SetViewModel(homeVM);
         }
 
-        private void Server_Started(object sender, EventArgs e)
+        private void ClientModel_Disconnected(object sender, EventArgs e)
         {
-            ChangeViewModel(serverStartedView);
+            SetViewModel(clientDisconnectedVM);
         }
 
-        private void SelectView_SwitchClient(object sender, EventArgs e)
+        private void ClientModel_Connected(object sender, EventArgs e)
         {
-            ChangeViewModel(clientView);
+            SetViewModel(clientConnectedVM);
         }
 
-        private void SelectView_Switchserver(object sender, EventArgs e)
+        private void HomeVM_SwitchServer(object sender, EventArgs e)
         {
-            ChangeViewModel(serverView);
+            SetViewModel(serverStoppedVM);
         }
 
-        private void ChangeViewModel(ViewModelBase view)
+        private void HomeVM_SwitchClient(object sender, EventArgs e)
         {
-            CurrentModel = view;
-            this.RaisePropertyChanged(nameof(CurrentModel));
+            SetViewModel(clientDisconnectedVM);
         }
 
-        public void HandleExit()
+        private void ServerModel_ServerStopped(object sender, EventArgs e)
         {
-            if (serverInstance.Running)
-                serverInstance.Stop();
+            SetViewModel(serverStoppedVM);
+        }
 
-            if (clientInstance.Running)
-                clientInstance.Stop();
+        private void ServerModel_ServerStarted(object sender, EventArgs e)
+        {
+            SetViewModel(serverRunningVM);
+        }
+
+        private void SetViewModel(ViewModelBase model)
+        {
+            CurrentView = model;
+            this.RaisePropertyChanged(nameof(CurrentView));
+        }
+
+        private void OnBottomButtonPress()
+        {
+            CurrentView.HandleBottomButtonPressed();
+        }
+
+        public override void HandleBottomButtonPressed()
+        {
+            Console.WriteLine("----");
+            CloseWindow?.Invoke(this, null);
+        }
+
+        public override void HandleExit()
+        {
+
         }
     }
 }

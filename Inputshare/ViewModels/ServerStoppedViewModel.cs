@@ -1,73 +1,68 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using InputshareLib;
-using InputshareLib.Client;
-using InputshareLib.Server;
+﻿using Inputshare.Models;
 using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Reactive;
+using System.Text;
 
 namespace Inputshare.ViewModels
 {
-    public class ServerStoppedViewModel : ViewModelBase
+    internal class ServerStoppedViewModel : ViewModelBase
     {
-        private ISServer serverInstance;
+        public event EventHandler Leave;
 
-        //Commands
-        public ReactiveCommand StartServer { get; private set; }
+        private ISServerModel model;
 
-        private string portEntryText = "";
-
-        private bool canExecute;
-        public bool CanExecute { get { return canExecute; } set { this.RaiseAndSetIfChanged(ref canExecute, value); } }
-        public string PortEntryText { get => portEntryText; set => SetText(value); }
-
-
-        public bool EnableUdpChecked { get; set; } = true;
-        public bool EnableClipboardChecked { get; set; } = true;
-        public bool EnableDragDropChecked { get; set; } = true;
-
-        public ServerStoppedViewModel(ISServer server)
+        private string _portEntryText = "4441";
+        public string PortEntryText
         {
-            serverInstance = server;
-            SetText("4441");
-            InitCommands();
+            get
+            {
+                return _portEntryText;
+            }
+            set
+            {
+                OnPortTextChanged(value);
+            }
         }
 
-        private void SetText(string text)
-        {
-            CanExecute = int.TryParse(text, out _);
-            portEntryText = text;
-        }
+        public ISServerStartOptionsModel StartOptions { get; } = new ISServerStartOptionsModel();
+        public bool ValidPortEntry { get; private set; }
+        public ReactiveCommand<Unit, Unit> CommandStartServer { get; }
 
-        private void InitCommands()
+        public ServerStoppedViewModel(ISServerModel model)
         {
-            StartServer = ReactiveCommand.Create(ExecStartServer);
+            CommandStartServer = ReactiveCommand.Create(ExecStartServer);
+            this.model = model;
+            BottomButtonText = "Back";
+            OnPortTextChanged(_portEntryText);
         }
 
         private void ExecStartServer()
         {
-            if (!CanExecute)
-                return;
-
-            List<string> options = new List<string>();
-            if(!EnableDragDropChecked)
-                options.Add("NoDragDrop");
-            if(!EnableClipboardChecked)
-                options.Add("NoClipboard");
-            if (!EnableUdpChecked)
-                options.Add("NoUdp");
-            StartOptions args = new StartOptions(options);
-            serverInstance.Start(GetDependencies(), args, int.Parse(PortEntryText));
+            if (ValidPortEntry)
+            {
+                int port = int.Parse(PortEntryText);
+                Console.WriteLine("port = " + port);
+                model.StartServer(port, StartOptions);
+            }
         }
 
-        private ISServerDependencies GetDependencies()
+        private void OnPortTextChanged(string text)
         {
-#if WindowsBuild
-            return InputshareLibWindows.WindowsDependencies.GetServerDependencies();
-#elif LinuxBuild
-            return ISServerDependencies.GetLinuxDependencies();
-#endif
+            ValidPortEntry = int.TryParse(text, out _);
+            this.RaisePropertyChanged(nameof(ValidPortEntry));
+            _portEntryText = text;
         }
 
+        public override void HandleBottomButtonPressed()
+        {
+            Leave?.Invoke(this, null);
+        }
+
+        public override void HandleExit()
+        {
+
+        }
     }
 }

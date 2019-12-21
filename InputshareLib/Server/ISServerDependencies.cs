@@ -11,8 +11,10 @@ namespace InputshareLib.Server
     /// <summary>
     /// OS specifid depedencies required to run an inputshare server
     /// </summary>
-    public sealed class ISServerDependencies
+    public sealed class ISServerDependencies : IDisposable
     {
+        private IDisposable globalDependency;
+
         public DisplayManagerBase DisplayManager { get; set; }
         public InputManagerBase InputManager { get; set; }
         public DragDropManagerBase DragDropManager { get; set; }
@@ -21,9 +23,9 @@ namespace InputshareLib.Server
 
         public static ISServerDependencies GetLinuxDependencies()
         {
-            SharedXConnection xCon = new SharedXConnection();
+            var xCon = new SharedXConnection();
 
-            return new ISServerDependencies()
+            return new ISServerDependencies(xCon)
             {
                 ClipboardManager = new LinuxClipboardManager(xCon),
                 DisplayManager = new LinuxDisplayManager(xCon),
@@ -32,5 +34,36 @@ namespace InputshareLib.Server
                 OutputManager = new LinuxOutputManager(xCon),
             };
         }
+
+        public ISServerDependencies()
+        {
+
+        }
+
+        public ISServerDependencies(IDisposable globalDependency)
+        {
+            this.globalDependency = globalDependency;
+        }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    ISLogger.Write("Disposing dependency");
+                    globalDependency?.Dispose();
+                }
+                disposedValue = true;
+            }
+        }
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
     }
 }

@@ -1,13 +1,12 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Inputshare.ViewModels;
 
 namespace Inputshare.Views
 {
-    public class ClientView : UserControl
+    public class ServerRunningView : UserControl
     {
-        public ClientView()
+        public ServerRunningView()
         {
             this.InitializeComponent();
         }

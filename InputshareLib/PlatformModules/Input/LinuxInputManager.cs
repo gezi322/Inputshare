@@ -62,9 +62,6 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnStop()
         {
-            xConnection.EventArrived -= ProcEvent;
-            
-
             if (InputBlocked)
             {
                 SetInputBlocked(false);
@@ -76,6 +73,7 @@ namespace InputshareLib.PlatformModules.Input
             }
             
             hotkeys.Clear();
+            xConnection.EventArrived -= ProcEvent;
         }
 
         private void Init()

@@ -3,8 +3,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Inputshare.Views.ClientConnectedView">
+             x:Class="Inputshare.Views.WinServiceView">
+
   <StackPanel>
-    <TextBlock Text="{Binding InfoText}"/>
+    <StackPanel IsVisible="{Binding ShowServiceConnect}">
+      <TextBlock Text="{Binding ServiceConnectText}"/>
+      <Button Content="Connect to service" Command="{Binding CommandConnectService}"/>
+    </StackPanel>
+
+    <StackPanel IsVisible="{Binding ShowClientControls}">
+      <Button Content="Connect"/>
+    </StackPanel>
   </StackPanel>
 </UserControl>

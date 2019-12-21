@@ -12,6 +12,7 @@ namespace InputshareLibWindows.PlatformModules.Output
             host = iHostMain;
         }
 
+
         public override void ResetKeyStates()
         {
             Send(new ISInputData(ISInputCode.IS_RELEASEALL, 0, 0));

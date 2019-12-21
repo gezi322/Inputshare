@@ -4,9 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace Inputshare.Views
 {
-    public class WindowsServiceView : UserControl
+    public class ClientDisconnectedView : UserControl
     {
-        public WindowsServiceView()
+        public ClientDisconnectedView()
         {
             this.InitializeComponent();
         }

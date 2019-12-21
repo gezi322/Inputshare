@@ -26,7 +26,7 @@
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
 		<OutputPath>..\build_windows</OutputPath>
 		<Optimize>true</Optimize>
-		<DefineConstants />
+		<DefineConstants>DEBUG</DefineConstants>
 		<PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 

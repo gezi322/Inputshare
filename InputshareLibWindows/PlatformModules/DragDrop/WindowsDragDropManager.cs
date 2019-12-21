@@ -52,7 +52,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             dropFormThread.SetApartmentState(ApartmentState.STA);
             dropFormThread.Start();
 
-            if (!formLoadedEvent.WaitOne(2500))
+            if (!formLoadedEvent.WaitOne(5000))
             {
                 throw new Exception("Timed out waiting for the droptarget window handle to be created");
             }
@@ -67,7 +67,7 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
             dropSourceThread.SetApartmentState(ApartmentState.STA);
             dropSourceThread.Start();
 
-            if (!formLoadedEvent.WaitOne(2500))
+            if (!formLoadedEvent.WaitOne(5000))
             {
                 throw new Exception("Timed out waiting for the dropsource window handle to be created");
             }
@@ -123,8 +123,6 @@ namespace InputshareLibWindows.PlatformModules.DragDrop
 
         public override void CheckForDrop()
         {
-            ISLogger.Write("Checking for drop");
-
             if(!Running)
                 throw new InvalidOperationException("DragDrop manager not running");
 

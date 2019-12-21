@@ -65,7 +65,7 @@ namespace InputshareLib.Server
         /// </summary>
         /// <param name="info"></param>
         /// <returns></returns>
-        public ISServerSocket GetClientFromInfo(ClientInfo info)
+        public ISServerSocket GetClientFromInfo(ISClientInfoModel info)
         {
             return GetClientById(info.Id);
         }

@@ -1,0 +1,22 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Inputshare.Views.ClientDisconnectedView">
+
+  <StackPanel HorizontalAlignment="Center" Spacing="5">
+    <TextBlock Text="Address:Port"/>
+    <TextBox Text="{Binding AddressEntryText}"/>
+    <TextBlock Text="Client name"/>
+    <TextBox Text="{Binding ClientNameEntryText}"/>
+    <TextBlock Text="Settings"/>
+    <StackPanel Orientation="Horizontal" Spacing="10">
+      <CheckBox Content="Enable UDP" IsChecked="{Binding StartOptions.EnableUdp}"/>
+      <CheckBox Content="Enable drag/drop" IsChecked="{Binding StartOptions.EnableDragDrop}"/>
+      <CheckBox Content="Enable clipboard" IsChecked="{Binding StartOptions.EnableClipboard}"/>
+      <CheckBox Content="Auto reconnect" IsChecked="{Binding StartOptions.AutoReconnect}"/>
+    </StackPanel>
+    <Button Content="Connect" Command="{Binding CommandConnect}"/>
+  </StackPanel>
+</UserControl>

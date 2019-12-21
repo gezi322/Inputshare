@@ -1,0 +1,51 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Inputshare.Views.ServerRunningView">
+
+  <StackPanel>
+    <TextBlock Text="{Binding CurrentInputClient.Name, StringFormat=Input client: {0}}"/>
+    <ListBox Items="{Binding ClientList}" SelectedItem="{Binding SelectedClient}">
+     
+    </ListBox>
+    <Border BorderBrush="LightGray" BorderThickness="2">
+      <StackPanel Spacing="10" IsVisible="{Binding ClientSettingsVisible}">
+        <TextBlock Text="{Binding SelectedClient.Name, StringFormat=Client settings for {0}}" HorizontalAlignment="Center"/>
+        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="20">
+          <StackPanel Orientation="Vertical" MaxWidth="75">
+            <TextBlock Text="Left client:"/>
+            <ComboBox Items="{Binding ClientList}" SelectedItem="{Binding SelectedClient.LeftClient}"/>
+          </StackPanel>
+          <StackPanel Orientation="Vertical" MaxWidth="75">
+            <TextBlock Text="Right client:"/>
+            <ComboBox Items="{Binding ClientList}" SelectedItem="{Binding SelectedClient.RightClient}"/>
+          </StackPanel>
+          <StackPanel Orientation="Vertical" MaxWidth="75">
+            <TextBlock Text="Top client:"/>
+            <ComboBox Items="{Binding ClientList}" SelectedItem="{Binding SelectedClient.TopClient}"/>
+          </StackPanel>
+          <StackPanel Orientation="Vertical" MaxWidth="75">
+            <TextBlock Text="Bottom client:"/>
+            <ComboBox Items="{Binding ClientList}" SelectedItem="{Binding SelectedClient.BottomClient}"/>
+          </StackPanel>
+        </StackPanel>
+        <TextBlock Text="Hotkey:" HorizontalAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+          <CheckBox IsChecked="{Binding ClientHotkey.Alt}" Content="Alt"/>
+          <CheckBox IsChecked="{Binding ClientHotkey.Ctrl}" Content="Ctrl"/>
+          <CheckBox IsChecked="{Binding ClientHotkey.Shift}" Content="Shift"/>
+          <Button Command="{Binding CommandClientHotkey}" Content="{Binding ClientHotkey.Key}"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Vertical">
+          <TextBlock Text="{Binding SelectedClient.Name, StringFormat=Client information for {0}}" HorizontalAlignment="Center"/>
+          <TextBlock Text="{Binding SelectedClient.ClientAddress.Address, StringFormat=Address: {0}}" HorizontalAlignment="Center"/>
+          <TextBlock Text="{Binding SelectedClient.UdpEnabled, StringFormat=Using UDP: {0}}" HorizontalAlignment="Center"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+
+</UserControl>
