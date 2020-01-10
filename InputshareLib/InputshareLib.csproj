@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <Platforms>AnyCPU</Platforms>
+    <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>InputshareLib</RootNamespace>
     <Authors>Sam Barraclough</Authors>
     <Product>Inputshare</Product>
@@ -15,12 +15,18 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
     <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">true</IsWindows>
+
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x86'">true</IsWindows>
+
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x64'">true</IsWindows>
     <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">true</IsLinux>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|x86'">true</IsLinux>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|x64'">true</IsLinux>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
     <DefineConstants>WindowsBuild</DefineConstants>
-    <OutputPath>..\build_windows\</OutputPath>
+    <OutputPath>..\build_windows64</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsLinux)'=='true'">
@@ -31,10 +37,28 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">
     <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|x86'">
+    <Optimize>true</Optimize>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Windows|x64'">
+    <Optimize>true</Optimize>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|x86'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|x64'">
     <Optimize>true</Optimize>
   </PropertyGroup>
 

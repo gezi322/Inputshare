@@ -5,19 +5,21 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
-    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">true</IsWindows>
-    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">true</IsLinux>
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x64'">true</IsWindows>
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x86'">true</IsWindows>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCpu'">true</IsLinux>
     <Configurations>Windows;Linux</Configurations>
 
     <ApplicationIcon />
     <StartupObject />
     <AssemblyName>Inputshare</AssemblyName>
     <RootNamespace>Inputshare</RootNamespace>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
     <DefineConstants>TRACE;WindowsBuild</DefineConstants>
-    <OutputPath>..\build_windows</OutputPath>
+    <OutputPath>..\build_windows64</OutputPath>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -27,19 +29,9 @@
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <OutputPath>..\build_linux</OutputPath>
   </PropertyGroup>
-  
 
-
-  <PropertyGroup Condition="'$(IsWindows)'=='true'">
-    <DefineConstants>TRACE;WindowsBuild</DefineConstants>
-    <OutputPath>..\build_windows</OutputPath>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x64</PlatformTarget>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Windows|netcoreapp3.0|x86'">
+    <OutputPath>..\build_windows32</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>

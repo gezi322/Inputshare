@@ -362,3 +362,4 @@ healthchecksdb
 /LINUX
 /build_linux
 /build_windows
+/build_windows64
