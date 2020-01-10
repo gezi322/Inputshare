@@ -15,12 +15,12 @@
     <AssemblyName>Inputshare</AssemblyName>
     <RootNamespace>Inputshare</RootNamespace>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
     <DefineConstants>TRACE;WindowsBuild</DefineConstants>
     <OutputPath>..\build_windows64</OutputPath>
-    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
 
