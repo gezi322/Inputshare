@@ -4,7 +4,6 @@ using InputshareLib.Input;
 using InputshareLibWindows.Clipboard;
 using InputshareLibWindows.Native;
 using InputshareLibWindows.Output;
-using InputshareLibWindows.PlatformModules.Clipboard;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;

@@ -340,7 +340,7 @@ namespace InputshareLib.Net
         }
 
         /// <summary>
-        /// Sends a file that is larger than the size specified in InputshareLib.Settings.NetworkMessageChunkSize
+        /// Sends a message that is larger than the size specified in InputshareLib.Settings.NetworkMessageChunkSize
         /// </summary>
         /// <param name="message"></param>
         private void SendLargeMessage(NetworkMessage message)

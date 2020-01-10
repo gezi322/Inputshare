@@ -39,7 +39,7 @@ namespace InputshareLibWindows.Clipboard
                 }
                 else if (data.GetDataPresent(DataFormats.Text))
                 {
-                    return new ClipboardTextData((string)data.GetData(DataFormats.Text));
+                    return new ClipboardTextData((string)data.GetData(DataFormats.UnicodeText));
                 }
                 else if (data.GetDataPresent(DataFormats.FileDrop))
                 {

@@ -12,7 +12,13 @@
     <StackPanel DockPanel.Dock="Top">
       <ContentControl Content="{Binding CurrentView}"/>
     </StackPanel>
-    <Button DockPanel.Dock="Bottom" Background="LightGray"  MaxHeight="25" VerticalAlignment="Bottom" Content="{Binding CurrentView.BottomButtonText}" Command="{Binding CommandBottomButton}"/>
+
+    <DockPanel LastChildFill="True" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+      <CheckBox Content="Show log" IsChecked="{Binding ShowLogChecked}"/>
+      <Button Background="LightGray" HorizontalContentAlignment="Center" MaxHeight="25" VerticalAlignment="Bottom" Content="{Binding CurrentView.BottomButtonText}" Command="{Binding CommandBottomButton}"/>
+
+    </DockPanel>
+
   </DockPanel>
 
 </Window>

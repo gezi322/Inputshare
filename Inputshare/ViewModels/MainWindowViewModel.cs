@@ -1,4 +1,5 @@
 ﻿using Inputshare.Models;
+using Inputshare.Views;
 using InputshareLib;
 using ReactiveUI;
 using System;
@@ -23,9 +24,14 @@ namespace Inputshare.ViewModels
         private ClientDisconnectedViewModel clientDisconnectedVM;
         private ClientConnectedViewModel clientConnectedVM;
 #if WindowsBuild
-        private WinServiceViewModel winServiceVM;
+        private WinServiceBaseViewModel winServiceVM;
 #endif
         private HomeViewModel homeVM;
+
+        private LogWindow logWnd;
+
+        private bool _showLogChecked = true;
+        public bool ShowLogChecked { get => _showLogChecked; set => ShowLogStateChanged(value); }
 
         public MainWindowViewModel()
         {
@@ -52,12 +58,24 @@ namespace Inputshare.ViewModels
             clientModel.Disconnected += ClientModel_Disconnected;
 
 #if WindowsBuild
-            winServiceVM = new WinServiceViewModel();
+            winServiceVM = new WinServiceBaseViewModel();
             winServiceVM.Leave += WinServiceVM_Leave;
 #endif
 
             SetViewModel(homeVM);
             CommandBottomButton = ReactiveCommand.Create(OnBottomButtonPress);
+            logWnd = new LogWindow();
+            logWnd.Show();
+        }
+
+        private void ShowLogStateChanged(bool state)
+        {
+            if (state)
+                logWnd.Show();
+            else
+                logWnd.Hide();
+
+            _showLogChecked = state;
         }
 
         private void HomeVM_Leave(object sender, EventArgs e)
@@ -121,6 +139,7 @@ namespace Inputshare.ViewModels
         {
             CurrentView = model;
             this.RaisePropertyChanged(nameof(CurrentView));
+            CurrentView.OnShow();
         }
 
         private void OnBottomButtonPress()
@@ -130,13 +149,14 @@ namespace Inputshare.ViewModels
 
         public override void HandleBottomButtonPressed()
         {
-            Console.WriteLine("----");
             CloseWindow?.Invoke(this, null);
         }
 
         public override void HandleExit()
         {
+            CurrentView.HandleExit();
 
+            logWnd.Close();
         }
     }
 }

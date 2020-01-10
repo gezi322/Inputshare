@@ -8,9 +8,6 @@ namespace InputshareLibWindows
 {
 
     /// <summary>
-    /// Represents a message only window. Used for keyboard, mouse and clipboard event hooks.
-    /// Hooks should only be installed after the HandleCreated event has been fired
-    /// 
     /// InitWindow must be called before calling any public methods.
     /// </summary>
     public class MessageWindow

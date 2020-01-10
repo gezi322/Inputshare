@@ -54,7 +54,6 @@ namespace InputshareLib.Server
             {
                 if (disposing)
                 {
-                    ISLogger.Write("Disposing dependency");
                     globalDependency?.Dispose();
                 }
                 disposedValue = true;

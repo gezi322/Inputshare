@@ -17,6 +17,7 @@ namespace InputshareLibWindows.IPC.NetIpc
         public event EventHandler ServerConnected;
         public event EventHandler ServerDisconnected;
         public event EventHandler<bool> AutoReconnectChanged;
+        public event EventHandler<string> ServiceLogMessage;
 
         private Socket clientSocket;
 
@@ -27,7 +28,6 @@ namespace InputshareLibWindows.IPC.NetIpc
             Start(new NetworkStream(clientSocket));
             Write(new IpcMessage(IpcMessageType.IpcClientOK));
         }
-
 
         public void Connect(IPEndPoint address)
         {
@@ -47,19 +47,19 @@ namespace InputshareLibWindows.IPC.NetIpc
                 Write(new IpcMessage(IpcMessageType.NetIpcDisableAutoReconnect));
         }
 
-        public async Task<string> GetClientName()
+        public async Task<string> GetClientNameAsync()
         {
             NetIpcClientNameResponseMessage msg = (NetIpcClientNameResponseMessage)await SendRequest(new IpcMessage(IpcMessageType.NetIpcNameRequest), IpcMessageType.NetIpcNameResponse);
             return msg.ClientName;
         }
 
-        public async Task<bool> GetConnectedState()
+        public async Task<bool> GetConnectedStateAsync()
         {
             NetIpcStateResponseMessage msg = (NetIpcStateResponseMessage)await SendRequest(new IpcMessage(IpcMessageType.NetIpcStateRequest), IpcMessageType.NetIpcStateResponse);
             return msg.Connected;
         }
 
-        public async Task<bool> GetAutoReconnectState()
+        public async Task<bool> GetAutoReconnectStateAsync()
         {
             NetIpcAutoReconnectResponseMessage msg = (NetIpcAutoReconnectResponseMessage)await SendRequest(new IpcMessage(IpcMessageType.NetIpcAutoReconnectRequest), IpcMessageType.NetIpcAutoReconnectResponse);
             return msg.Enabled;
@@ -70,7 +70,7 @@ namespace InputshareLibWindows.IPC.NetIpc
             Write(new NetIpcSetNameMessage(clientName));
         }
 
-        public async Task<IPEndPoint> GetConnectedAddress()
+        public async Task<IPEndPoint> GetConnectedAddressAsync()
         {
             NetIpcConnectedAddressResponseMessage msg = (NetIpcConnectedAddressResponseMessage)await SendRequest(new IpcMessage(IpcMessageType.NetIpcAddressRequest), IpcMessageType.NetIpcAddressResponse);
             return msg.Address;
@@ -95,7 +95,7 @@ namespace InputshareLibWindows.IPC.NetIpc
         
         private void HandleLogMessage(NetIpcLogMessage message)
         {
-            ISLogger.Write("Service: " + message.Message);
+            ServiceLogMessage?.Invoke(this, message.Message);
         }
 
         protected override void Dispose(bool disposing)

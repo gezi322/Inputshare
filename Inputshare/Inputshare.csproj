@@ -18,11 +18,6 @@
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
     <DefineConstants>TRACE;WindowsBuild</DefineConstants>
     <OutputPath>..\build_windows</OutputPath>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -66,17 +61,23 @@
     <AvaloniaResource Remove="Views\ClientConnectedView.xaml" />
     <AvaloniaResource Remove="Views\ClientDisconnectedView.xaml" />
     <AvaloniaResource Remove="Views\HomeView.xaml" />
+    <AvaloniaResource Remove="Views\LogWindow.xaml" />
     <AvaloniaResource Remove="Views\ServerRunningView.xaml" />
     <AvaloniaResource Remove="Views\ServerStoppedView.xaml" />
-    <AvaloniaResource Remove="Views\WinServiceView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceBaseView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceConnectedView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceDisconnectedView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Views\ClientConnectedView.xaml" />
     <None Remove="Views\ClientDisconnectedView.xaml" />
     <None Remove="Views\HomeView.xaml" />
+    <None Remove="Views\LogWindow.xaml" />
     <None Remove="Views\ServerRunningView.xaml" />
     <None Remove="Views\ServerStoppedView.xaml" />
-    <None Remove="Views\WinServiceView.xaml" />
+    <None Remove="Views\WinServiceBaseView.xaml" />
+    <None Remove="Views\WinServiceConnectedView.xaml" />
+    <None Remove="Views\WinServiceDisconnectedView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="0.9.0" />
@@ -110,8 +111,28 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Views\WinServiceView.xaml">
+    <EmbeddedResource Include="Views\WinServiceBaseView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\WinServiceDisconnectedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\WinServiceConnectedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\LogWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\WinServiceBaseView.xaml.cs">
+      <DependentUpon>WinServiceBaseView.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

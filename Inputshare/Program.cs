@@ -3,18 +3,23 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging.Serilog;
 using Avalonia.ReactiveUI;
+using InputshareLib;
 
 namespace Inputshare
 {
     class Program
     {
-        // Initialization code. Don't use any Avalonia, third-party APIs or any
-        // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-        // yet and stuff might break.
-        public static void Main(string[] args) => BuildAvaloniaApp()
-            .StartWithClassicDesktopLifetime(args);
+        public static void Main(string[] args)
+        {
+            ISLogger.PrefixCaller = false;
+            ISLogger.PrefixTime = true;
+            ISLogger.EnableConsole = true;
+            ISLogger.EnableLogFile = false;
+            ISLogger.Write("Inputshare started");
 
-        // Avalonia configuration, don't remove; also used by visual designer.
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()

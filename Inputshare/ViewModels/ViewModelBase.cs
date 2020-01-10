@@ -8,6 +8,8 @@ namespace Inputshare.ViewModels
 {
     public abstract class ViewModelBase : ReactiveObject
     {
+
+
         private string _bottomButtonText = "";
         public string BottomButtonText
         {
@@ -29,5 +31,12 @@ namespace Inputshare.ViewModels
         }
 
         public abstract void HandleExit();
+
+        public virtual event EventHandler Leave;
+
+        public virtual void OnShow()
+        {
+
+        }
     }
 }

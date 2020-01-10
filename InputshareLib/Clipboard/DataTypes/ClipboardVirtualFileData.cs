@@ -30,7 +30,7 @@ namespace InputshareLib.Clipboard.DataTypes
             RootDirectory = directories;
         }
 
-        public static ClipboardVirtualFileData FromBytes(byte[] data)
+        public new static ClipboardVirtualFileData FromBytes(byte[] data)
         {
             using (MemoryStream ms = new MemoryStream(data))
             {

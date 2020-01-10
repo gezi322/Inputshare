@@ -53,7 +53,6 @@ namespace InputshareService
             ISLogger.Write("----------------------------------------------");
             ISLogger.Write("Inputshare service starting...");
             ISLogger.Write("Console session state: " + Session.ConsoleSessionState);
-            Config.LoadFile();
             ISLogger.Write("Loaded config");
 
             SetPriority();
@@ -121,7 +120,7 @@ namespace InputshareService
         private void ClientInstance_Connected(object sender, System.Net.IPEndPoint e)
         {
             ISLogger.Write("Connected to server");
-            Config.TryWriteProperty(ServiceConfigProperties.LastConnectedAddress, e.ToString());
+            ConfigFile.TryWriteProperty(ServiceConfigProperties.LastConnectedAddress, e.ToString());
         }
 
         private void ClientInstance_ConnectionFailed(object sender, string error)
@@ -156,7 +155,7 @@ namespace InputshareService
                     ISLogger.Write("Failed to create NetIPC host: " + ex.Message);
                 }
 
-                if(Config.TryReadProperty(ServiceConfigProperties.LastConnectedAddress, out string addrStr)){
+                if(ConfigFile.TryReadProperty(ServiceConfigProperties.LastConnectedAddress, out string addrStr)){
                     if (IPEndPoint.TryParse(addrStr, out IPEndPoint addr))
                     {
                         clientInstance.Connect(addr);

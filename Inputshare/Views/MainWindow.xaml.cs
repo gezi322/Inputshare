@@ -15,8 +15,6 @@ namespace Inputshare.Views
 #if DEBUG
             this.AttachDevTools();
 #endif
-
-            DataContext = new MainWindowViewModel();
             this.KeyDown += MainWindow_KeyDown;
             this.Closing += MainWindow_Closing;
             this.DataContextChanged += MainWindow_DataContextChanged;
@@ -35,7 +33,7 @@ namespace Inputshare.Views
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            (DataContext as MainWindowViewModel).CurrentView.HandleExit();
+            (DataContext as MainWindowViewModel).HandleExit();
         }
 
         private void MainWindow_KeyDown(object sender, Avalonia.Input.KeyEventArgs e)

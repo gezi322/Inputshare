@@ -23,7 +23,8 @@ namespace InputshareLib.Linux
         public SharedXConnection()
         {
             //Using a standard loop of XNextEvent was causing unpredictable issues, 
-            //instead we poll the X server for events every few MS. (TODO - poll properly)            XInitThreads();
+            //instead we poll the X server for events every few MS. (TODO - poll properly)            
+            XInitThreads();
             XDisplay = XOpenDisplay(0);
 
             if (XDisplay == IntPtr.Zero)

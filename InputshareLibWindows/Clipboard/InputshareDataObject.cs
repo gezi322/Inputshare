@@ -1,4 +1,4 @@
-﻿ using InputshareLib;
+﻿using InputshareLib;
 using InputshareLib.Clipboard.DataTypes;
 using System;
 using System.Collections.Generic;
@@ -7,15 +7,12 @@ using System.Text;
 using System.Windows.Forms;
 using static InputshareLibWindows.Native.Ole32;
 using static InputshareLibWindows.Native.User32;
-using InputshareLibWindows.Native;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using IDataObject = System.Runtime.InteropServices.ComTypes.IDataObject;
 using System.Runtime.InteropServices.ComTypes;
 using IStream = System.Runtime.InteropServices.ComTypes.IStream;
 using System.Drawing;
-using FileAttributes = InputshareLib.Clipboard.DataTypes.FileAttributes;
-using System.Linq;
 
 namespace InputshareLibWindows.Clipboard
 {
@@ -80,6 +77,7 @@ namespace InputshareLibWindows.Clipboard
                     tymed = TYMED.TYMED_HGLOBAL
                 });
 
+                ISLogger.Write("Stored text = " + cbText.Text);
                 storedText = cbText.Text;
             }
             else if (data is ClipboardVirtualFileData cbFiles)
@@ -203,7 +201,7 @@ namespace InputshareLibWindows.Clipboard
                         {
                             streams.Add(new ManagedRemoteIStream(file, storedFiles, token));
                         }
-                    }
+                    } 
                     catch (Exception ex)
                     {
                         ISLogger.Write("Failed to get access token for clipboard operation: " + ex.Message);
@@ -290,7 +288,7 @@ namespace InputshareLibWindows.Clipboard
 
         private IntPtr CopyToHGlobal(byte[] data)
         {
-            IntPtr ptr = Marshal.AllocHGlobal(data.Length);
+            IntPtr ptr = Marshal.AllocHGlobal(data.Length+1);
 
             if (ptr == IntPtr.Zero)
                 throw new Win32Exception();

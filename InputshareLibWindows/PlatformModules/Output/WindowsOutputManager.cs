@@ -232,7 +232,8 @@ namespace InputshareLibWindows.Output
                     time = 0,
                     dx = x,
                     dy = y,
-                    dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_MOVE_NOCOALESCE
+                    //dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_MOVE_NOCOALESCE
+                    dwFlags = MOUSEEVENTF_MOVE
                 }
             };
 

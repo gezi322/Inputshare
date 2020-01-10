@@ -59,7 +59,6 @@ namespace Inputshare.Models
             if (clientInstance.IsConnected)
             {
                 clientInstance.Disconnect();
-                clientInstance.Stop();
             }
         }
 
