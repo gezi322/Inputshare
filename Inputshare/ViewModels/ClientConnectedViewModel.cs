@@ -1,38 +1,36 @@
-﻿using System;
+﻿using Inputshare.Models;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using InputshareLib.Client;
-using ReactiveUI;
 
 namespace Inputshare.ViewModels
 {
-    public class ClientConnectedViewModel : ViewModelBase
+    internal class ClientConnectedViewModel : ViewModelBase
     {
-        ISClient clientInstance;
-        public string ConnectedToText { get; private set; }
-        public string ClientName { get; private set; }
+        private ISClientModel model;
 
-        public ReactiveCommand CommandDisconnect { get; private set; }
+        public string InfoText { get; protected set; }
 
-        public ClientConnectedViewModel(ISClient client)
+        public ClientConnectedViewModel(ISClientModel model)
         {
-            clientInstance = client;
-            client.Connected += Client_Connected;
-            CommandDisconnect = ReactiveCommand.Create(ExecDisconnect);
+            this.model = model;
+            BottomButtonText = "Disconnect";
+            model.Connected += Model_Connected;
         }
 
-        private void ExecDisconnect()
+        private void Model_Connected(object sender, EventArgs e)
         {
-            clientInstance.Disconnect();
+            InfoText = string.Format("Connected to {0} as {1}", model.ConnectedAddress, model.ClientName);
         }
 
-        private void Client_Connected(object sender, System.Net.IPEndPoint e)
+        public override void HandleBottomButtonPressed()
         {
-            ConnectedToText = "Connected to: " + e;
-            this.RaisePropertyChanged(nameof(ConnectedToText));
+            model.Disconnect();
+        }
 
-            ClientName = clientInstance.ClientName;
-            this.RaisePropertyChanged(nameof(ClientName));
+        public override void HandleExit()
+        {
+            model.StopIfRunning();
         }
     }
 }

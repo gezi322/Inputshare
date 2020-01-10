@@ -23,6 +23,9 @@ namespace InputshareLib.Linux.Native
             Button5Mask = (1 << 12),
         }
         [DllImport("libX11.so.6")]
+        public static extern int XSynchronize(IntPtr display, bool sync);
+
+        [DllImport("libX11.so.6")]
         public static extern int XConnectionNumber(IntPtr display);
 
         [DllImport("libX11.so.6")]

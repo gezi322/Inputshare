@@ -67,6 +67,11 @@ namespace InputshareLibWindows.PlatformModules.Clipboard
 
                 ClipboardDataBase cb = ClipboardTranslatorWindows.ConvertToGeneric(data);
 
+                if(cb is ClipboardTextData cbText)
+                {
+                    ISLogger.Write("Copied " + cbText.Text);
+                }
+
                 ISLogger.Write("WindowsClipboardManager: Copied type {0}", cb.DataType);
                 OnClipboardDataChanged(cb);
             }catch(ClipboardTranslatorWindows.ClipboardTranslationException ex)

@@ -3,11 +3,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Inputshare.Views.ModeSelectView">
+             x:Class="Inputshare.Views.WinServiceBaseView">
+  <StackPanel Orientation="Vertical">
+    <ContentControl Content="{Binding CurrentView}"/>
+  </StackPanel>
 
-	<StackPanel>
-		<Button Content="Server" Command="{Binding SwitchToServer}"/>
-		<Button Content="Client" Command="{Binding SwitchToClient}"/>
-		<Button Content="Windows Service" IsVisible="{Binding ServiceOptionEnabled}" Command="{Binding SwitchToService}"/>
-	</StackPanel>
 </UserControl>

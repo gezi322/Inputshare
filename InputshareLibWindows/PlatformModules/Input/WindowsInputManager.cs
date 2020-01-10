@@ -218,6 +218,7 @@ namespace InputshareLibWindows.PlatformModules.Input
 
         private void ConvertMouseInputData(int code, ref MSLLHOOKSTRUCT mouseStruct)
         {
+            
             ISInputData translatedData = null;
             switch (code)
             {
@@ -308,6 +309,7 @@ namespace InputshareLibWindows.PlatformModules.Input
         private void CheckForHotkey(int code)
         {
             WindowsVirtualKey key = (WindowsVirtualKey)keyboardData.vkCode;
+            
             if (code == WM_KEYDOWN || code == WM_SYSKEYDOWN)
             {
                 if (key == WindowsVirtualKey.LeftMenu || key == WindowsVirtualKey.RightMenu)
@@ -318,19 +320,17 @@ namespace InputshareLibWindows.PlatformModules.Input
                     currentActiveModifiers |= InputshareLib.Input.Hotkeys.HotkeyModifiers.Shift;
                 else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
                     currentActiveModifiers |= InputshareLib.Input.Hotkeys.HotkeyModifiers.Windows;
-                else
+
+                for (int i = 0; i < hotkeys.Count; i++)
                 {
-                    for (int i = 0; i < hotkeys.Count; i++)
+                    if (currentActiveModifiers == hotkeys[i].Modifiers)
                     {
-                        if (currentActiveModifiers == hotkeys[i].Modifiers)
+                        if (key == hotkeys[i].Key)
                         {
-                            if (key == hotkeys[i].Key)
-                            {
-                                if (hotkeys[i].GetType() == typeof(FunctionHotkey))
-                                    OnFunctionHotkeyPressed((hotkeys[i] as FunctionHotkey).Function);
-                                else if (hotkeys[i].GetType() == typeof(ClientHotkey))
-                                    OnClientHotkeyPressed((hotkeys[i] as ClientHotkey).TargetClient);
-                            }
+                            if (hotkeys[i].GetType() == typeof(FunctionHotkey))
+                                OnFunctionHotkeyPressed((hotkeys[i] as FunctionHotkey).Function);
+                            else if (hotkeys[i].GetType() == typeof(ClientHotkey))
+                                OnClientHotkeyPressed((hotkeys[i] as ClientHotkey).TargetClient);
                         }
                     }
                 }
@@ -338,13 +338,13 @@ namespace InputshareLibWindows.PlatformModules.Input
             else
             {
                 if (key == WindowsVirtualKey.LeftMenu || key == WindowsVirtualKey.RightMenu)
-                    currentActiveModifiers &= InputshareLib.Input.Hotkeys.HotkeyModifiers.Alt;
+                    currentActiveModifiers &= ~InputshareLib.Input.Hotkeys.HotkeyModifiers.Alt;
                 else if (key == WindowsVirtualKey.LeftControl || key == WindowsVirtualKey.RightControl)
-                    currentActiveModifiers &= InputshareLib.Input.Hotkeys.HotkeyModifiers.Ctrl;
+                    currentActiveModifiers &= ~InputshareLib.Input.Hotkeys.HotkeyModifiers.Ctrl;
                 else if (key == WindowsVirtualKey.LeftShift || key == WindowsVirtualKey.RightShift)
-                    currentActiveModifiers &= InputshareLib.Input.Hotkeys.HotkeyModifiers.Shift;
+                    currentActiveModifiers &= ~InputshareLib.Input.Hotkeys.HotkeyModifiers.Shift;
                 else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
-                    currentActiveModifiers &= InputshareLib.Input.Hotkeys.HotkeyModifiers.Windows;
+                    currentActiveModifiers &= ~InputshareLib.Input.Hotkeys.HotkeyModifiers.Windows;
             }
         }
 

@@ -39,8 +39,6 @@ namespace InputshareLib.PlatformModules.Input
         private EventMask anyMotionMask = EventMask.Button1MotionMask | EventMask.Button2MotionMask | EventMask.Button3MotionMask | EventMask.Button4MotionMask
                 | EventMask.Button5MotionMask | EventMask.ButtonMotionMask | EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.PointerMotionMask;
 
-        private AutoResetEvent windowCreateEvent = new AutoResetEvent(false);
-
         public LinuxInputManager(SharedXConnection xCon)
         {
             xConnection = xCon;
@@ -62,9 +60,6 @@ namespace InputshareLib.PlatformModules.Input
 
         protected override void OnStop()
         {
-            xConnection.EventArrived -= ProcEvent;
-            
-
             if (InputBlocked)
             {
                 SetInputBlocked(false);
@@ -76,6 +71,7 @@ namespace InputshareLib.PlatformModules.Input
             }
             
             hotkeys.Clear();
+            xConnection.EventArrived -= ProcEvent;
         }
 
         private void Init()

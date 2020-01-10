@@ -1,70 +1,81 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
-	  <OutputType>Exe</OutputType>
-	  <TargetFrameworks>netcoreapp3.0</TargetFrameworks> 
-	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-
-	  <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|AnyCPU'">true</IsWindows>
-	  <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">true</IsLinux>
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x64'">true</IsWindows>
+    <IsWindows Condition="'$(Configuration)|$(Platform)'=='Windows|x86'">true</IsWindows>
+    <IsLinux Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCpu'">true</IsLinux>
     <Configurations>Windows;Linux</Configurations>
+
     <ApplicationIcon />
     <StartupObject />
     <AssemblyName>Inputshare</AssemblyName>
     <RootNamespace>Inputshare</RootNamespace>
-    <Optimize>false</Optimize>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+    
   </PropertyGroup>
 
-	<PropertyGroup Condition="'$(IsWindows)'=='true'">
-		<DefineConstants>TRACE;WindowsBuild</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(IsLinux)'=='true'">
-		<DefineConstants>LinuxBuild</DefineConstants>
-		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-	</PropertyGroup>
-	
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Windows|netcoreapp3.0|AnyCPU'">
-    <OutputPath>..\build_windows</OutputPath>
-    <PlatformTarget>x64</PlatformTarget>
+  <PropertyGroup Condition="'$(IsWindows)'=='true'">
+    <DefineConstants>TRACE;WindowsBuild</DefineConstants>
+    <OutputPath>..\build_windows64</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Linux|netcoreapp3.0|AnyCPU'">
+
+
+  <PropertyGroup Condition="'$(IsLinux)'=='true'">
+    <DefineConstants>LinuxBuild</DefineConstants>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <OutputPath>..\build_linux</OutputPath>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Windows|netcoreapp3.0|x86'">
+    <OutputPath>..\build_windows32</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Folder Include="Models\" />
+    <ProjectReference Condition="'$(IsWindows)'=='true'" Include="..\InputshareLibWindows\InputshareLibWindows.csproj" />
+    <ProjectReference Include="..\InputshareLib\InputshareLib.csproj" />
+  </ItemGroup>
+  
+  
+  <ItemGroup>
     <Compile Update="**\*.xaml.cs">
       <DependentUpon>%(Filename)</DependentUpon>
     </Compile>
     <AvaloniaResource Include="**\*.xaml">
       <SubType>Designer</SubType>
     </AvaloniaResource>
-    <AvaloniaResource Include="Assets\*" />
-    <Folder Include="Properties\" />
+    <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Remove="Views\ClientConnectedView.xaml" />
-    <AvaloniaResource Remove="Views\ClientView.xaml" />
-    <AvaloniaResource Remove="Views\ModeSelectView.xaml" />
-    <AvaloniaResource Remove="Views\ServerStartedView.xaml" />
+    <AvaloniaResource Remove="Views\ClientDisconnectedView.xaml" />
+    <AvaloniaResource Remove="Views\HomeView.xaml" />
+    <AvaloniaResource Remove="Views\LogWindow.xaml" />
+    <AvaloniaResource Remove="Views\ServerRunningView.xaml" />
     <AvaloniaResource Remove="Views\ServerStoppedView.xaml" />
-    <AvaloniaResource Remove="Views\WindowsServiceView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceBaseView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceConnectedView.xaml" />
+    <AvaloniaResource Remove="Views\WinServiceDisconnectedView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Views\ClientConnectedView.xaml" />
-    <None Remove="Views\ClientView.xaml" />
-    <None Remove="Views\ModeSelectView.xaml" />
-    <None Remove="Views\ServerStartedView.xaml" />
+    <None Remove="Views\ClientDisconnectedView.xaml" />
+    <None Remove="Views\HomeView.xaml" />
+    <None Remove="Views\LogWindow.xaml" />
+    <None Remove="Views\ServerRunningView.xaml" />
     <None Remove="Views\ServerStoppedView.xaml" />
-    <None Remove="Views\WindowsServiceView.xaml" />
+    <None Remove="Views\WinServiceBaseView.xaml" />
+    <None Remove="Views\WinServiceConnectedView.xaml" />
+    <None Remove="Views\WinServiceDisconnectedView.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.8.0" />
-    <PackageReference Include="Avalonia.Desktop" Version="0.8.0" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="0.8.0" />
+    <PackageReference Include="Avalonia" Version="0.9.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.0" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="0.9.0" />
+    <PackageReference Include="MSFT.ParallelExtensionsExtras" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Views\ServerStoppedView.xaml">
@@ -72,17 +83,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Views\ModeSelectView.xaml">
+    <EmbeddedResource Include="Views\ServerRunningView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Views\ClientView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Views\ServerStartedView.xaml">
+    <EmbeddedResource Include="Views\ClientDisconnectedView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>
@@ -92,22 +98,33 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Views\WindowsServiceView.xaml">
+    <EmbeddedResource Include="Views\HomeView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-	<ProjectReference Condition="'$(IsWindows)'=='true'" Include="..\InputshareLibWindows\InputshareLibWindows.csproj" />
-    <ProjectReference Include="..\InputshareLib\InputshareLib.csproj" />
+    <EmbeddedResource Include="Views\WinServiceBaseView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Views\ServerStoppedView.xaml.cs">
-      <DependentUpon>ServerStoppedView.xaml</DependentUpon>
+    <EmbeddedResource Include="Views\WinServiceDisconnectedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\WinServiceConnectedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\LogWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\WinServiceBaseView.xaml.cs">
+      <DependentUpon>WinServiceBaseView.xaml</DependentUpon>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Inputshare.dll.config">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

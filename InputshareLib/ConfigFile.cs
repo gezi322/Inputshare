@@ -5,7 +5,7 @@ using System.Text;
 
 namespace InputshareLib
 {
-    public static class Config
+    public static class ConfigFile
     {
         private static object configLock = new object();
         private static Configuration config;

@@ -300,7 +300,7 @@ namespace InputshareLibWindows.Native
         public const int MOUSEEVENTF_MOVE = 0x0001;
         public const int MOUSEEVENTF_VIRTUALDESK = 0x4000;
         public const int MOUSEEVENTF_ABSOLUTE = 0x8000;
-
+        public const int MOUSEEVENTF_MOVE_NOCOALESCE = 0x2000;
 
         [Flags]
         public enum InputType

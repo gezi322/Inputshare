@@ -18,10 +18,9 @@ namespace InputshareLib.Server
     {
         public event EventHandler Started;
         public event EventHandler Stopped;
-        public event EventHandler<ClientInfo> ClientConnected;
-        public event EventHandler<ClientInfo> ClientDisconnected;
-        public event EventHandler<ClientInfo> InputClientSwitched;
-        public event EventHandler ClientConfigUpdate;
+        public event EventHandler<ISClientInfoModel> ClientConnected;
+        public event EventHandler<ISClientInfoModel> ClientDisconnected;
+        public event EventHandler<ISClientInfoModel> InputClientSwitched;
 
         public bool Running { get; private set; }
 
@@ -31,6 +30,7 @@ namespace InputshareLib.Server
         private DragDropManagerBase dragDropMan;
         private OutputManagerBase outMan;
         private ClipboardManagerBase cbManager;
+        private ISServerDependencies dependencies;
 
         private ISClientListener clientListener;
         private ClientManager clientMan;
@@ -41,7 +41,6 @@ namespace InputshareLib.Server
         private FileAccessController fileController;
         private GlobalInputController inputController;
 
-        private ISServerSocket inputClient = ISServerSocket.Localhost;
         private StartOptions startArgs;
 
         public ISServer()
@@ -56,7 +55,7 @@ namespace InputshareLib.Server
                 throw new InvalidOperationException("Server already running");
 
             ISLogger.EnableConsole = true;
-
+            this.dependencies = dependencies;
             ISLogger.Write("Starting server...");
             Running = true;
             clientMan = new ClientManager(16);
@@ -87,6 +86,7 @@ namespace InputshareLib.Server
 
                 clientListener?.Stop();
                 udpHost?.Dispose();
+               
             }catch(Exception ex)
             {
                 ISLogger.Write("Exception while stopping server!");
@@ -95,6 +95,7 @@ namespace InputshareLib.Server
             }
             finally
             {
+                ISLogger.Write("Server stopped");
                 Running = false;
                 Stopped?.Invoke(this, null);
             }
@@ -134,6 +135,7 @@ namespace InputshareLib.Server
                 displayMan.Stop();
 
             fileController?.DeleteAllTokens();
+            dependencies.Dispose();
         }
 
         private void StartUdpHost(StartOptions args, int bindPort)
@@ -161,7 +163,7 @@ namespace InputshareLib.Server
             ddController.HandleClientSwitch(oldInputClient, newClient);
             oldInputClient = newClient;
             outMan.ResetKeyStates();
-            InputClientSwitched?.Invoke(this, new ClientInfo(newClient, clientMan));
+            InputClientSwitched?.Invoke(this, new ISClientInfoModel(newClient, clientMan));
         }
 
         private void DisplayMan_DisplayConfigChanged(object sender, Displays.DisplayConfig e)
@@ -200,7 +202,7 @@ namespace InputshareLib.Server
             }
 
             ClientConfig.ReloadClientConfigs(clientMan);
-            ClientConnected?.Invoke(this, new ClientInfo(client, clientMan));
+            ClientConnected?.Invoke(this, new ISClientInfoModel(client, clientMan));
         }
 
         private bool TryAcceptClient(ISServerSocket client)
@@ -243,24 +245,6 @@ namespace InputshareLib.Server
 
         private void OnClientEdgeChanged(ISServerSocket client, Edge e)
         {
-            /*
-            //Set the opposite edge without causing stack overflow
-            switch (e) {
-                case Edge.Bottom:
-                    client.GetClientAtEdge(e).TopClient = client;
-                    break;
-                case Edge.Right:
-                    client.GetClientAtEdge(e).LeftClient = client;
-                    break;
-                case Edge.Left:
-                    client.GetClientAtEdge(e).RightClient = client;
-                    break;
-                case Edge.Top:
-                    client.GetClientAtEdge(e).BottomClient = client;
-                    break;
-            }
-            */
-
             ClientConfig.SaveClientEdge(client, e);
             OnClientSettingChanged();
             client.SendClientEdgesUpdate();
@@ -268,7 +252,7 @@ namespace InputshareLib.Server
 
         private void OnClientSettingChanged()
         {
-            ClientConfigUpdate?.Invoke(this, null);
+
         }
 
         private void Client_HotkeyChanged(ISServerSocket client, Hotkey hk)
@@ -343,7 +327,7 @@ namespace InputshareLib.Server
             if (inputMan.GetClientHotkey(client.ClientId) != null)
                 inputMan.RemoveClientHotkey(client.ClientId);
 
-            ClientDisconnected?.Invoke(this, new ClientInfo(client, clientMan));
+            ClientDisconnected?.Invoke(this, new ISClientInfoModel(client, clientMan));
             client.Dispose();
         }
 
@@ -361,20 +345,20 @@ namespace InputshareLib.Server
             }
         }
 
-        public List<ClientInfo> GetAllClients()
+        public List<ISClientInfoModel> GetAllClients()
         {
-            List<ClientInfo> info = new List<ClientInfo>();
+            List<ISClientInfoModel> info = new List<ISClientInfoModel>();
             foreach (var client in clientMan.AllClients)
             {
-                info.Add(new ClientInfo(client, clientMan));
+                info.Add(new ISClientInfoModel(client, clientMan));
             }
 
             return info;
         }
 
-        public ClientInfo GetLocalhost()
+        public ISClientInfoModel GetLocalhost()
         {
-            return new ClientInfo(ISServerSocket.Localhost, clientMan);
+            return new ISClientInfoModel(ISServerSocket.Localhost, clientMan);
         }
 
         public Hotkey GetHotkey(Hotkeyfunction function)

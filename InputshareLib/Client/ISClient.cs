@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using InputshareLib.Clipboard;
 using InputshareLib.Clipboard.DataTypes;
@@ -34,7 +35,7 @@ namespace InputshareLib.Client
         public bool ActiveClient { get; private set; }
         public string ClientName { get; set; } = Environment.MachineName;
         public Guid ClientId { get; private set; } = Guid.NewGuid();
-        public bool AutoReconnect { get => server.AutoReconnect; set => server.AutoReconnect = value; }
+        public bool AutoReconnect { get; set; }
         public IPEndPoint ServerAddress { get => server.ServerAddress; }
 
         public bool IsConnected { get => server.IsConnected; }
@@ -44,6 +45,7 @@ namespace InputshareLib.Client
         private ClipboardManagerBase clipboardMan;
         private DragDropManagerBase dragDropMan;
         private DisplayManagerBase displayMan;
+        private ISClientDependencies dependencies;
 
         private FileAccessController fileController;
         private LocalDragDropController ddController;
@@ -100,16 +102,23 @@ namespace InputshareLib.Client
 
             try
             {
+                AutoReconnect = false;
                 ISLogger.Write("Stopping inputshare client...");
+                bool raiseDisconnect = IsConnected;
 
                 if (IsConnected)
                     server.Disconnect(true);
-
-                server.Dispose();
-                fileController.DeleteAllTokens();
+                server?.Dispose();
+                fileController?.DeleteAllTokens();
                 StopModules();
+                dependencies?.Dispose();
+
+                if (raiseDisconnect)
+                    Disconnected?.Invoke(this, null);
+
             }catch(Exception ex)
             {
+                server?.Dispose();
                 ISLogger.Write("an error occurred while stopping client: " + ex.Message);
                 ISLogger.Write(ex.StackTrace);
                 throw ex;
@@ -203,13 +212,40 @@ namespace InputshareLib.Client
         private void AssignSocketEvents()
         {
             server.Connected += (object o, EventArgs e) => { Connected?.Invoke(this, server.ServerAddress); };
-            server.ConnectionError += ConnectionError;
-            server.ConnectionFailed += ConnectionFailed;
+            server.ConnectionError += Server_ConnectionError;
+            server.ConnectionFailed += Server_ConnectionFailed;
             server.InputDataReceived += Server_InputDataReceived;
             server.ActiveClientChanged += (object o, bool active) => { ActiveClient = active; outMan.ResetKeyStates(); ActiveClientChanged?.Invoke(this, active); };
             server.EdgesChanged += Server_EdgesChanged;
             server.RequestedStreamRead += fileController.Client_RequestedStreamRead;
             server.RequestedFileToken += Server_FileTokenRequested;
+        }
+
+        private void Server_ConnectionFailed(object sender, string e)
+        {
+            ISLogger.Write("Connection failed: {0}", e);
+            ConnectionFailed?.Invoke(this, e);
+            ReconnectIfAutoReconnect();
+        }
+
+        private void Server_ConnectionError(object sender, string e)
+        {
+            ISLogger.Write("Connection error: {0}", e);
+            ConnectionError?.Invoke(this, e);
+            ReconnectIfAutoReconnect();
+        }
+
+        private void ReconnectIfAutoReconnect()
+        {
+            if (AutoReconnect)
+            {
+                Thread.Sleep(1000);
+                if(Running && AutoReconnect)
+                {
+                    ISLogger.Write("(AutoReconnect) attempting to reconnect...");
+                    server.Connect(ServerAddress, new ISClientSocket.ConnectionInfo(ClientName, ClientId, displayMan.CurrentConfig.ToBytes()));
+                }
+            }
         }
 
         private void AssignModuleEvents()

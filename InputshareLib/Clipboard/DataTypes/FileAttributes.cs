@@ -31,16 +31,5 @@ namespace InputshareLib.Clipboard.DataTypes
         public DateTime LastChangeTime { get; }
         public string FullPath { get; }
         public Guid FileRequestId { get; }
-
-        /// <summary>
-        /// Closes the IStream associated with this virtual file
-        /// </summary>
-        public void CloseStream()
-        {
-            CloseStreamRequested?.Invoke(this, null);
-        }
-
-        [field: NonSerialized]
-        public event EventHandler CloseStreamRequested;
     }
 }

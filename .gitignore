@@ -362,3 +362,9 @@ healthchecksdb
 /LINUX
 /build_linux
 /build_windows
+/build_windows64
+/export
+/build_windows32
+/publish_windows64
+/publish_windows32
+/publish_linux64

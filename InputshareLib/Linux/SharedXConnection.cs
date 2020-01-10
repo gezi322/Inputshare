@@ -7,10 +7,11 @@ using static InputshareLib.Linux.Native.LibX11;
 using static InputshareLib.Linux.Native.LibX11Events;
 using static InputshareLib.Linux.Native.Libc;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace InputshareLib.Linux
 {
-    public class SharedXConnection
+    public class SharedXConnection : IDisposable
     {
         public IntPtr XDisplay { get; private set; }
         public IntPtr XRootWindow { get; private set; }
@@ -19,13 +20,10 @@ namespace InputshareLib.Linux
         public event Action<XEvent> EventArrived;
         private X11ErrorDelegate errorHandler;
         private X11IOErrorDelegate ioErrorHandler;
-
         public SharedXConnection()
         {
-            //Using a standard loop of XNextEvent was causing unpredicatble issues, 
-            //instead we poll the X server for events every few MS. This has shown
-            //much more predictable results
-
+            //Using a standard loop of XNextEvent was causing unpredictable issues, 
+            //instead we poll the X server for events every few MS. (TODO - poll properly)            
             XInitThreads();
             XDisplay = XOpenDisplay(0);
 
@@ -39,21 +37,19 @@ namespace InputshareLib.Linux
 
             XSetErrorHandler(errorHandler);
             XSetIOErrorHandler(ioErrorHandler);
-
-            new Thread(() => { EventLoop(); }).Start();
+            new Task(() => EventLoop()).Start();
         }
 
-        public void EventLoop()
+        private void EventLoop()
         {
             XCbWindow = XCreateSimpleWindow(XDisplay, XRootWindow, 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
             XFlush(XDisplay);
             XSelectInput(XDisplay, XCbWindow, EventMask.PropertyChangeMask | EventMask.KeyPressMask | EventMask.PointerMotionMask);
 
             int timeout_usec = Settings.XServerPollRateMS * 1000;
-            
             //TODO - poll raw socket properly.
             XEvent evt = new XEvent();
-            while (true)
+            while (!disposedValue)
             {
                 timeval v = new timeval();
                 v.tv_usec = timeout_usec;
@@ -66,6 +62,12 @@ namespace InputshareLib.Linux
                     EventArrived?.Invoke(evt);
                 }
             }
+
+            ISLogger.Write("Exiting X eventloop");
+            if (XCbWindow != default)
+                XDestroyWindow(XDisplay, XCbWindow);
+
+            XCloseDisplay(XDisplay);
         }
 
         private int HandleError(IntPtr display, ref XErrorEvent evt)
@@ -91,5 +93,27 @@ namespace InputshareLib.Linux
             ISLogger.Write("IO Error occurred on X server!");
             return 0;
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
     }
 }

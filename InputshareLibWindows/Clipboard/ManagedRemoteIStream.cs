@@ -20,11 +20,6 @@ namespace InputshareLibWindows.Clipboard
         private readonly Guid accessToken;
 
         /// <summary>
-        /// If true, the read method returns -1 back to the shell
-        /// </summary>
-        private bool closeStream = false;
-
-        /// <summary>
         /// Creates an IStream that uses a network machine as the source of data
         /// </summary>
         /// <param name="file"></param>
@@ -33,12 +28,6 @@ namespace InputshareLibWindows.Clipboard
             sourceClipboardData = parent;
             this.accessToken = accessToken;
             SourceVirtualFile = file;
-            SourceVirtualFile.CloseStreamRequested += FileInfo_CloseStreamRequested;
-        }
-
-        private void FileInfo_CloseStreamRequested(object sender, EventArgs e)
-        {
-            closeStream = true;
         }
 
         /// <summary>
@@ -54,13 +43,6 @@ namespace InputshareLibWindows.Clipboard
 
             try
             {
-                //Check that close has not been called
-                if (closeStream)
-                {
-                    Marshal.WriteInt32(bytesReadPtr, -1);
-                    return;
-                }
-
                 //TODO - shell reads 16 bytes of data and discards it when the drop begins??
                 if(bufferSize == 16)
                 {
@@ -79,7 +61,7 @@ namespace InputshareLibWindows.Clipboard
                 byte[] data = sourceClipboardData.RequestPartMethod(accessToken, SourceVirtualFile.FileRequestId, bufferSize).Result;
 
                 //check that close has not been called
-                if (closeStream || data.Length == 0)
+                if (data.Length == 0)
                 {
                     Marshal.WriteInt32(bytesReadPtr, 0);
                     return;

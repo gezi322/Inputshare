@@ -8,9 +8,6 @@ namespace InputshareLibWindows
 {
 
     /// <summary>
-    /// Represents a message only window. Used for keyboard, mouse and clipboard event hooks.
-    /// Hooks should only be installed after the HandleCreated event has been fired
-    /// 
     /// InitWindow must be called before calling any public methods.
     /// </summary>
     public class MessageWindow
@@ -51,7 +48,7 @@ namespace InputshareLibWindows
             wndThread.SetApartmentState(ApartmentState.STA);
             wndThread.Start();
 
-            if (!windowHandleCreateEvent.WaitOne(2500))
+            if (!windowHandleCreateEvent.WaitOne(5000))
                 throw new Exception("Timed out waiting for window handle creation");
         }
 

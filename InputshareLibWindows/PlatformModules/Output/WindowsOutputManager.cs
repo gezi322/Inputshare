@@ -13,8 +13,7 @@ namespace InputshareLibWindows.Output
     {
         public override void Send(ISInputData input)
         {
-            ISInputCode c = input.Code;
-            switch (c)
+            switch (input.Code)
             {
                 case ISInputCode.IS_MOUSEMOVERELATIVE:
                     MoveMouseRelative(input.Param1, input.Param2);
@@ -94,7 +93,7 @@ namespace InputshareLibWindows.Output
                     time = 0,
                     dx = pt.X,
                     dy = pt.Y,
-                    dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE
+                    dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE_NOCOALESCE
                 }
             };
 
@@ -233,6 +232,7 @@ namespace InputshareLibWindows.Output
                     time = 0,
                     dx = x,
                     dy = y,
+                    //dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_MOVE_NOCOALESCE
                     dwFlags = MOUSEEVENTF_MOVE
                 }
             };

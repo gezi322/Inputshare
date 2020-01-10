@@ -11,8 +11,6 @@ namespace InputshareLib.Client
 {
     internal class ISClientSocket : NetworkSocket
     {
-        public bool AutoReconnect { get; set; } = false;
-
         /// <summary>
         /// Occurs when a connection attempt fails
         /// </summary>
@@ -291,14 +289,6 @@ namespace InputshareLib.Client
             ConnectionFailed?.Invoke(this, "The server declined the connection '" + message.Reason + "'");
             errorHandled = true;
             udpC?.Dispose();
-            ConnectionFailed?.Invoke(this, message.Reason);
-
-            if (AutoReconnect)
-            {
-                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(150);
-                Connect(ServerAddress, conInfo);
-            }
             AttemptingConnection = false;
         }
 
@@ -309,13 +299,6 @@ namespace InputshareLib.Client
             udpC?.Dispose();
 
             base.HandleConnectionClosed(error);
-
-            if (AutoReconnect)
-            {
-                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(150);
-                Connect(ServerAddress, conInfo);
-            }
         }
 
         protected override void HandleConnectedFailed(string error)
@@ -323,28 +306,29 @@ namespace InputshareLib.Client
             base.IsConnected = false;
             errorHandled = true;
 
-            base.HandleConnectedFailed(error);
-
             udpC?.Dispose();
             tcpSocket?.Dispose();
+            AttemptingConnection = false;
             ConnectionFailed?.Invoke(this, error);
-            if (AutoReconnect)
-            {
-
-                ISLogger.Write("IsClientSocket: Auto reconnect enabled. reconnecting");
-                Thread.Sleep(150);
-                Connect(ServerAddress, conInfo);
-            }
-            else
-            {
-                AttemptingConnection = false;
-            }
         }
 
         protected override void OnConnected()
         {
             AttemptingConnection = false;
             base.OnConnected();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                serverReplyTimer?.Dispose();
+                tcpSocket?.Dispose();
+                udpC?.Dispose();
+                ISLogger.Write("Disposed client socket");
+            }
+
+            base.Dispose(disposing);
         }
 
         public struct ConnectionInfo

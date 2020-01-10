@@ -21,12 +21,12 @@ namespace InputshareLib
         /// </summary>
         public const int NetworkMessageChunkSizeNoHeader = NetworkMessageChunkSize - 100;
 
-        public const string InputshareVersion = "0.0.0.6";
+        public const string InputshareVersion = "0.0.0.7";
 
         /// <summary>
         /// Encoder used to encode text to send over TCP socket
         /// </summary>
-        public static Encoding NetworkMessageTextEncoder = Encoding.UTF8;
+        public static Encoding NetworkMessageTextEncoder = Encoding.Unicode;
 
         /// <summary>
         /// Size of network socket buffers
@@ -36,7 +36,7 @@ namespace InputshareLib
         /// <summary>
         /// Image format used to transfer copied images
         /// </summary>
-        public static readonly ImageFormat ImageEncodeFormat = ImageFormat.Jpeg;
+        public static readonly ImageFormat ImageEncodeFormat = ImageFormat.Png;
 
         /// <summary>
         /// If true, SP processes are launched in the users desktop with a visible console
