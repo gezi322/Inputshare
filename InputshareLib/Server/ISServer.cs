@@ -58,17 +58,25 @@ namespace InputshareLib.Server
             this.dependencies = dependencies;
             ISLogger.Write("Starting server...");
             Running = true;
-            clientMan = new ClientManager(16);
-            startArgs = args;
-            StartUdpHost(args, port);
-            StartModules(args, dependencies);
-            clientListener = new ISClientListener(port);
-            AssignLocalEvents();
-            SetDefaultHotkeys();
-            clientMan.AddClient(ISServerSocket.Localhost);
-            ClientConfig.ReloadClientConfigs(clientMan);
-            
-            Started?.Invoke(this, null);
+
+            try
+            {
+                clientMan = new ClientManager(16);
+                startArgs = args;
+                StartUdpHost(args, port);
+                StartModules(args, dependencies);
+                clientListener = new ISClientListener(port);
+                AssignLocalEvents();
+                SetDefaultHotkeys();
+                clientMan.AddClient(ISServerSocket.Localhost);
+                ClientConfig.ReloadClientConfigs(clientMan);
+                Started?.Invoke(this, null);
+            }
+            catch(Exception ex)
+            {
+                ISLogger.Write("Failed to start server: " + ex.Message);
+                Stop();
+            }
         }
 
         public void Stop()
