@@ -21,8 +21,6 @@ Inputshare allows you to:
  - Windows or linux OS supported by dotnet core.
 
 ## Quickstart
-Inputshare can be run two ways; with a GUI or in the command line (to run in background). This section covers using the UI. For starting from the command line, see [Command line and start arguments](https://github.com/sbarrac1/Inputshare/wiki/Command-line-and-start-arguments). The current UI is just a mock-up using avaloniaUI and will be changed.
-
 To get started, start Inputshare on the PC that has the keyboard and mouse that you want to share and select start server. Then run Inputshare on the client(s) that you want to share the keyboard and mouse with and select client and connect to the server.
 
 ![enter image description here](https://i.imgur.com/gIdqZMz.png)
