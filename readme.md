@@ -15,6 +15,12 @@ Inputshare allows you to:
 | Clipboard sharing | Fully working | Working but can't paste files (only copy) | Not implemented
 | Drag & drop support | Fully working | Not yet implemented | Not implemented
 
+## Default hotkeys
+
+| Send alt+ctrl+delete | ctrl+alt+P       |   |   |   |
+|----------------------|------------------|---|---|---|
+| Stop server          | ctrl+alt+shift+Q |   |   |   |
+
 ## Requirements
 
  - Dotnet core 3 runtime (including desktop apps for windows)
