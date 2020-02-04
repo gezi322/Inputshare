@@ -3,62 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29111.141
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLib", "InputshareLib\InputshareLib.csproj", "{9099176C-96DD-438A-9542-B9AA32E2F7D9}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLibWindows", "InputshareLibWindows\InputshareLibWindows.csproj", "{46921911-92C7-407B-8CC2-9248CACABC62}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareService", "InputshareService\InputshareService.csproj", "{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareSP", "InputshareSP\InputshareSP.csproj", "{07240E53-67EC-4349-9CF9-1875F5B24AC0}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare", "Inputshare\Inputshare.csproj", "{9EA1401C-6D93-403B-9073-6E830AFB178C}"
-EndProject
 Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Linux|x64 = Linux|x64
-		Linux|x86 = Linux|x86
-		Windows|x64 = Windows|x64
-		Windows|x86 = Windows|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Linux|x64.ActiveCfg = Linux|Any CPU
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Linux|x64.Build.0 = Linux|Any CPU
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Linux|x86.ActiveCfg = Linux|x86
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Linux|x86.Build.0 = Linux|x86
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Windows|x64.ActiveCfg = Windows|x64
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Windows|x64.Build.0 = Windows|x64
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Windows|x86.ActiveCfg = Windows|x86
-		{9099176C-96DD-438A-9542-B9AA32E2F7D9}.Windows|x86.Build.0 = Windows|x86
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Linux|x64.ActiveCfg = Linux|Any CPU
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Linux|x86.ActiveCfg = Linux|x86
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Linux|x86.Build.0 = Linux|x86
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Windows|x64.ActiveCfg = Windows|x64
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Windows|x64.Build.0 = Windows|x64
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Windows|x86.ActiveCfg = Windows|x86
-		{46921911-92C7-407B-8CC2-9248CACABC62}.Windows|x86.Build.0 = Windows|x86
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Linux|x64.ActiveCfg = Linux|Any CPU
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Linux|x86.ActiveCfg = Linux|x86
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Linux|x86.Build.0 = Linux|x86
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Windows|x64.ActiveCfg = Windows|x64
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Windows|x64.Build.0 = Windows|x64
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Windows|x86.ActiveCfg = Windows|x86
-		{1AFCE7BF-5BCA-44BD-A27E-B6451005A032}.Windows|x86.Build.0 = Windows|x86
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Linux|x64.ActiveCfg = Linux|Any CPU
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Linux|x86.ActiveCfg = Linux|x86
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Linux|x86.Build.0 = Linux|x86
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Windows|x64.ActiveCfg = Windows|x64
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Windows|x64.Build.0 = Windows|x64
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Windows|x86.ActiveCfg = Windows|x86
-		{07240E53-67EC-4349-9CF9-1875F5B24AC0}.Windows|x86.Build.0 = Windows|x86
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Linux|x64.ActiveCfg = Linux|Any CPU
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Linux|x64.Build.0 = Linux|Any CPU
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Linux|x86.ActiveCfg = Linux|x86
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Linux|x86.Build.0 = Linux|x86
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Windows|x64.ActiveCfg = Windows|x64
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Windows|x64.Build.0 = Windows|x64
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Windows|x86.ActiveCfg = Windows|x86
-		{9EA1401C-6D93-403B-9073-6E830AFB178C}.Windows|x86.Build.0 = Windows|x86
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
