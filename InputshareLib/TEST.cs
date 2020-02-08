@@ -1,6 +1,10 @@
 ﻿using InputshareLib.Input;
 using InputshareLib.Net.Client;
 using InputshareLib.Net.Server;
+using InputshareLib.PlatformModules;
+using InputshareLib.PlatformModules.Input;
+using InputshareLib.PlatformModules.Output;
+using InputshareLib.Server;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -14,7 +18,7 @@ namespace InputshareLib
     {
         public TEST()
         {
-            Task.Run(() => RunServer());
+            //Task.Run(() => RunServer());
             Task.Run(() => RunClient());
             Console.ReadLine();
         }
@@ -22,6 +26,7 @@ namespace InputshareLib
         public async void RunClient()
         {
             ClientSocket soc = new ClientSocket();
+            await outMod.StartAsync();
             soc.InputReceived += Soc_InputReceived;
             await soc.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"));
             soc.Disconnected += Soc_Disconnected;
@@ -33,22 +38,17 @@ namespace InputshareLib
             Logger.Write("DISCONNECTED: " + e.Message);
         }
 
+        WindowsOutputModule outMod = new WindowsOutputModule();
         int i = 0;
         private void Soc_InputReceived(object sender, Input.InputData e)
         {
-            Logger.Write($"INPUT RECEIVED {e.Code}:{e.ParamA}:{e.ParamB} ({i})");
-            i++;
+            outMod.SimulateInput(ref e);
         }
 
         public async void RunServer()
         {
-            ClientListener listener = new ClientListener();
-            listener.ClientConnected += Listener_ClientConnected;
-            var t = listener.StartAsync(new IPEndPoint(IPAddress.Any, 1234));
-
-            
-
-            await t;
+            ISServer s = new ISServer();
+            await s.StartAsync(new ISServerDependencies { InputModule = new WindowsInputModule() }, 1234);
         }
 
         private void Listener_ClientConnected(object sender, ClientConnectedArgs e)

@@ -368,3 +368,4 @@ healthchecksdb
 /publish_windows64
 /publish_windows32
 /publish_linux64
+/TestServer

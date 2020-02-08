@@ -13,6 +13,8 @@ namespace InputshareLib.Net.Server
     {
         internal event EventHandler<ClientConnectedArgs> ClientConnected;
 
+        internal bool Listening { get; private set; }
+
         private TcpListener _listener;
         private CancellationTokenSource _tokenSource;
         private readonly List<Socket> _processingClients = new List<Socket>();
@@ -27,6 +29,8 @@ namespace InputshareLib.Net.Server
             _listener = new TcpListener(bindAddress);
             _listener.Start();
             _tokenSource = new CancellationTokenSource();
+            _tokenSource.Token.Register(() => _listener.Stop());
+            Listening = true;
 
             Logger.Write($"Listening at {bindAddress}");
 
@@ -49,7 +53,14 @@ namespace InputshareLib.Net.Server
                 _processingClients.Clear();
                 _listener.Stop();
                 Logger.Write("Stopped listening");
+                Listening = false;
             }
+        }
+
+        internal void Stop()
+        {
+            if(Listening)
+                _tokenSource.Cancel();
         }
 
         /// <summary>
@@ -100,5 +111,7 @@ namespace InputshareLib.Net.Server
                 _processingClients.Remove(client);
             }
         }
+
+
     }
 }

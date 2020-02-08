@@ -38,6 +38,7 @@ namespace InputshareLib.Net
         {
             _disconnecting = false;
             _client = client;
+            _client.NoDelay = true;
             _tokenSource = new CancellationTokenSource();
             _stream = new NetworkStream(client);
             _awaitingMessages.Clear();
@@ -120,7 +121,7 @@ namespace InputshareLib.Net
             return reply as TReply;
         }
 
-        protected void DisconnectSocket()
+        internal virtual void DisconnectSocket()
         {
             _disconnecting = true;
             _client?.Dispose();

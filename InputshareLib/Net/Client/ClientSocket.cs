@@ -60,13 +60,13 @@ namespace InputshareLib.Net.Client
             _state = ClientSocketState.Connected;
         }
 
-        internal void Disconnect()
+        internal override void DisconnectSocket()
         {
             if (_state == ClientSocketState.Idle)
                 throw new InvalidOperationException("Cannot disconnect when state is Idle");
 
 
-            DisconnectSocket();
+            base.DisconnectSocket();
             _state = ClientSocketState.Idle;
             Logger.Write("Disconnected");
         }
