@@ -20,11 +20,11 @@ namespace InputshareLib.Net.Server
         private readonly List<Socket> _processingClients = new List<Socket>();
 
         /// <summary>
-        /// Starts waiting for connections on the specified address
+        /// listens for connections on the specified address
         /// </summary>
         /// <param name="bindAddress"></param>
         /// <returns></returns>
-        internal async Task StartAsync(IPEndPoint bindAddress)
+        internal async Task ListenAsync(IPEndPoint bindAddress)
         {
             _listener = new TcpListener(bindAddress);
             _listener.Start();
@@ -97,7 +97,6 @@ namespace InputshareLib.Net.Server
                 //Deserialize message, if incorrect message type is sent then throw
                 NetClientConnectionMessage msg = NetMessageSerializer.Deserialize<NetClientConnectionMessage>(clientBuff);
 
-                Logger.Write($"{msg.ClientName} connected");
                 ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client), msg.ClientName, msg.ClientId, msg.DisplayBounds));
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)
             {

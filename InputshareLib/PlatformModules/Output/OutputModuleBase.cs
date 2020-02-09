@@ -11,6 +11,10 @@ namespace InputshareLib.PlatformModules.Output
     /// </summary>
     public abstract class OutputModuleBase : PlatformModuleBase
     {
+        /// <summary>
+        /// Simulates the specified user input
+        /// </summary>
+        /// <param name="input"></param>
         public abstract void SimulateInput(ref InputData input);
     }
 }

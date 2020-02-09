@@ -10,11 +10,9 @@ namespace InputshareLib.Net.Messages
     [Serializable]
     internal abstract class NetMessageBase
     {
-        internal Guid MessageId { get; }
-
-        internal NetMessageBase(Guid messageId = default)
+        internal NetMessageBase()
         {
-            MessageId = messageId;
+
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Input;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 
 namespace InputshareLib.PlatformModules.Input
@@ -10,10 +11,13 @@ namespace InputshareLib.PlatformModules.Input
     /// </summary>
     public abstract class InputModuleBase : PlatformModuleBase
     {
+        public abstract event EventHandler<Rectangle> DisplayBoundsUpdated;
+
+        public abstract Rectangle VirtualDisplayBounds { get; protected set; }
         /// <summary>
         /// Fired when the cursor hits the side of the virtual screen
         /// </summary>
-        public abstract event EventHandler<Side> SideHit;
+        public abstract event EventHandler<SideHitArgs> SideHit;
 
         /// <summary>
         /// Fired when A user mouse or keyboard input has being captured
@@ -31,5 +35,11 @@ namespace InputshareLib.PlatformModules.Input
         /// </summary>
         /// <param name="redirect"></param>
         public abstract void SetInputRedirected(bool redirect);
+        
+        /// <summary>
+        /// Hides or shows the cursor
+        /// </summary>
+        /// <param name="hide"></param>
+        public abstract void SetMouseHidden(bool hide);
     }
 }

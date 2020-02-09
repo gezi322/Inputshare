@@ -81,7 +81,7 @@ namespace InputshareLib.PlatformModules.Windows
         private IntPtr CreateWindow()
         {
             ushort cls = RegisterWindowClass();
-            IntPtr wnd = CreateWindowEx(0, cls, WindowName, 0, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero,
+            IntPtr wnd = CreateWindowEx(0, cls, WindowName, 0x00080000, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero,
                 Process.GetCurrentProcess().Handle, IntPtr.Zero);
 
             if (wnd == IntPtr.Zero)

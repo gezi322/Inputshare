@@ -7,8 +7,10 @@ namespace InputshareLib.Net.Messages.Requests
     [Serializable]
     internal abstract class NetRequestBase : NetMessageBase
     {
+        internal Guid MessageId { get; }
         public NetRequestBase() : base()
         {
+            MessageId = Guid.NewGuid();
         }
     }
 }

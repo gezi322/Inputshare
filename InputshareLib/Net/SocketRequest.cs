@@ -8,16 +8,17 @@ using System.Threading.Tasks;
 
 namespace InputshareLib.Net
 {
-    internal class Request
+    /// <summary>
+    /// Represents a network request that is awaiting a reply
+    /// </summary>
+    internal class SocketRequest
     {
         public NetRequestBase RequestMessage { get; }
-        public readonly Type ExpectedReply;
         private readonly SemaphoreSlim _semaphore;
         private NetReplyBase _reply;
 
-        internal Request(NetRequestBase request, Type expectedReply)
+        internal SocketRequest(NetRequestBase request)
         {
-            ExpectedReply = expectedReply;
             RequestMessage = request;
             _semaphore = new SemaphoreSlim(0, 1);
         }
@@ -32,6 +33,10 @@ namespace InputshareLib.Net
             _semaphore.Release();
         }
 
+        /// <summary>
+        /// Waits for a reply to the request
+        /// </summary>
+        /// <returns></returns>
         internal async Task<NetReplyBase> AwaitReply()
         {
             if (!await _semaphore.WaitAsync(5000))

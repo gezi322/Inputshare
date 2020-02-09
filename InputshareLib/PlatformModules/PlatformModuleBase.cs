@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace InputshareLib.PlatformModules
 {
     /// <summary>
-    /// Base class for platform specific modules (clipboard, input hooks etc)
+    /// Base class for platform specific modules (clipboard, input hooks, simulating user input etc)
     /// </summary>
     public abstract class PlatformModuleBase
     {

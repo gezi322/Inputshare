@@ -1,4 +1,5 @@
 ﻿using InputshareLib;
+using InputshareLib.Client;
 using System;
 
 namespace TestProgram
@@ -7,7 +8,8 @@ namespace TestProgram
     {
         static void Main(string[] args)
         {
-            new TEST();
+            ISClient c = new ISClient();
+            c.StartAsync();
             Console.ReadLine();
         }
     }

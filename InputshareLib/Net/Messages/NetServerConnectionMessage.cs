@@ -7,7 +7,7 @@ namespace InputshareLib.Net.Messages
     [Serializable]
     internal class NetServerConnectionMessage : NetMessageBase
     {
-        public NetServerConnectionMessage(string reply, Guid messageId = default) : base(messageId)
+        public NetServerConnectionMessage(string reply) : base()
         {
             Reply = reply;
         }

@@ -20,10 +20,9 @@ namespace InputshareLib.Net
 
         private Socket _client;
         private NetworkStream _stream;
-        private readonly byte[] _buffer = new byte[8192];
+        private readonly byte[] _buffer = new byte[8192000];
         private CancellationTokenSource _tokenSource;
-        private readonly Dictionary<Guid, Request> _awaitingMessages = new Dictionary<Guid, Request>();
-        private bool _disconnecting = false;
+        private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
 
         internal SocketBase()
         {
@@ -36,7 +35,6 @@ namespace InputshareLib.Net
         /// <param name="client"></param>
         protected void BeginReceiveData(Socket client)
         {
-            _disconnecting = false;
             _client = client;
             _client.NoDelay = true;
             _tokenSource = new CancellationTokenSource();
@@ -79,6 +77,7 @@ namespace InputshareLib.Net
 
                     NetMessageBase message = NetMessageSerializer.Deserialize<NetMessageBase>(_buffer);
 
+                    Logger.Write($"Got message {message.GetType().Name}");
                     //Handle the message appropriately
                     if (message is NetReplyBase replyMessage)
                         HandleReply(replyMessage);
@@ -108,7 +107,7 @@ namespace InputshareLib.Net
         protected async Task<TReply> SendRequestAsync<TReply>(NetRequestBase request) where TReply : NetReplyBase
         {
             //Create a request object 
-            Request req = new Request(request, typeof(TReply));
+            SocketRequest req = new SocketRequest(request);
             //add the request to the awaiting requests dictionary
             _awaitingMessages.Add(request.MessageId, req);
             //Send the request message
@@ -123,7 +122,6 @@ namespace InputshareLib.Net
 
         internal virtual void DisconnectSocket()
         {
-            _disconnecting = true;
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Cancel();
@@ -133,8 +131,11 @@ namespace InputshareLib.Net
         /// Sends input data to the client
         /// </summary>
         /// <param name="input"></param>
-        internal void SendInput(InputData input)
+        internal void SendInput(ref InputData input)
         {
+            if (disposedValue)
+                throw new ObjectDisposedException(this.GetType().Name);
+
             try
             {
                 NetMessageHeader header = new NetMessageHeader(input);
@@ -153,6 +154,9 @@ namespace InputshareLib.Net
         /// <returns></returns>
         protected async Task SendMessageAsync(NetMessageBase message)
         {
+            if (disposedValue)
+                throw new ObjectDisposedException(this.GetType().Name);
+
             try
             {
                 byte[] data = NetMessageSerializer.Serialize(message);
@@ -169,6 +173,9 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         protected void SendMessage(NetMessageBase message)
         {
+            if (disposedValue)
+                throw new ObjectDisposedException(this.GetType().Name);
+
             try
             {
                 byte[] data = NetMessageSerializer.Serialize(message);
@@ -195,8 +202,7 @@ namespace InputshareLib.Net
 
         private void HandleExceptionInternal(Exception ex)
         {
-            if (!_disconnecting)
-                HandleException(ex);
+            HandleException(ex);
         }
 
         /// <summary>
