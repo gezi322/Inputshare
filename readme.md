@@ -25,8 +25,3 @@ Inputshare allows you to:
 
  - Dotnet core 3 runtime (including desktop apps for windows)
  - Windows or linux OS supported by dotnet core.
-
-## Quickstart
-To get started, start Inputshare on the PC that has the keyboard and mouse that you want to share and select start server. Then run Inputshare on the client(s) that you want to share the keyboard and mouse with and select client and connect to the server.
-
-![enter image description here](https://i.imgur.com/gIdqZMz.png)
