@@ -14,7 +14,7 @@ namespace InputshareLib.Net.Client
         internal event EventHandler<Exception> Disconnected;
         internal event EventHandler<bool> InputClientChanged;
         internal event EventHandler<ScreenshotRequestArgs> ScreenshotRequested;
-
+        internal event EventHandler<ClientSidesChangedArgs> SideStateChanged;
         internal Rectangle VirtualBounds { get; private set; }
         internal ClientSocketState State => _state;
         private ClientSocketState _state;
@@ -105,10 +105,13 @@ namespace InputshareLib.Net.Client
             if(message is NetServerConnectionMessage && _state == ClientSocketState.AttemptingConnection)
             {
                 _connectSemaphore.Release();
-                return;
             }else if(message is NetInputClientStateMessage inputMessage)
             {
                 InputClientChanged?.Invoke(this, inputMessage.InputClient);
+            }else if(message is NetClientSideStateMessage sideMsg)
+            {
+                Logger.Write("----");
+                SideStateChanged?.Invoke(this, new ClientSidesChangedArgs(sideMsg.Left, sideMsg.Right, sideMsg.Top, sideMsg.Bottom));
             }
         }
 

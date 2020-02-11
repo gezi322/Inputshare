@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static InputshareLib.PlatformModules.Windows.Native.User32;
 
@@ -47,11 +48,8 @@ namespace InputshareLib.PlatformModules.Input
         /// </summary>
         private void HideMouse()
         {
-            
             _window.InvokeAction(() => {
-                if (!SetWindowPos(_window.Handle, new IntPtr(-1), _oldPos.X-50, _oldPos.Y-50, 100, 100, 0x0040 | 0x0010))
-                    throw new Win32Exception();
-
+                SetWindowPos(_window.Handle, new IntPtr(-1), _oldPos.X - 50, _oldPos.Y - 50, 100, 100, 0x0040 | 0x0010);
                 _hidingMouse = true;
             });
         }
@@ -59,16 +57,17 @@ namespace InputshareLib.PlatformModules.Input
         {
             
             _window.InvokeAction(() => {
-                ShowWindow(_window.Handle, 0);
+                SetWindowPos(_window.Handle, new IntPtr(1), _oldPos.X, _oldPos.Y, 1, 1, 0x0080);
                 _hidingMouse = false;
             });
         }
         protected override async Task OnStart()
         {
-            UpdateVirtualDisplayBounds();
             _window = await WinMessageWindow.CreateWindowAsync("IS_InputWnd");
             _window.MessageRecevied += OnWindowMessageReceived;
-            InstallHooks(_window);
+            SetProcessDpiAwareness(new IntPtr(2));
+            await InstallHooksAsync(_window);
+            UpdateVirtualDisplayBounds();
         }
 
         protected override Task OnStop()
@@ -93,7 +92,6 @@ namespace InputshareLib.PlatformModules.Input
             VirtualDisplayBounds = new Rectangle(GetSystemMetrics(76), GetSystemMetrics(77),
                 GetSystemMetrics(78), GetSystemMetrics(79));
 
-            Logger.Write($"Display bounds:  {VirtualDisplayBounds.Width}:{VirtualDisplayBounds.Height}");
             DisplayBoundsUpdated?.Invoke(this, VirtualDisplayBounds);
         }
 
@@ -101,16 +99,17 @@ namespace InputshareLib.PlatformModules.Input
         /// Installs mouse & keyboard hooks onto the specified window
         /// </summary>
         /// <param name="window"></param>
-        private void InstallHooks(WinMessageWindow window)
+        private async Task InstallHooksAsync(WinMessageWindow window)
         {
+            var waitHandle = new SemaphoreSlim(0, 1);
+
             window.InvokeAction(() => {
                 //To hide the mouse, we move a window under the cursor and call the ShowCursor(false) method.
                 //Here we set the opacity of the window to 1
-                SetWindowLongPtr(_window.Handle, GWL_EXSTYLE, new IntPtr(WS_EX_LAYERED));
+                SetWindowLongPtr(_window.Handle, GWL_EXSTYLE, new IntPtr(WS_EX_LAYERED | 0x00000080));
+                ShowWindow(_window.Handle, 0);
                 SetLayeredWindowAttributes(_window.Handle, 0, 1, LWA_ALPHA);
                 ShowCursor(false);
-                //Set dpi awareness to GetCursorPos() gives cursor position ignoring DPI-scaling
-                SetProcessDpiAwareness(new IntPtr(2));
 
                 _mHook = SetWindowsHookEx(WH_MOUSE_LL, _mCallback, GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName), 0);
                 if (_mHook == default)
@@ -118,7 +117,12 @@ namespace InputshareLib.PlatformModules.Input
                 _kbHook = SetWindowsHookEx(WH_KEYBOARD_LL, _kbCallback, GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName), 0);
                 if (_kbHook == default)
                     throw new Win32Exception();
+
+                waitHandle.Release();
             });
+
+            if (!await waitHandle.WaitAsync(2000))
+                throw new Exception("invoked SetWindowHookEx timed out");
         }
 
         private POINT _oldPos;

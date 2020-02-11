@@ -18,8 +18,6 @@ namespace InputshareLib.Net.Server
         internal event EventHandler<Tuple<Side, int, int>> SideHit;
         internal event EventHandler<Rectangle> DisplayBoundsChanged;
 
-        internal bool Connected { get; private set; } = true;
-
         private readonly Socket _client;
 
         internal ServerSocket(Socket client)
@@ -29,6 +27,7 @@ namespace InputshareLib.Net.Server
             BeginReceiveData(_client);
             //Send confirmation message to client
             SendMessage(new NetServerConnectionMessage("hello"));
+            Connected = true;
         }
 
         internal async Task<byte[]> GetScreenshotAsync()
@@ -42,6 +41,11 @@ namespace InputshareLib.Net.Server
             return reply.Bmp;
         }
 
+        internal async Task SendSideUpdateAsync(bool left, bool right, bool top, bool bottom)
+        {
+            await SendMessageAsync(new NetClientSideStateMessage(left, right, top, bottom));
+        }
+
         internal async Task NotifyInputClientAsync(bool inputClient)
         {
             await SendMessageAsync(new NetInputClientStateMessage(inputClient));
@@ -49,9 +53,13 @@ namespace InputshareLib.Net.Server
 
         protected override void HandleException(Exception ex)
         {
-            Connected = false;
-            base.Dispose();
-            Disconnected?.Invoke(this, this);
+            if (Connected)
+            {
+                Connected = false;
+                base.Dispose();
+                Disconnected?.Invoke(this, this);
+            }
+            
         }
 
         protected override void HandleGenericMessage(NetMessageBase message)

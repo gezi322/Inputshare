@@ -1,141 +1,238 @@
-﻿using InputshareLib.Net.Server;
+﻿using InputshareLib.Input;
+using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
-using InputshareLib.PlatformModules.Windows;
-using InputshareLib.Server.Displays;
+using InputshareLib.Server.Display;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
-using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace InputshareLib.Server
 {
+    /// <summary>
+    /// Inputshare server implementation
+    /// </summary>
     public sealed class ISServer
     {
         public bool Running { get; private set; }
+        public IPEndPoint BoundAddress { get => _listener.BindAddress; }
+        
+        /// <summary>
+        /// Displays that are connected to the server
+        /// </summary>
+        public ObservableCollection<DisplayBase> Displays = new ObservableCollection<DisplayBase>();
+        internal DisplayBase InputDisplay { get; private set; }
+        internal LocalDisplay LocalHostDisplay { get; private set; }
+        internal InputModuleBase InputModule => _dependencies.InputModule;
+        internal OutputModuleBase OutputModule => _dependencies.OutputModule;
 
         private ClientListener _listener;
         private ISServerDependencies _dependencies;
-        private List<ServerSocket> _clients;
 
-        private DisplayBase _inputDisplay;
-
-        private OutputModuleBase _outModule => _dependencies.OutputModule;
-        private InputModuleBase _inputModule => _dependencies.InputModule;
-
-        private readonly List<DisplayBase> _displays = new List<DisplayBase>();
-
-        public async Task StartAsync(ISServerDependencies dependencies, int port)
+        /// <summary>
+        /// Starts the inputshare server
+        /// </summary>
+        /// <param name="dependencies">platform specific dependencies</param>
+        /// <param name="bindAddress">Address to bind network socket</param>
+        /// <returns></returns>
+        public async Task StartAsync(ISServerDependencies dependencies, IPEndPoint bindAddress)
         {
-            _displays.Clear();
+            if (Running)
+                throw new InvalidOperationException("Server already running");
+
             _dependencies = dependencies;
-            _clients = new List<ServerSocket>();
+            await StartModulesAsync();
+
             _listener = new ClientListener();
             _listener.ClientConnected += OnClientConnected;
-            await StartModulesAsync();
-            _inputDisplay = new LocalDisplay(_inputModule, _outModule);
-            _displays.Add(_inputDisplay);
 
-            var listenTask = _listener.ListenAsync(new IPEndPoint(IPAddress.Any, port));
-           
-            _inputModule.InputReceived += InputModule_InputReceived;
-            _inputModule.SideHit += InputModule_SideHit;
+            Task.Run(async () => await _listener.ListenAsync(bindAddress));
+
+            LocalHostDisplay = new LocalDisplay(InputModule, OutputModule);
+            InputDisplay = LocalHostDisplay;
+            OnDisplayAdded(LocalHostDisplay);
+
+            InputModule.InputReceived += OnInputReceived;
+
+            Running = true;
         }
 
-        public void Stop()
+        private void OnInputReceived(object sender, InputData e)
         {
-
+            InputDisplay?.SendInput(ref e);
         }
 
-        private void InputModule_SideHit(object sender, SideHitArgs e)
+        /// <summary>
+        /// Stops the inputshare server
+        /// </summary>
+        public async Task StopAsync()
         {
-            if (_displays.Count > 1 && (_inputDisplay is LocalDisplay) )
-            {
-                SetInputDisplay(_displays[0], e.Side, e.PosX, e.PosY); ;
-            }
-        }
+            if (!Running)
+                throw new InvalidOperationException("Server is not running");
 
-        private void InputModule_InputReceived(object sender, Input.InputData input)
-        {
-            if(_inputDisplay != null)
-                _inputDisplay.SendInput(ref input);
-        }
-
-        private void OnClientConnected(object sender, ClientConnectedArgs args)
-        {
-            _clients.Add(args.Socket);
-            var display = new ClientDisplay(args);
-            display.SideHit += (object o, SideHitArgs args) => Socket_SideHit1(o, new Tuple<Side, int, int>(args.Side, args.PosX, args.PosY));
-            args.Socket.Disconnected += Socket_Disconnected;
-            _displays.Add(display);
-
-            if(display.ClientName == "LINX10")
-            {
-                _displays[0].SetDisplayAtEdge(Side.Bottom, display);
-                display.SetDisplayAtEdge(Side.Top, _displays[0]);
-            }
-            else
-            {
-                _displays[0].SetDisplayAtEdge(Side.Left, display);
-                display.SetDisplayAtEdge(Side.Right, _displays[0]);
-            }
-        }
-
-        private void Socket_SideHit1(object sender, Tuple<Side, int, int> e)
-        {
-            if (!(_inputDisplay is LocalDisplay))
-            {
-                SetInputDisplay(_inputDisplay, e.Item1, e.Item2, e.Item3);
-            }
-        }
-
-
-        private void Socket_Disconnected(object sender, ServerSocket e)
-        {
-            _displays.Remove(_displays[1]);
-            _clients.Remove(e);
+            _listener.Stop();
+            Displays.Clear();
+            await StopModulesAsync();
+            Running = false;
         }
 
         private async Task StartModulesAsync()
         {
-            if(!_dependencies.InputModule.Running)
-                await _dependencies.InputModule.StartAsync();
-            if(!_dependencies.OutputModule.Running)
-                await _outModule.StartAsync();
+            if (!InputModule.Running)
+                await InputModule.StartAsync();
+            if (!OutputModule.Running)
+                await OutputModule.StartAsync();
+        }
+
+        private async Task StopModulesAsync()
+        {
+            if (InputModule.Running)
+                await InputModule.StopAsync();
+            if (OutputModule.Running)
+                await OutputModule.StopAsync();
         }
 
         /// <summary>
-        /// Changes the input display and moves the mouse to the closest possible position
+        /// Runs then a client connects.
+        /// Creates a display object to represent the client
         /// </summary>
-        /// <param name="oldDisplay"></param>
-        /// <param name="side"></param>
-        /// <param name="mX"></param>
-        /// <param name="mY"></param>
-        private void SetInputDisplay(DisplayBase oldDisplay, Side side, int mX, int mY)
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void OnClientConnected(object sender, ClientConnectedArgs args)
         {
-            if (!oldDisplay.TryGetDisplayAtSide(side, mX, mY, out DisplayBase newDisplay, out int npX, out int npY))
+            //Create a display object and set it up
+            var display = new ClientDisplay(args);
+            OnDisplayAdded(display);
+
+            if(display.DisplayName == "\aa")
             {
+                display.SetDisplayAtSide(Side.Top, Displays[1]);
+                Displays[1].SetDisplayAtSide(Side.Bottom, display);
+            }else if(display.DisplayName == "ENVY15")
+            {
+                display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
+                LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
+            }
+        }
+
+        /// <summary>
+        /// Runs when a the cursor hits the side of a display
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void OnDisplaySideHit(object sender, SideHitArgs args)
+        {
+            var display = sender as DisplayBase;
+            if(InputDisplay == display)
+            {
+                var target = display.GetDisplayAtSide(args.Side);
+
+                if(target != null)
+                {
+                    SetInputDisplay(target, args.Side, args.PosX, args.PosY);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Runs whenever a display is disconnected
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="display"></param>
+        private void OnDisplayRemoved(object sender, DisplayBase display)
+        {
+            Displays.Remove(display);
+            RemoveReferences(display);
+
+            //If the display that was removed was the input display, switch back to local input
+            if (display == InputDisplay)
+                SetInputDisplay(LocalHostDisplay);
+        }
+
+        private void OnDisplayAdded(DisplayBase display)
+        {
+            display.DisplayRemoved += OnDisplayRemoved;
+            display.SideHit += OnDisplaySideHit;
+            Displays.Add(display);
+        }
+
+        private void RemoveReferences(DisplayBase display)
+        {
+            //Remove any reference to the display
+            foreach (var dis in Displays)
+            {
+                foreach (Side side in (Side[])Enum.GetValues(typeof(Side)))
+                {
+                    if (dis.GetDisplayAtSide(side) == display)
+                    {
+                        dis.RemoveDisplayAtSide(side);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Switches input to the specified display
+        /// </summary>
+        /// <param name="display"></param>
+        internal void SetInputDisplay(DisplayBase display)
+        {
+            if (!Displays.Contains(display))
+            {
+                Logger.Write($"Can't switch to {display.DisplayName}: Not in display list");
+                RemoveReferences(display);
                 return;
             }
 
-            oldDisplay.SetNotInputDisplay();
-            newDisplay.SetInputDisplay(npX, npY);
-            _inputDisplay = newDisplay;
+
+            InputDisplay.SetInputInactive();
+            display.SetInputActive();
+            InputDisplay = display;
+            Logger.Write($"Input display: {display.DisplayName}");
         }
 
         /// <summary>
-        /// Changes the input display
+        /// Switches input to the specified display and moves the cursor to the correct position
+        /// on the target display
         /// </summary>
         /// <param name="display"></param>
-        private void SetInputDisplay(DisplayBase display)
+        /// <param name="side"></param>
+        /// <param name="hitX"></param>
+        /// <param name="hitY"></param>
+        internal void SetInputDisplay(DisplayBase display, Side side, int hitX, int hitY) 
         {
-            _inputModule.SetInputRedirected(display is LocalDisplay ? false : true);
+            SetInputDisplay(display);
+            var newPos = CalculateCursorPosition(display, side, hitX, hitY);
+            var input = new InputData(InputCode.MouseMoveAbsolute, (short)newPos.X, (short)newPos.Y);
+            display.SendInput(ref input);
+        }
 
-            _inputDisplay = display;
+        /// <summary>
+        /// Calculates where the cursor should be when switching input displays
+        /// </summary>
+        /// <param name="side"></param>
+        /// <param name="hitX"></param>
+        /// <param name="hitY"></param>
+        /// <returns></returns>
+        private Point CalculateCursorPosition(DisplayBase newDisplay, Side side, int hitX, int hitY)
+        {
+            switch (side) {
+                case Side.Top:
+                    return new Point(hitX, newDisplay.DisplayBounds.Bottom - 2);
+                case Side.Right:
+                    return new Point(newDisplay.DisplayBounds.Left + 2, hitY);
+                case Side.Left:
+                    return new Point(newDisplay.DisplayBounds.Right - 2, hitY);
+                case Side.Bottom:
+                    return new Point(hitX, newDisplay.DisplayBounds.Top + 2);
+                default:
+                    return new Point(0, 0);
+            }
         }
     }
 }

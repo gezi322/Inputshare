@@ -20,6 +20,11 @@ namespace InputshareLib.Client
         private bool _input;
         private bool _f = true;
 
+        private bool cLeft;
+        private bool cRight;
+        private bool cTop;
+        private bool cBottom;
+
         public ISClient()
         {
 
@@ -37,8 +42,20 @@ namespace InputshareLib.Client
             soc.Disconnected += Soc_Disconnected;
             soc.ScreenshotRequested += Soc_ScreenshotRequested;
             soc.InputClientChanged += Soc_InputClientChanged;
-            await soc.ConnectAsync(new ClientConnectArgs( new IPEndPoint(IPAddress.Parse("192.168.0.17"), 1234), Environment.MachineName, Guid.NewGuid(), inputMod.VirtualDisplayBounds));
             soc.InputReceived += Soc_InputReceived;
+            soc.SideStateChanged += Soc_SideStateChanged1;
+            await soc.ConnectAsync(new ClientConnectArgs(new IPEndPoint(IPAddress.Parse("192.168.0.17"), 1234), Environment.MachineName, Guid.NewGuid(), inputMod.VirtualDisplayBounds));
+
+        }
+
+        private void Soc_SideStateChanged1(object sender, ClientSidesChangedArgs e)
+        {
+            Logger.Write("???");
+            cLeft = e.Left;
+            cRight = e.Right;
+            cTop = e.Top;
+            cBottom = e.Bottom;
+            Logger.Write($"Active sides: {cLeft}, {cRight}, {cTop}, {cBottom}");
         }
 
         private void Soc_ScreenshotRequested(object sender, ScreenshotRequestArgs e)
@@ -100,11 +117,28 @@ namespace InputshareLib.Client
 
         private async void InputMod_SideHit(object sender, SideHitArgs e)
         {
-            if(soc.State == ClientSocketState.Connected && _input)
-            {
+            if(soc.State == ClientSocketState.Connected && IsDisplayAtSide(e.Side) &&_input)
+             {
+                _input = false;
                 await soc.SendSideHitAsync(e.Side, e.PosX, e.PosY);
             }
-            
+        }
+
+        bool IsDisplayAtSide(Side side)
+        {
+            switch (side)
+            {
+                case Side.Top:
+                    return cTop;
+                case Side.Bottom:
+                    return cBottom;
+                case Side.Left:
+                    return cLeft;
+                case Side.Right:
+                    return cRight;
+                default:
+                    return false;
+            }
         }
     }
 }

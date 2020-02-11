@@ -1,51 +1,56 @@
-﻿using InputshareLib.Input;
-using InputshareLib.Net.Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Text;
+using InputshareLib.Input;
+using InputshareLib.Net.Server;
 
-namespace InputshareLib.Server.Displays
+namespace InputshareLib.Server.Display
 {
-    internal class ClientDisplay : DisplayBase
+    public class ClientDisplay : DisplayBase
     {
         private ServerSocket _socket;
 
-        internal ClientDisplay(ClientConnectedArgs args) : base(args.DisplayBounds, args.Name)
+        internal ClientDisplay(ClientConnectedArgs connectedArgs) : base(connectedArgs.DisplayBounds, connectedArgs.Name)
         {
-            _socket = args.Socket;
-            _socket.DisplayBoundsChanged += Socket_DisplayBoundsChanged;
-            _socket.SideHit += (object o, Tuple<Side, int, int> args) => OnSideHit(args.Item1, args.Item2, args.Item3);
-            _socket.Disconnected += _socket_Disconnected;
+            _socket = connectedArgs.Socket;
+            _socket.SideHit += (object o, Tuple<Side, int, int> data) => OnSideHit(data.Item1, data.Item2, data.Item3);
+            _socket.Disconnected += (object o, ServerSocket s) => RemoveDisplay();
         }
 
-        private void _socket_Disconnected(object sender, ServerSocket e)
+        protected override void SendSideChanged()
         {
-            RemoveDisplay();
+            if (!_socket.Connected)
+                return;
+
+           _socket.SendSideUpdateAsync(GetDisplayAtSide(Side.Left) != null,
+                GetDisplayAtSide(Side.Right) != null,
+                GetDisplayAtSide(Side.Top) != null,
+                GetDisplayAtSide(Side.Bottom) != null
+                );
         }
 
-        private void Socket_DisplayBoundsChanged(object sender, Rectangle bounds)
+        internal override void SendInput(ref InputData input)
         {
-            OnDisplayBoundsChanged(bounds);
+            if(_socket.Connected)
+                _socket.SendInput(ref input);
         }
 
-        public override void SendInput(ref InputData input)
+        internal override void SetInputActive()
         {
-            _socket.SendInput(ref input);
+            _socket.NotifyInputClientAsync(true);
         }
 
-        public override async void SetInputDisplay(int newX, int newY)
+        internal override void SetInputInactive()
         {
-            var input = new InputData(InputCode.MouseMoveAbsolute, (short)newX, (short)newY);
-            _socket.SendInput(ref input);
-            InputActive = true;
-            await _socket.NotifyInputClientAsync(true);
+            _socket.NotifyInputClientAsync(false);
         }
 
-        public override async void SetNotInputDisplay()
+        internal override void RemoveDisplay()
         {
-            if (_socket.Connected)
-                await _socket.NotifyInputClientAsync(false);
+            base.RemoveDisplay();
+
+            if(_socket.Connected)
+                _socket.DisconnectSocket();
         }
     }
 }

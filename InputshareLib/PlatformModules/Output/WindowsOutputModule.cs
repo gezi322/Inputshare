@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,8 @@ namespace InputshareLib.PlatformModules.Output
     /// </summary>
     public class WindowsOutputModule : OutputModuleBase
     {
+        private CancellationTokenSource _tokenSource;
+
         public override void SimulateInput(ref InputData input)
         {
             _queue.Add(input);
@@ -23,9 +26,9 @@ namespace InputshareLib.PlatformModules.Output
         private BlockingCollection<InputData> _queue = new BlockingCollection<InputData>();
         private void Loop()
         {
-            while (true)
+            while (!_tokenSource.IsCancellationRequested)
             {
-                var input = _queue.Take();
+                var input = _queue.Take(_tokenSource.Token);
 
                 if (input.Code == InputCode.MouseMoveRelative)
                     MoveMouseRelative(input.ParamA, input.ParamB);
@@ -56,12 +59,14 @@ namespace InputshareLib.PlatformModules.Output
                 else if (input.Code == InputCode.MouseXUp)
                     MouseXDown(input.ParamA, false);
                 else if (input.Code == InputCode.MouseMoveAbsolute)
-                    MoveMouseAbsolute(input.ParamA, input.ParamB);
+                    SetCursorPos(input.ParamA, input.ParamB);
+                    
             }
         }
 
         protected override Task OnStart()
         {
+            _tokenSource = new CancellationTokenSource();
             Thread t = new Thread(Loop);
             t.Priority = ThreadPriority.Highest;
             t.Start();
@@ -70,6 +75,7 @@ namespace InputshareLib.PlatformModules.Output
 
         protected override Task OnStop()
         {
+            _tokenSource.Cancel();
             return Task.CompletedTask;
         }
 

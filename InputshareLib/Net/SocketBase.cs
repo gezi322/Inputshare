@@ -17,6 +17,7 @@ namespace InputshareLib.Net
     {
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
+        internal bool Connected { get; set; }
 
         private Socket _client;
         private NetworkStream _stream;
@@ -124,7 +125,7 @@ namespace InputshareLib.Net
         {
             _client?.Dispose();
             _stream?.Dispose();
-            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
         }
 
         /// <summary>
@@ -133,9 +134,6 @@ namespace InputshareLib.Net
         /// <param name="input"></param>
         internal void SendInput(ref InputData input)
         {
-            if (disposedValue)
-                throw new ObjectDisposedException(this.GetType().Name);
-
             try
             {
                 NetMessageHeader header = new NetMessageHeader(input);
@@ -154,13 +152,11 @@ namespace InputshareLib.Net
         /// <returns></returns>
         protected async Task SendMessageAsync(NetMessageBase message)
         {
-            if (disposedValue)
-                throw new ObjectDisposedException(this.GetType().Name);
-
             try
             {
                 byte[] data = NetMessageSerializer.Serialize(message);
                 await _stream.WriteAsync(data, 0, data.Length);
+                Logger.Write("Sent " + message.GetType().Name);
             }catch(Exception ex)
             {
                 HandleExceptionInternal(ex);
@@ -173,9 +169,6 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         protected void SendMessage(NetMessageBase message)
         {
-            if (disposedValue)
-                throw new ObjectDisposedException(this.GetType().Name);
-
             try
             {
                 byte[] data = NetMessageSerializer.Serialize(message);

@@ -24,7 +24,7 @@ namespace InputshareLib.PlatformModules
             Logger.Write($"Module {ModuleName} started");
         }
 
-        internal async Task Stop()
+        internal async Task StopAsync()
         {
             if (!Running)
                 throw new InvalidOperationException("Module " + ModuleName + " is not running");

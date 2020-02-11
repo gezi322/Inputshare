@@ -14,6 +14,7 @@ namespace InputshareLib.Net.Server
         internal event EventHandler<ClientConnectedArgs> ClientConnected;
 
         internal bool Listening { get; private set; }
+        internal IPEndPoint BindAddress { get; private set; }
 
         private TcpListener _listener;
         private CancellationTokenSource _tokenSource;
@@ -29,6 +30,7 @@ namespace InputshareLib.Net.Server
             _listener = new TcpListener(bindAddress);
             _listener.Start();
             _tokenSource = new CancellationTokenSource();
+            BindAddress = bindAddress;
             _tokenSource.Token.Register(() => _listener.Stop());
             Listening = true;
 
@@ -101,9 +103,11 @@ namespace InputshareLib.Net.Server
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)
             {
                 Logger.Write($"{clientAddr} timed out");
+                client?.Dispose();
             }catch(Exception ex)
             {
                 Logger.Write($"Failed to accept connection from {client.RemoteEndPoint}: {ex.Message}");
+                client?.Dispose();
             }
             finally
             {

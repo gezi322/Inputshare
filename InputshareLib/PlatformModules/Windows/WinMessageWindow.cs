@@ -1,5 +1,6 @@
 ﻿using InputshareLib.PlatformModules.Windows.Native;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -25,12 +26,12 @@ namespace InputshareLib.PlatformModules.Windows
         private SemaphoreSlim _creationWaitHandle;
         private Thread _wndThread;
         private wndProcDelegate _wndProc;
-        private Queue<Action> _invokeQueue;
+        private BlockingCollection<Action> _invokeQueue;
 
         private WinMessageWindow(string windowName)
         {
             WindowName = windowName;
-            _invokeQueue = new Queue<Action>();
+            _invokeQueue = new BlockingCollection<Action>();
             _wndProc = new wndProcDelegate(InternalWndProc);
         }
 
@@ -60,7 +61,11 @@ namespace InputshareLib.PlatformModules.Windows
         /// </summary>
         private void InitWindow()
         {
+            Ole32.OleInitialize(IntPtr.Zero);
             Handle = CreateWindow();
+
+            _creationWaitHandle.Release();
+            Logger.Write($"Window {WindowName} created");
 
             Win32Message msg;
             int ret;
@@ -69,10 +74,7 @@ namespace InputshareLib.PlatformModules.Windows
                 if (ret == -1)
                     break;
 
-                //Check for invoked action
-                if ((Win32MessageCode)msg.message == Win32MessageCode.ISMSG_EXECACTION)
-                    if (_invokeQueue.Count > 0)
-                        _invokeQueue.Dequeue().Invoke();
+                
 
                 DispatchMessage(ref msg);
             }
@@ -80,8 +82,8 @@ namespace InputshareLib.PlatformModules.Windows
 
         private IntPtr CreateWindow()
         {
-            ushort cls = RegisterWindowClass();
-            IntPtr wnd = CreateWindowEx(0, cls, WindowName, 0x00080000, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero,
+            WNDCLASSEX cls = RegisterWindowClass();
+            IntPtr wnd = CreateWindowEx(0, cls.lpszClassName, WindowName, 0x00080000, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero,
                 Process.GetCurrentProcess().Handle, IntPtr.Zero);
 
             if (wnd == IntPtr.Zero)
@@ -90,14 +92,14 @@ namespace InputshareLib.PlatformModules.Windows
             return wnd;
         }
 
-        private ushort RegisterWindowClass()
+        private WNDCLASSEX RegisterWindowClass()
         {
             WNDCLASSEX cls = new WNDCLASSEX
             {
                 cbClsExtra = 0,
                 cbSize = Marshal.SizeOf(typeof(WNDCLASSEX)),
                 lpfnWndProc = Marshal.GetFunctionPointerForDelegate(_wndProc),
-                lpszClassName = "InputshareMsga",
+                lpszClassName = WindowName + "_cls",
                 cbWndExtra = 0,
                 hbrBackground = IntPtr.Zero,
                 hCursor = IntPtr.Zero,
@@ -105,23 +107,25 @@ namespace InputshareLib.PlatformModules.Windows
                 hIconSm = IntPtr.Zero,
                 hInstance = Process.GetCurrentProcess().Handle,
                 lpszMenuName = "",
-                style = 0
+                style = 0,
             };
 
-            ushort ret = RegisterClassEx(ref cls);
-            if (ret == 0)
-                throw new Win32Exception();
+           ushort ret = RegisterClassEx(ref cls);
+           if (ret == 0)
+              throw new Win32Exception();
 
-            return ret;
+            return cls;
         }
 
         protected IntPtr InternalWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
-            if ((Win32MessageCode)msg == Win32MessageCode.WM_CREATE)
+            if ((Win32MessageCode)msg == Win32MessageCode.ISMSG_EXECACTION)
             {
-                _creationWaitHandle.Release();
-                Logger.Write($"Window {WindowName} created");
+                if (_invokeQueue.TryTake(out var invoke, 1000))
+                    invoke();
             }
+                    
+
 
             MessageRecevied?.Invoke(this, new Win32Message { hwnd = hWnd, message = msg, wParam = wParam, lParam = lParam });
             return WndProc(hWnd, msg, wParam, lParam);
@@ -146,7 +150,7 @@ namespace InputshareLib.PlatformModules.Windows
         /// <param name="invoke"></param>
         internal void InvokeAction(Action invoke)
         {
-            _invokeQueue.Enqueue(invoke);
+            _invokeQueue.Add(invoke);
             PostMessage(Handle, Win32MessageCode.ISMSG_EXECACTION, IntPtr.Zero, IntPtr.Zero);
         }
 
@@ -164,6 +168,9 @@ namespace InputshareLib.PlatformModules.Windows
             }
         }
 
+        /// <summary>
+        /// Closes the window and cleans up
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

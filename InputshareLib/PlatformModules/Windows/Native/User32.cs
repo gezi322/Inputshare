@@ -14,6 +14,22 @@ namespace InputshareLib.PlatformModules.Windows.Native
         public const int WS_EX_LAYERED = 0x80000;
         public const int LWA_ALPHA = 0x2;
         public const int LWA_COLORKEY = 0x1;
+        
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetCursorPos(int x, int y);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool UnregisterClassW(string className, IntPtr hInstance);
+
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetClassInfoEx(IntPtr hInstance, string lpClassName, ref WNDCLASSEX lpWndClass);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AddClipboardFormatListener(IntPtr hwnd);
 
         [DllImport("shcore.dll")]
         public static extern int SetProcessDpiAwareness(IntPtr context);
@@ -182,7 +198,7 @@ namespace InputshareLib.PlatformModules.Windows.Native
 
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        internal static extern IntPtr PostMessage(IntPtr hwnd, Win32MessageCode msg, IntPtr wParam, IntPtr lParam);
+        internal static extern bool PostMessage(IntPtr hwnd, Win32MessageCode msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         internal static extern int GetMessage(out Win32Message message, IntPtr hwnd, uint min, uint max);
@@ -233,8 +249,9 @@ namespace InputshareLib.PlatformModules.Windows.Native
         [DllImport("user32.dll", SetLastError = true, EntryPoint = "CreateWindowEx")]
         public static extern IntPtr CreateWindowEx(
            int dwExStyle,
-           UInt16 regResult,
-           //string lpClassName,
+           //UInt16 regResult,
+           [MarshalAs(UnmanagedType.LPStr)]
+           string lpClassName,
            string lpWindowName,
            UInt32 dwStyle,
            int x,
