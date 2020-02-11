@@ -22,11 +22,6 @@ namespace InputshareLib.Server.Display
             _inputModule.SideHit += (object o, SideHitArgs args) => base.OnSideHit(args.Side, args.PosX, args.PosY);
         }
 
-        protected override Task SendSideChangedAsync()
-        {
-            return Task.CompletedTask;
-        }
-
         internal override void SendInput(ref InputData input)
         {
            _outputModule.SimulateInput(ref input);

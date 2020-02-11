@@ -48,6 +48,7 @@ namespace InputshareLib.PlatformModules.Windows
             wnd._creationWaitHandle = waitHandle;
             wnd._wndThread = new Thread(() => wnd.InitWindow());
             wnd._wndThread.SetApartmentState(ApartmentState.STA);
+            wnd._wndThread.IsBackground = false;
             wnd._wndThread.Start();
 
             if (!await waitHandle.WaitAsync(timeout))
@@ -74,10 +75,10 @@ namespace InputshareLib.PlatformModules.Windows
                 if (ret == -1)
                     break;
 
-                
-
                 DispatchMessage(ref msg);
             }
+
+            Logger.Write($"Window {WindowName} exited");
         }
 
         private IntPtr CreateWindow()

@@ -3,11 +3,13 @@ using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
+using InputshareLib.Server.Config;
 using InputshareLib.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,21 +47,35 @@ namespace InputshareLib.Server
             if (Running)
                 throw new InvalidOperationException("Server already running");
 
-            _dependencies = dependencies;
-            await StartModulesAsync();
+            try
+            {
+                _dependencies = dependencies;
+                await StartModulesAsync();
+                LocalHostDisplay = new LocalDisplay(InputModule, OutputModule);
+                InputDisplay = LocalHostDisplay;
+                OnDisplayAdded(LocalHostDisplay);
+                InputModule.InputReceived += OnInputReceived;
 
-            _listener = new ClientListener();
-            _listener.ClientConnected += OnClientConnected;
+                _listener = new ClientListener();
+                _listener.ClientConnected += OnClientConnected;
+                var listenTask = _listener.ListenAsync(bindAddress);
+                Running = true;
 
-            Task.Run(async () => await _listener.ListenAsync(bindAddress));
+                await listenTask;
+            }catch(Exception ex)
+            {
+                Logger.Write("Failed to start server: " + ex.Message);
+                Logger.Write(ex.StackTrace);
+            }
+            finally
+            {
+                if (_listener != null && _listener.Listening)
+                    _listener.Stop();
 
-            LocalHostDisplay = new LocalDisplay(InputModule, OutputModule);
-            InputDisplay = LocalHostDisplay;
-            OnDisplayAdded(LocalHostDisplay);
-
-            InputModule.InputReceived += OnInputReceived;
-
-            Running = true;
+                await StopModulesAsync();
+                Running = false;
+            }
+            
         }
 
         private void OnInputReceived(object sender, InputData e)
@@ -111,16 +127,20 @@ namespace InputshareLib.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
+
             
-            if(display.DisplayName == "IPC")
+            if (display.DisplayName == "IPC")
             {
                 display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
-            }else if(display.DisplayName == "ENVY15")
+            }
+            else if (display.DisplayName == "ENVY15")
             {
                 display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
             }
+
+            
         }
 
         /// <summary>
@@ -158,11 +178,16 @@ namespace InputshareLib.Server
                 await SetInputDisplayAsync(LocalHostDisplay);
         }
 
+        /// <summary>
+        /// Runs each time a new display is connected
+        /// </summary>
+        /// <param name="display"></param>
         private void OnDisplayAdded(DisplayBase display)
         {
             display.DisplayRemoved += OnDisplayRemoved;
             display.SideHit += OnDisplaySideHit;
             Displays.Add(display);
+            ReloadConfiguration();
         }
 
         /// <summary>
@@ -174,7 +199,7 @@ namespace InputshareLib.Server
             //Remove any reference to the display
             foreach (var dis in Displays)
             {
-                foreach (Side side in (Side[])Enum.GetValues(typeof(Side)))
+                foreach (Side side in Extensions.AllSides)
                 {
                     if (dis.GetDisplayAtSide(side) == display)
                     {
@@ -240,6 +265,32 @@ namespace InputshareLib.Server
                 default:
                     return new Point(0, 0);
             }
+        }
+
+        /// <summary>
+        /// Reloads configurations for all displays
+        /// </summary>
+        private void ReloadConfiguration()
+        {
+            foreach(var display in Displays)
+            {
+                foreach (Side side in Extensions.AllSides)
+                {
+                    if(DisplayConfig.TryReadProperty(display, side.ToString(), out var dis)){
+                        var target = GetDisplay(dis);
+
+                        if(target != null)
+                        {
+                            display.SetDisplayAtSide(side, target);
+                        }
+                    }
+                }
+            }
+        }
+
+        private DisplayBase GetDisplay(string name)
+        {
+            return Displays.Where(i => i.DisplayName == name).FirstOrDefault();
         }
     }
 }

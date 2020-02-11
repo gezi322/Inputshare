@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
@@ -22,5 +23,13 @@ namespace InputshareLib
 
             return 0;
         }
+
+        public static IEnumerable<Side> AllSides { get
+            {
+                yield return Side.Bottom;
+                yield return Side.Top;
+                yield return Side.Left;
+                yield return Side.Right;
+            } }
     }
 }

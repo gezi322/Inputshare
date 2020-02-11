@@ -28,6 +28,8 @@ namespace InputshareLib.Server.Display
                 GetDisplayAtSide(Side.Top) != null,
                 GetDisplayAtSide(Side.Bottom) != null
                 );
+
+            await base.SendSideChangedAsync();
         }
 
         internal override void SendInput(ref InputData input)

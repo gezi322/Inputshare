@@ -18,7 +18,6 @@ namespace InputshareLib.Client
         private OutputModuleBase outMod;
         private ClientSocket soc;
         private bool _input;
-        private bool _f = true;
 
         private bool cLeft;
         private bool cRight;

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace InputshareLib.PlatformModules.Input
 {
+#pragma warning disable CS0067
     public class NullInputModule : InputModuleBase
     {
         public override bool InputRedirected { get; protected set; }
@@ -36,4 +37,5 @@ namespace InputshareLib.PlatformModules.Input
             return Task.CompletedTask;
         }
     }
+#pragma warning restore CS0067
 }

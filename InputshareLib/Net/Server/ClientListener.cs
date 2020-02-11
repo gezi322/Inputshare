@@ -29,6 +29,7 @@ namespace InputshareLib.Net.Server
         {
             _listener = new TcpListener(bindAddress);
             _listener.Start();
+            
             _tokenSource = new CancellationTokenSource();
             BindAddress = bindAddress;
             _tokenSource.Token.Register(() => _listener.Stop());
@@ -45,10 +46,12 @@ namespace InputshareLib.Net.Server
                 }
             }catch(ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
             {
+                
                 //If Stop() is called
             }
             finally
             {
+                Logger.Write("??");
                 foreach (var client in _processingClients)
                     client.Dispose();
 

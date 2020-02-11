@@ -1,5 +1,6 @@
 ﻿using InputshareLib.Input;
 using InputshareLib.PlatformModules.Input;
+using InputshareLib.Server.Config;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -93,6 +94,17 @@ namespace InputshareLib.Server.Display
         /// <summary>
         /// Notifies the client that a display has been added to or removed from a side
         /// </summary>
-        protected abstract Task SendSideChangedAsync();
+        protected virtual Task SendSideChangedAsync()
+        {
+            foreach (Side side in (Side[])Enum.GetValues(typeof(Side)))
+            {
+                if(GetDisplayAtSide(side) != null)
+                {
+                    DisplayConfig.TryWrite(this, side.ToString(), GetDisplayAtSide(side).DisplayName);
+                }
+            }
+            
+            return Task.CompletedTask;
+        }
     }
 }
