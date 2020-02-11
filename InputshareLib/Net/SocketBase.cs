@@ -208,7 +208,6 @@ namespace InputshareLib.Net
             {
                 if (disposing)
                 {
-                    _tokenSource?.Cancel();
                     _stream?.Dispose();
                     _tokenSource?.Dispose();
                 }

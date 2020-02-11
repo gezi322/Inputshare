@@ -87,7 +87,6 @@ namespace InputshareLib.PlatformModules.Input
 
         private void UpdateVirtualDisplayBounds()
         {
-            //TODO
             VirtualDisplayBounds = new Rectangle(GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
                 GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN));
 

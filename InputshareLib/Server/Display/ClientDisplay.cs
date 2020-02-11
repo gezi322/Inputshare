@@ -50,8 +50,9 @@ namespace InputshareLib.Server.Display
         {
             base.RemoveDisplay();
 
-            if(_socket.Connected)
+            if (_socket.Connected)
                 _socket.DisconnectSocket();
+
         }
     }
 }

@@ -75,8 +75,11 @@ namespace InputshareLib.Server
             if (!Running)
                 throw new InvalidOperationException("Server is not running");
 
+            foreach (var display in Displays)
+                if(display != LocalHostDisplay)
+                    display.RemoveDisplay();
+
             _listener.Stop();
-            Displays.Clear();
             await StopModulesAsync();
             Running = false;
         }
