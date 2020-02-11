@@ -17,17 +17,15 @@ namespace InputshareLib.Net.Server
         internal event EventHandler<ServerSocket> Disconnected;
         internal event EventHandler<Tuple<Side, int, int>> SideHit;
         internal event EventHandler<Rectangle> DisplayBoundsChanged;
-
-        private readonly Socket _client;
+        internal bool Connected { get; private set; }
 
         internal ServerSocket(Socket client)
         {
-            _client = client;
+            Connected = true;
             //Begin receiving data as another task
-            BeginReceiveData(_client);
+            BeginReceiveData(client);
             //Send confirmation message to client
             SendMessage(new NetServerConnectionMessage("hello"));
-            Connected = true;
         }
 
         internal async Task<byte[]> GetScreenshotAsync()

@@ -17,11 +17,10 @@ namespace InputshareLib.Net
     {
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
-        internal bool Connected { get; set; }
 
         private Socket _client;
         private NetworkStream _stream;
-        private readonly byte[] _buffer = new byte[8192000];
+        private readonly byte[] _buffer = new byte[8192];
         private CancellationTokenSource _tokenSource;
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
 
@@ -78,7 +77,6 @@ namespace InputshareLib.Net
 
                     NetMessageBase message = NetMessageSerializer.Deserialize<NetMessageBase>(_buffer);
 
-                    Logger.Write($"Got message {message.GetType().Name}");
                     //Handle the message appropriately
                     if (message is NetReplyBase replyMessage)
                         HandleReply(replyMessage);
@@ -156,7 +154,6 @@ namespace InputshareLib.Net
             {
                 byte[] data = NetMessageSerializer.Serialize(message);
                 await _stream.WriteAsync(data, 0, data.Length);
-                Logger.Write("Sent " + message.GetType().Name);
             }catch(Exception ex)
             {
                 HandleExceptionInternal(ex);

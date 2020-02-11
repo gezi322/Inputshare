@@ -108,15 +108,15 @@ namespace InputshareLib.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
-
-            if(display.DisplayName == "\aa")
-            {
-                display.SetDisplayAtSide(Side.Top, Displays[1]);
-                Displays[1].SetDisplayAtSide(Side.Bottom, display);
-            }else if(display.DisplayName == "ENVY15")
+            
+            if(display.DisplayName == "IPC")
             {
                 display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
+            }else if(display.DisplayName == "ENVY15")
+            {
+                display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
+                LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
             }
         }
 
@@ -125,7 +125,7 @@ namespace InputshareLib.Server
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void OnDisplaySideHit(object sender, SideHitArgs args)
+        private async void OnDisplaySideHit(object sender, SideHitArgs args)
         {
             var display = sender as DisplayBase;
             if(InputDisplay == display)
@@ -134,7 +134,7 @@ namespace InputshareLib.Server
 
                 if(target != null)
                 {
-                    SetInputDisplay(target, args.Side, args.PosX, args.PosY);
+                    await SetInputDisplayAsync(target, args.Side, args.PosX, args.PosY);
                 }
             }
         }
@@ -144,14 +144,15 @@ namespace InputshareLib.Server
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="display"></param>
-        private void OnDisplayRemoved(object sender, DisplayBase display)
+        private async void OnDisplayRemoved(object sender, DisplayBase display)
         {
+            Logger.Write($"Removed display {display.DisplayName}");
             Displays.Remove(display);
             RemoveReferences(display);
 
             //If the display that was removed was the input display, switch back to local input
             if (display == InputDisplay)
-                SetInputDisplay(LocalHostDisplay);
+                await SetInputDisplayAsync(LocalHostDisplay);
         }
 
         private void OnDisplayAdded(DisplayBase display)
@@ -161,6 +162,10 @@ namespace InputshareLib.Server
             Displays.Add(display);
         }
 
+        /// <summary>
+        /// Removes the specified display from all other displays
+        /// </summary>
+        /// <param name="display"></param>
         private void RemoveReferences(DisplayBase display)
         {
             //Remove any reference to the display
@@ -180,7 +185,7 @@ namespace InputshareLib.Server
         /// Switches input to the specified display
         /// </summary>
         /// <param name="display"></param>
-        internal void SetInputDisplay(DisplayBase display)
+        internal async Task SetInputDisplayAsync(DisplayBase display)
         {
             if (!Displays.Contains(display))
             {
@@ -189,9 +194,8 @@ namespace InputshareLib.Server
                 return;
             }
 
-
-            InputDisplay.SetInputInactive();
-            display.SetInputActive();
+            await display.NotfyInputActiveAsync();
+            await InputDisplay.NotifyClientInvactiveAsync();
             InputDisplay = display;
             Logger.Write($"Input display: {display.DisplayName}");
         }
@@ -204,12 +208,12 @@ namespace InputshareLib.Server
         /// <param name="side"></param>
         /// <param name="hitX"></param>
         /// <param name="hitY"></param>
-        internal void SetInputDisplay(DisplayBase display, Side side, int hitX, int hitY) 
+        internal async Task SetInputDisplayAsync(DisplayBase display, Side side, int hitX, int hitY)
         {
-            SetInputDisplay(display);
             var newPos = CalculateCursorPosition(display, side, hitX, hitY);
             var input = new InputData(InputCode.MouseMoveAbsolute, (short)newPos.X, (short)newPos.Y);
             display.SendInput(ref input);
+            await SetInputDisplayAsync(display);
         }
 
         /// <summary>

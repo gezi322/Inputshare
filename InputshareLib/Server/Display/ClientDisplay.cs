@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using InputshareLib.Input;
 using InputshareLib.Net.Server;
 
@@ -8,7 +9,7 @@ namespace InputshareLib.Server.Display
 {
     public class ClientDisplay : DisplayBase
     {
-        private ServerSocket _socket;
+        private readonly ServerSocket _socket;
 
         internal ClientDisplay(ClientConnectedArgs connectedArgs) : base(connectedArgs.DisplayBounds, connectedArgs.Name)
         {
@@ -17,12 +18,12 @@ namespace InputshareLib.Server.Display
             _socket.Disconnected += (object o, ServerSocket s) => RemoveDisplay();
         }
 
-        protected override void SendSideChanged()
+        protected override async Task SendSideChangedAsync()
         {
             if (!_socket.Connected)
                 return;
 
-           _socket.SendSideUpdateAsync(GetDisplayAtSide(Side.Left) != null,
+           await _socket.SendSideUpdateAsync(GetDisplayAtSide(Side.Left) != null,
                 GetDisplayAtSide(Side.Right) != null,
                 GetDisplayAtSide(Side.Top) != null,
                 GetDisplayAtSide(Side.Bottom) != null
@@ -35,14 +36,14 @@ namespace InputshareLib.Server.Display
                 _socket.SendInput(ref input);
         }
 
-        internal override void SetInputActive()
+        internal override async Task NotfyInputActiveAsync()
         {
-            _socket.NotifyInputClientAsync(true);
+            await _socket.NotifyInputClientAsync(true);
         }
 
-        internal override void SetInputInactive()
+        internal override async Task NotifyClientInvactiveAsync()
         {
-            _socket.NotifyInputClientAsync(false);
+            await _socket.NotifyInputClientAsync(false);
         }
 
         internal override void RemoveDisplay()

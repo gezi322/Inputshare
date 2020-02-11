@@ -50,7 +50,6 @@ namespace InputshareLib.Client
 
         private void Soc_SideStateChanged1(object sender, ClientSidesChangedArgs e)
         {
-            Logger.Write("???");
             cLeft = e.Left;
             cRight = e.Right;
             cTop = e.Top;
@@ -90,13 +89,8 @@ namespace InputshareLib.Client
 
         private void Soc_InputClientChanged(object sender, bool e)
         {
-            if(_input != e || _f)
-            {
-                _f = false;
-                _input = e;
-                inputMod.SetMouseHidden(!e);
-            }
-            
+            _input = e;
+            inputMod.SetMouseHidden(!e);
         }
 
         private async void InputMod_DisplayBoundsUpdated(object sender, System.Drawing.Rectangle e)
@@ -119,7 +113,6 @@ namespace InputshareLib.Client
         {
             if(soc.State == ClientSocketState.Connected && IsDisplayAtSide(e.Side) &&_input)
              {
-                _input = false;
                 await soc.SendSideHitAsync(e.Side, e.PosX, e.PosY);
             }
         }

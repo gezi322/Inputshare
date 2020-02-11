@@ -83,7 +83,7 @@ namespace InputshareLib.PlatformModules.Windows
         private IntPtr CreateWindow()
         {
             WNDCLASSEX cls = RegisterWindowClass();
-            IntPtr wnd = CreateWindowEx(0, cls.lpszClassName, WindowName, 0x00080000, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero,
+            IntPtr wnd = CreateWindowEx(0x00000020 | 0x00000080, cls.lpszClassName, WindowName, 0, 0, 0, 100, 100, IntPtr.Zero, IntPtr.Zero,
                 Process.GetCurrentProcess().Handle, IntPtr.Zero);
 
             if (wnd == IntPtr.Zero)

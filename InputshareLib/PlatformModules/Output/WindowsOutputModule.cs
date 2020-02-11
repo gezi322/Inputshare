@@ -16,66 +16,50 @@ namespace InputshareLib.PlatformModules.Output
     /// </summary>
     public class WindowsOutputModule : OutputModuleBase
     {
-        private CancellationTokenSource _tokenSource;
-
         public override void SimulateInput(ref InputData input)
         {
-            _queue.Add(input);
+            if (input.Code == InputCode.MouseMoveRelative)
+                MoveMouseRelative(input.ParamA, input.ParamB);
+            else if (input.Code == InputCode.Mouse1Down)
+                MouseLDown(true);
+            else if (input.Code == InputCode.Mouse1Up)
+                MouseLDown(false);
+            else if (input.Code == InputCode.Mouse2Down)
+                MouseRDown(true);
+            else if (input.Code == InputCode.Mouse2Up)
+                MouseRDown(false);
+            else if (input.Code == InputCode.MouseMDown)
+                MouseMDown(true);
+            else if (input.Code == InputCode.MouseMUp)
+                MouseMDown(false);
+            else if (input.Code == InputCode.KeyDownScan)
+                KeyDownScan(input.ParamA, true);
+            else if (input.Code == InputCode.keyUpScan)
+                KeyDownScan(input.ParamA, false);
+            else if (input.Code == InputCode.KeyDownVKey)
+                KeyDownVirtual(input.ParamA, true);
+            else if (input.Code == InputCode.KeyUpVKey)
+                KeyDownVirtual(input.ParamA, false);
+            else if (input.Code == InputCode.MouseYScroll)
+                MouseYScroll(input.ParamA);
+            else if (input.Code == InputCode.MouseXDown)
+                MouseXDown(input.ParamA, true);
+            else if (input.Code == InputCode.MouseXUp)
+                MouseXDown(input.ParamA, false);
+            else if (input.Code == InputCode.MouseMoveAbsolute)
+                SetCursorPos(input.ParamA, input.ParamB);
+                
         }
 
         private BlockingCollection<InputData> _queue = new BlockingCollection<InputData>();
-        private void Loop()
-        {
-            while (!_tokenSource.IsCancellationRequested)
-            {
-                var input = _queue.Take(_tokenSource.Token);
-
-                if (input.Code == InputCode.MouseMoveRelative)
-                    MoveMouseRelative(input.ParamA, input.ParamB);
-                else if (input.Code == InputCode.Mouse1Down)
-                    MouseLDown(true);
-                else if (input.Code == InputCode.Mouse1Up)
-                    MouseLDown(false);
-                else if (input.Code == InputCode.Mouse2Down)
-                    MouseRDown(true);
-                else if (input.Code == InputCode.Mouse2Up)
-                    MouseRDown(false);
-                else if (input.Code == InputCode.MouseMDown)
-                    MouseMDown(true);
-                else if (input.Code == InputCode.MouseMUp)
-                    MouseMDown(false);
-                else if (input.Code == InputCode.KeyDownScan)
-                    KeyDownScan(input.ParamA, true);
-                else if (input.Code == InputCode.keyUpScan)
-                    KeyDownScan(input.ParamA, false);
-                else if (input.Code == InputCode.KeyDownVKey)
-                    KeyDownVirtual(input.ParamA, true);
-                else if (input.Code == InputCode.KeyUpVKey)
-                    KeyDownVirtual(input.ParamA, false);
-                else if (input.Code == InputCode.MouseYScroll)
-                    MouseYScroll(input.ParamA);
-                else if (input.Code == InputCode.MouseXDown)
-                    MouseXDown(input.ParamA, true);
-                else if (input.Code == InputCode.MouseXUp)
-                    MouseXDown(input.ParamA, false);
-                else if (input.Code == InputCode.MouseMoveAbsolute)
-                    SetCursorPos(input.ParamA, input.ParamB);
-                    
-            }
-        }
 
         protected override Task OnStart()
         {
-            _tokenSource = new CancellationTokenSource();
-            Thread t = new Thread(Loop);
-            t.Priority = ThreadPriority.Highest;
-            t.Start();
             return Task.CompletedTask;
         }
 
         protected override Task OnStop()
         {
-            _tokenSource.Cancel();
             return Task.CompletedTask;
         }
 

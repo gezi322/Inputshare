@@ -110,7 +110,6 @@ namespace InputshareLib.Net.Client
                 InputClientChanged?.Invoke(this, inputMessage.InputClient);
             }else if(message is NetClientSideStateMessage sideMsg)
             {
-                Logger.Write("----");
                 SideStateChanged?.Invoke(this, new ClientSidesChangedArgs(sideMsg.Left, sideMsg.Right, sideMsg.Top, sideMsg.Bottom));
             }
         }

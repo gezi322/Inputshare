@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace InputshareLib.Server.Display
 {
@@ -39,7 +40,7 @@ namespace InputshareLib.Server.Display
 
             GetDisplayAtSide(side) = display;
             Logger.Write($"Set side {side} of {DisplayName} to {display.DisplayName}");
-            SendSideChanged();
+            SendSideChangedAsync();
         }
 
         /// <summary>
@@ -69,7 +70,7 @@ namespace InputshareLib.Server.Display
         {
             Logger.Write($"Removing side {side} of {DisplayName}");
             GetDisplayAtSide(side) = null;
-            SendSideChanged();
+            SendSideChangedAsync();
         }
 
         protected void OnSideHit(Side side, int hitX, int hitY)
@@ -85,13 +86,13 @@ namespace InputshareLib.Server.Display
             DisplayRemoved?.Invoke(this, this);
         }
 
-        internal abstract void SetInputActive();
-        internal abstract void SetInputInactive();
+        internal abstract Task NotfyInputActiveAsync();
+        internal abstract Task NotifyClientInvactiveAsync();
         internal abstract void SendInput(ref InputData input);
 
         /// <summary>
         /// Notifies the client that a display has been added to or removed from a side
         /// </summary>
-        protected abstract void SendSideChanged();
+        protected abstract Task SendSideChangedAsync();
     }
 }

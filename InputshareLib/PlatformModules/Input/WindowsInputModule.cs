@@ -27,7 +27,6 @@ namespace InputshareLib.PlatformModules.Input
         private IntPtr _kbHook;
         private HookCallback _mCallback;
         private HookCallback _kbCallback;
-        private bool _hidingMouse;
 
         public WindowsInputModule()
         {
@@ -39,8 +38,6 @@ namespace InputshareLib.PlatformModules.Input
         {
             InputRedirected = redirect;
             GetCursorPos(out _oldPos);
-
-            
         }
 
         /// <summary>
@@ -49,16 +46,18 @@ namespace InputshareLib.PlatformModules.Input
         private void HideMouse()
         {
             _window.InvokeAction(() => {
-                SetWindowPos(_window.Handle, new IntPtr(-1), _oldPos.X - 50, _oldPos.Y - 50, 100, 100, 0x0040 | 0x0010);
-                _hidingMouse = true;
+                GetCursorPos(out var pos);
+                SetWindowPos(_window.Handle, new IntPtr(0), pos.X, pos.Y, 1, 1, 0x0040 | 0x0010);
+                EnableWindow(_window.Handle, true);
+                SetActiveWindow(_window.Handle);
+                SetCapture(_window.Handle);
             });
         }
         private void ShowMouse()
         {
-            
             _window.InvokeAction(() => {
-                SetWindowPos(_window.Handle, new IntPtr(1), _oldPos.X, _oldPos.Y, 1, 1, 0x0080);
-                _hidingMouse = false;
+                ShowWindow(_window.Handle, 0);
+                EnableWindow(_window.Handle, false);
             });
         }
         protected override async Task OnStart()
@@ -89,8 +88,8 @@ namespace InputshareLib.PlatformModules.Input
         private void UpdateVirtualDisplayBounds()
         {
             //TODO
-            VirtualDisplayBounds = new Rectangle(GetSystemMetrics(76), GetSystemMetrics(77),
-                GetSystemMetrics(78), GetSystemMetrics(79));
+            VirtualDisplayBounds = new Rectangle(GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
+                GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN));
 
             DisplayBoundsUpdated?.Invoke(this, VirtualDisplayBounds);
         }
@@ -104,8 +103,6 @@ namespace InputshareLib.PlatformModules.Input
             var waitHandle = new SemaphoreSlim(0, 1);
 
             window.InvokeAction(() => {
-                //To hide the mouse, we move a window under the cursor and call the ShowCursor(false) method.
-                //Here we set the opacity of the window to 1
                 SetWindowLongPtr(_window.Handle, GWL_EXSTYLE, new IntPtr(WS_EX_LAYERED | 0x00000080));
                 ShowWindow(_window.Handle, 0);
                 SetLayeredWindowAttributes(_window.Handle, 0, 1, LWA_ALPHA);
@@ -187,8 +184,7 @@ namespace InputshareLib.PlatformModules.Input
         /// <param name="hide"></param>
         public override void SetMouseHidden(bool hide)
         {
-            GetCursorPos(out _oldPos);
-            if (!hide && hide != _hidingMouse)
+            if (!hide)
                 ShowMouse();
             else
                 HideMouse();
