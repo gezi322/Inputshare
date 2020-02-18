@@ -112,6 +112,8 @@ namespace InputshareLib.Server
                 await InputModule.StartAsync();
             if (!OutputModule.Running)
                 await OutputModule.StartAsync();
+            if (!ClipboardModule.Running)
+                await ClipboardModule.StartAsync();
         }
 
         private async Task StopModulesAsync()
@@ -120,6 +122,8 @@ namespace InputshareLib.Server
                 await InputModule.StopAsync();
             if (OutputModule.Running)
                 await OutputModule.StopAsync();
+            if (ClipboardModule.Running)
+                await ClipboardModule.StopAsync();
         }
 
         /// <summary>
