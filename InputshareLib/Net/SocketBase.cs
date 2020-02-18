@@ -1,4 +1,5 @@
-﻿using InputshareLib.Input;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Input;
 using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
@@ -18,7 +19,7 @@ namespace InputshareLib.Net
     {
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
-        internal RFSController FileController { get; } = new RFSController();
+        internal event EventHandler<ClipboardData> ClipboardDataReceived;
 
         private const int MaxMessageSize = 2046 * 1024;
         private const int BufferSize = 2048 * 1024;
@@ -28,14 +29,15 @@ namespace InputshareLib.Net
         private NetworkStream _stream;
         private readonly byte[] _buffer = new byte[BufferSize];
         private CancellationTokenSource _tokenSource;
+        private RFSController _fileController;
 
         private object _awaitingMessagesLock = new object();
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
         private object _incompleteMessagesLock = new object();
         private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
-        internal SocketBase()
+        internal SocketBase(RFSController fileController)
         {
-            
+            _fileController = fileController;
         }
 
         /// <summary>
@@ -103,14 +105,17 @@ namespace InputshareLib.Net
 
         private async Task HandleRequestInternalAsync(NetRequestBase request)
         {
-            await FileController.HandleNetMessageAsync(request, this);
+            await _fileController.HandleNetMessageAsync(request, this);
 
             await HandleRequestAsync(request);
         }
 
         private async Task HandleGenericMessageInternalAsync(NetMessageBase message)
         {
-            await FileController.HandleNetMessageAsync(message, this);
+            if (message is NetSetClipboardMessage cbMessage)
+                ClipboardDataReceived?.Invoke(this, cbMessage.Data);
+
+            await _fileController.HandleNetMessageAsync(message, this);
 
             HandleGenericMessage(message);
         }
@@ -210,6 +215,11 @@ namespace InputshareLib.Net
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Dispose();
+        }
+
+        internal async Task SendClipboardDataAsync(ClipboardData cbData)
+        {
+            await SendMessageAsync(new NetSetClipboardMessage(cbData));
         }
 
         /// <summary>

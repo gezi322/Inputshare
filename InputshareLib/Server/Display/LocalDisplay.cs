@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
+using InputshareLib.Clipboard;
 using InputshareLib.Input;
+using InputshareLib.PlatformModules;
+using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
 
@@ -13,12 +16,15 @@ namespace InputshareLib.Server.Display
     {
         private readonly InputModuleBase _inputModule;
         private readonly OutputModuleBase _outputModule;
+        private readonly ClipboardModuleBase _clipboardModule;
 
-        internal LocalDisplay(InputModuleBase inputModule, OutputModuleBase outputModule) : base(inputModule.VirtualDisplayBounds, "Localhost")
+        internal LocalDisplay(ISServerDependencies deps) : base(deps.InputModule.VirtualDisplayBounds, "Localhost")
         {
-            _inputModule = inputModule;
-            _outputModule = outputModule;
+            _inputModule = deps.InputModule;
+            _outputModule = deps.OutputModule;
+            _clipboardModule = deps.ClipboardModule;
 
+            _clipboardModule.ClipboardChanged += (object o, ClipboardData cbData) => base.OnClipboardChanged(cbData);
             _inputModule.SideHit += (object o, SideHitArgs args) => base.OnSideHit(args.Side, args.PosX, args.PosY);
         }
 
@@ -38,6 +44,12 @@ namespace InputshareLib.Server.Display
         {
             _inputModule.SetInputRedirected(true);
             _inputModule.SetMouseHidden(true);
+            return Task.CompletedTask;
+        }
+
+        internal override Task SetClipboardAsync(ClipboardData cbData)
+        {
+            //TODO
             return Task.CompletedTask;
         }
     }

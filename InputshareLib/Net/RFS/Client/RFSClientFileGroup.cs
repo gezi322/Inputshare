@@ -11,6 +11,11 @@ namespace InputshareLib.Net.RFS.Client
             Host = host;
         }
 
+        internal static RFSClientFileGroup FromGroup(RFSFileGroup group, SocketBase host)
+        {
+            return new RFSClientFileGroup(group.GroupId, group.Files, host);
+        }
+
         internal RFSToken Token { get; set; }
         internal SocketBase Host { get; }
     }

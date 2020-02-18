@@ -1,11 +1,15 @@
 ﻿using InputshareLib.Net.Client;
+using InputshareLib.Net.RFS;
+using InputshareLib.Net.RFS.Client;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
+using InputshareLib.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +33,8 @@ namespace InputshareLib.Client
 
         }
 
+        private RFSController _fileController = new RFSController();
+
         public async Task StartAsync()
         {
             inputMod = new WindowsInputModule();
@@ -37,7 +43,8 @@ namespace InputshareLib.Client
             inputMod.SideHit += InputMod_SideHit;
             inputMod.DisplayBoundsUpdated += InputMod_DisplayBoundsUpdated;
             await outMod.StartAsync();
-            soc = new ClientSocket();
+            soc = new ClientSocket(_fileController);
+            soc.ClipboardDataReceived += Soc_ClipboardDataReceived;
             soc.Disconnected += Soc_Disconnected;
             soc.ScreenshotRequested += Soc_ScreenshotRequested;
             soc.InputClientChanged += Soc_InputClientChanged;
@@ -45,6 +52,16 @@ namespace InputshareLib.Client
             soc.SideStateChanged += Soc_SideStateChanged1;
             await soc.ConnectAsync(new ClientConnectArgs(new IPEndPoint(IPAddress.Parse("192.168.0.17"), 1234), Environment.MachineName, Guid.NewGuid(), inputMod.VirtualDisplayBounds));
 
+        }
+
+        private void Soc_ClipboardDataReceived(object sender, Clipboard.ClipboardData e)
+        {
+            Logger.Write("Received clipboard data! " + e.AvailableTypes.Length);
+
+            foreach(var type in e.AvailableTypes)
+            {
+                Logger.Write("Type " + type);
+            }
         }
 
         private void Soc_SideStateChanged1(object sender, ClientSidesChangedArgs e)

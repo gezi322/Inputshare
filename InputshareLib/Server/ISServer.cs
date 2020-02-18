@@ -1,7 +1,9 @@
-﻿using InputshareLib.Input;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Input;
 using InputshareLib.Net.RFS;
 using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
+using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
 using InputshareLib.Server.Config;
@@ -33,9 +35,11 @@ namespace InputshareLib.Server
         internal LocalDisplay LocalHostDisplay { get; private set; }
         internal InputModuleBase InputModule => _dependencies.InputModule;
         internal OutputModuleBase OutputModule => _dependencies.OutputModule;
+        internal ClipboardModuleBase ClipboardModule => _dependencies.ClipboardModule;
 
         private ClientListener _listener;
         private ISServerDependencies _dependencies;
+        private RFSController _fileController;
 
         /// <summary>
         /// Starts the inputshare server
@@ -51,15 +55,16 @@ namespace InputshareLib.Server
             try
             {
                 _dependencies = dependencies;
+                _fileController = new RFSController();
                 await StartModulesAsync();
-                LocalHostDisplay = new LocalDisplay(InputModule, OutputModule);
+                LocalHostDisplay = new LocalDisplay(_dependencies);
                 InputDisplay = LocalHostDisplay;
                 OnDisplayAdded(LocalHostDisplay);
                 InputModule.InputReceived += OnInputReceived;
 
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
-                var listenTask = _listener.ListenAsync(bindAddress);
+                var listenTask = _listener.ListenAsync(bindAddress, _fileController);
                 Running = true;
 
                 await listenTask;
@@ -140,8 +145,6 @@ namespace InputshareLib.Server
                 display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
             }
-
-
         }
 
         /// <summary>

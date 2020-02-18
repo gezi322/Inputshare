@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
+using InputshareLib.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +20,7 @@ namespace InputshareLib.Net.Server
         internal event EventHandler<Rectangle> DisplayBoundsChanged;
         internal bool Connected { get; private set; }
 
-        internal ServerSocket(Socket client)
+        internal ServerSocket(Socket client, RFSController fileController) : base(fileController)
         {
             Connected = true;
             //Begin receiving data as another task

@@ -1,4 +1,5 @@
 ﻿using InputshareLib.Net.Messages;
+using InputshareLib.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -25,7 +26,7 @@ namespace InputshareLib.Net.Server
         /// </summary>
         /// <param name="bindAddress"></param>
         /// <returns></returns>
-        internal async Task ListenAsync(IPEndPoint bindAddress)
+        internal async Task ListenAsync(IPEndPoint bindAddress, RFSController fileController)
         {
             _listener = new TcpListener(bindAddress);
             _listener.Start();
@@ -42,7 +43,7 @@ namespace InputshareLib.Net.Server
                 while (!_tokenSource.IsCancellationRequested)
                 {
                     var client = await _listener.AcceptSocketAsync();
-                    Task.Run(() => ProcessClient(client));
+                    Task.Run(() => ProcessClient(client, fileController));
                 }
             }catch(ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
             {
@@ -73,7 +74,7 @@ namespace InputshareLib.Net.Server
         /// </summary>
         /// <param name="client"></param>
         /// <returns></returns>
-        private async Task ProcessClient(Socket client)
+        private async Task ProcessClient(Socket client, RFSController fileController)
         {
             _processingClients.Add(client);
             var stream = new NetworkStream(client);
@@ -102,7 +103,7 @@ namespace InputshareLib.Net.Server
                 //Deserialize message, if incorrect message type is sent then throw
                 NetClientConnectionMessage msg = NetMessageSerializer.Deserialize<NetClientConnectionMessage>(clientBuff);
 
-                ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client), msg.ClientName, msg.ClientId, msg.DisplayBounds));
+                ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client, fileController), msg.ClientName, msg.ClientId, msg.DisplayBounds));
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)
             {
                 Logger.Write($"{clientAddr} timed out");

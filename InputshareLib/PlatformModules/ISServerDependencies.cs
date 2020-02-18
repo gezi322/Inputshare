@@ -1,4 +1,5 @@
-﻿using InputshareLib.PlatformModules.Input;
+﻿using InputshareLib.PlatformModules.Clipboard;
+using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
@@ -13,5 +14,6 @@ namespace InputshareLib.PlatformModules
     {
         public InputModuleBase InputModule;
         public OutputModuleBase OutputModule;
+        public ClipboardModuleBase ClipboardModule;
     }
 }

@@ -1,4 +1,5 @@
-﻿using InputshareLib.Input;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Input;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.Server.Config;
 using System;
@@ -12,6 +13,7 @@ namespace InputshareLib.Server.Display
     public abstract class DisplayBase
     {
         public event EventHandler<DisplayBase> DisplayRemoved;
+        internal event EventHandler<ClipboardData> ClipboardChanged;
         internal event EventHandler<SideHitArgs> SideHit;
 
         public string DisplayName { get; }
@@ -79,6 +81,11 @@ namespace InputshareLib.Server.Display
             SideHit?.Invoke(this, new SideHitArgs(side, hitX, hitY));
         }
 
+        protected void OnClipboardChanged(ClipboardData cbData)
+        {
+            ClipboardChanged?.Invoke(this, cbData);
+        }
+
         /// <summary>
         /// Disconnects the display
         /// </summary>
@@ -90,6 +97,7 @@ namespace InputshareLib.Server.Display
         internal abstract Task NotfyInputActiveAsync();
         internal abstract Task NotifyClientInvactiveAsync();
         internal abstract void SendInput(ref InputData input);
+        internal abstract Task SetClipboardAsync(ClipboardData cbData);
 
         /// <summary>
         /// Notifies the client that a display has been added to or removed from a side

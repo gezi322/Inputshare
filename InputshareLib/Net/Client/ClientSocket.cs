@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
+using InputshareLib.Net.RFS;
 using InputshareLib.Net.RFS.Client;
 using System;
 using System.Drawing;
@@ -23,6 +24,11 @@ namespace InputshareLib.Net.Client
 
         private SemaphoreSlim _connectSemaphore;
         private Socket _client;
+
+        internal ClientSocket(RFSController fileController) : base(fileController)
+        {
+
+        }
 
         /// <summary>
         /// Connects to a server

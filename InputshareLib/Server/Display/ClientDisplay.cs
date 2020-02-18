@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using InputshareLib.Clipboard;
 using InputshareLib.Input;
 using InputshareLib.Net.Server;
 
@@ -14,7 +15,8 @@ namespace InputshareLib.Server.Display
         internal ClientDisplay(ClientConnectedArgs connectedArgs) : base(connectedArgs.DisplayBounds, connectedArgs.Name)
         {
             Socket = connectedArgs.Socket;
-            Socket.SideHit += (object o, Tuple<Side, int, int> data) => OnSideHit(data.Item1, data.Item2, data.Item3);
+            Socket.ClipboardDataReceived += (object obj, ClipboardData cbData) => base.OnClipboardChanged(cbData);
+            Socket.SideHit += (object o, Tuple<Side, int, int> data) => base.OnSideHit(data.Item1, data.Item2, data.Item3);
             Socket.Disconnected += (object o, ServerSocket s) => RemoveDisplay();
         }
 
@@ -55,6 +57,11 @@ namespace InputshareLib.Server.Display
             if (Socket.Connected)
                 Socket.DisconnectSocket();
 
+        }
+
+        internal override async Task SetClipboardAsync(ClipboardData cbData)
+        {
+            await Socket.SendClipboardDataAsync(cbData);
         }
     }
 }
