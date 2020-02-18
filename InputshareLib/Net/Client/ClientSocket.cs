@@ -3,6 +3,7 @@ using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
 using System;
 using System.Drawing;
+using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;

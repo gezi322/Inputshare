@@ -18,12 +18,16 @@ namespace InputshareLib.Net
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
 
+        private const int MaxMessageSize = 2046 * 1024;
+        private const int BufferSize = 2048 * 1024;
+        private const int SegmentSize = 2044 * 1024;
+
         private Socket _client;
         private NetworkStream _stream;
-        private readonly byte[] _buffer = new byte[8192];
+        private readonly byte[] _buffer = new byte[BufferSize];
         private CancellationTokenSource _tokenSource;
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
-
+        private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
         internal SocketBase()
         {
             
@@ -77,8 +81,9 @@ namespace InputshareLib.Net
 
                     NetMessageBase message = NetMessageSerializer.Deserialize<NetMessageBase>(_buffer);
 
-                    //Handle the message appropriately
-                    if (message is NetReplyBase replyMessage)
+                    if (message is NetMessageSegment segMsg)
+                        HandleMessageSegment(segMsg);
+                    else if (message is NetReplyBase replyMessage)
                         HandleReply(replyMessage);
                     else if (message is NetRequestBase requestMessage)
                         HandleRequestAsync(requestMessage);
@@ -88,6 +93,31 @@ namespace InputshareLib.Net
             }catch(Exception ex)
             {
                 HandleExceptionInternal(ex);
+            }
+        }
+
+        /// <summary>
+        /// Handles a received message segment
+        /// </summary>
+        /// <param name="message"></param>
+        private void HandleMessageSegment(NetMessageSegment message)
+        {
+            if (!_incompleteMessages.ContainsKey(message.MessageId))
+            {
+                SegmentedMessageHandler handler = new SegmentedMessageHandler(message.FullPacketSize);
+
+                handler.MessageComplete += (object o, NetMessageBase completeMessage) =>
+                {
+                    HandleGenericMessage(completeMessage);
+                };
+
+                _incompleteMessages.Add(message.MessageId, handler);
+                handler.Write(message);
+            }
+            else
+            {
+                _incompleteMessages.TryGetValue(message.MessageId, out var handler);
+                handler.Write(message);
             }
         }
 
@@ -117,6 +147,32 @@ namespace InputshareLib.Net
             _awaitingMessages.Remove(request.MessageId);
             //Cast the reply to the expected message reply type
             return reply as TReply;
+        }
+
+        /// <summary>
+        /// Sends a large message in smaller segments
+        /// </summary>
+        /// <param name="serializedMessage"></param>
+        /// <returns></returns>
+        private async Task SendMessageSegmentedAsync(byte[] serializedMessage)
+        {
+            try
+            {
+                int bOut = 0;
+                Guid messageId = Guid.NewGuid();
+
+                while(bOut < serializedMessage.Length)
+                {
+                    int pSize = serializedMessage.Length - bOut - SegmentSize > 0 ? SegmentSize : serializedMessage.Length - bOut;
+                    byte[] data = new byte[pSize];
+                    Buffer.BlockCopy(serializedMessage, bOut, data, 0, pSize);
+                    await SendMessageAsync(new NetMessageSegment(messageId, data, serializedMessage.Length));
+                    bOut += pSize;
+                }
+            }catch(Exception ex)
+            {
+                HandleExceptionInternal(ex);
+            }
         }
 
         internal virtual void DisconnectSocket()
@@ -153,6 +209,15 @@ namespace InputshareLib.Net
             try
             {
                 byte[] data = NetMessageSerializer.Serialize(message);
+                
+                //If the message is too large, send it as smaller segments
+                if(data.Length > MaxMessageSize)
+                {
+                    data = NetMessageSerializer.SerializeNoHeader(message);
+                    await SendMessageSegmentedAsync(data);
+                    return;
+                }
+
                 await _stream.WriteAsync(data, 0, data.Length);
             }catch(Exception ex)
             {

@@ -35,6 +35,18 @@ namespace InputshareLib.Net.Messages
         }
 
         /// <summary>
+        /// Serializes a message without adding a header prefix
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        internal static byte[] SerializeNoHeader(NetMessageBase message)
+        {
+            using MemoryStream ms = new MemoryStream();
+            _formatter.Serialize(ms, message);
+            return ms.ToArray();
+        }
+
+        /// <summary>
         /// Deserializes a byte array into a network message
         /// </summary>
         /// <param name="data"></param>
@@ -43,6 +55,11 @@ namespace InputshareLib.Net.Messages
         {
             using MemoryStream ms = new MemoryStream(data);
             return (T)_formatter.Deserialize(ms);
+        }
+
+        internal static T Deserialize<T>(MemoryStream stream)
+        {
+            return (T)_formatter.Deserialize(stream);
         }
     }
 }

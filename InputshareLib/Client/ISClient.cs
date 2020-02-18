@@ -105,6 +105,7 @@ namespace InputshareLib.Client
         private void Soc_Disconnected(object sender, Exception e)
         {
             Logger.Write("Disconnected: " + e.Message);
+            Logger.Write(e.StackTrace);
             soc.Dispose();
         }
 

@@ -26,24 +26,6 @@ Inputshare allows you to:
  - Dotnet core 3 runtime (including desktop apps for windows)
  - Windows or linux OS supported by dotnet core.
 
-## Quickstart
-To get started, start Inputshare on the PC that has the keyboard and mouse that you want to share and select start server. Then run Inputshare on the client(s) that you want to share the keyboard and mouse with and select client and connect to the server.
-
-![enter image description here](https://i.imgur.com/gIdqZMz.png)
-
-### Assigning edges
-
-The client 'localhost' represents the server PC. To set a client to an edge of another client, select the client that you want to assign the edge to, then use the dropdown boxes to select the client to assign to the edge. The server will automatically set the opposite edge of the target client to the selected client. For example, if you had a PC to the left of the server, you could assign the PC to the left edge of localhost. This would allow you to simply move the mouse to the left of your screen to switch keyboard and mouse input to the PC, doing so would also allow you to switch back to the server by moving the mouse to the right of the PCs screen.
-
-### Assigning hotkeys
-
-Hotkeys can be assigned to clients by selecting the modifier keys that you want, then clicking on the hotkey button (Displaying F2 in the above image), the next pressed key will then be assigned to the client along with the selected modifiers. For example to assign Alt+Ctrl+F to a client, you would check the Alt and Ctrl checkboxes, then click the hotkey button and press the F key. The hotkey is only set after the button is clicked and a key is pressed. Function hotkeys are assigned the same way by using the function hotkey list at the bottom of the window.
-
-## Using the windows service client
-The Inputshare windows service allows much more functionality for clients. The service runs without a logged in user, meaning that It can be running from startup and can be used to log in. The service automatically connects to the last connected server, meaning that a client can be restarted and reconnected with no direct interaction. The service also runs in the background requiring to user interface except for connecting/disconnecting from servers etc, which is done from the Inputshare UI.
-
-The service also allows the server to send alt+ctrl+delete to access the windows SAS (secure attention sequence) screen (registry edit required).
-
 ### Installing the service
 The windows service must be installed before use, which is done via CMD. To install the service, run command prompt as admin and enter the command 
 
