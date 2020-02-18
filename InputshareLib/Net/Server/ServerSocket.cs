@@ -53,6 +53,7 @@ namespace InputshareLib.Net.Server
         {
             if (Connected)
             {
+                Logger.Write($"({Address}) : {ex.Message} \n {ex.StackTrace}");
                 Connected = false;
                 base.Dispose();
                 Disconnected?.Invoke(this, this);

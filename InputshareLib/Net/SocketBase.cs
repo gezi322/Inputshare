@@ -2,6 +2,7 @@
 using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
+using InputshareLib.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,6 +18,7 @@ namespace InputshareLib.Net
     {
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
+        internal RFSController FileController { get; } = new RFSController();
 
         private const int MaxMessageSize = 2046 * 1024;
         private const int BufferSize = 2048 * 1024;
@@ -26,7 +28,10 @@ namespace InputshareLib.Net
         private NetworkStream _stream;
         private readonly byte[] _buffer = new byte[BufferSize];
         private CancellationTokenSource _tokenSource;
+
+        private object _awaitingMessagesLock = new object();
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
+        private object _incompleteMessagesLock = new object();
         private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
         internal SocketBase()
         {
@@ -47,10 +52,10 @@ namespace InputshareLib.Net
             Address = client.RemoteEndPoint as IPEndPoint;
 
             //Start receiving data from the client in a new task
-            Task.Run(() => ReceiveData());
+            Task.Run(async () => await ReceiveData());
         }
 
-        private void ReceiveData()
+        private async Task ReceiveData()
         {
             try
             {
@@ -86,14 +91,28 @@ namespace InputshareLib.Net
                     else if (message is NetReplyBase replyMessage)
                         HandleReply(replyMessage);
                     else if (message is NetRequestBase requestMessage)
-                        HandleRequestAsync(requestMessage);
+                        await HandleRequestInternalAsync(requestMessage);
                     else
-                        HandleGenericMessage(message);
+                        await HandleGenericMessageInternalAsync(message);
                 }
             }catch(Exception ex)
             {
                 HandleExceptionInternal(ex);
             }
+        }
+
+        private async Task HandleRequestInternalAsync(NetRequestBase request)
+        {
+            await FileController.HandleNetMessageAsync(request, this);
+
+            await HandleRequestAsync(request);
+        }
+
+        private async Task HandleGenericMessageInternalAsync(NetMessageBase message)
+        {
+            await FileController.HandleNetMessageAsync(message, this);
+
+            HandleGenericMessage(message);
         }
 
         /// <summary>
@@ -102,31 +121,38 @@ namespace InputshareLib.Net
         /// <param name="message"></param>
         private void HandleMessageSegment(NetMessageSegment message)
         {
-            if (!_incompleteMessages.ContainsKey(message.MessageId))
+            lock (_incompleteMessagesLock)
             {
-                SegmentedMessageHandler handler = new SegmentedMessageHandler(message.FullPacketSize);
-
-                handler.MessageComplete += (object o, NetMessageBase completeMessage) =>
+                if (!_incompleteMessages.ContainsKey(message.MessageId))
                 {
-                    _incompleteMessages.Remove(message.MessageId);
-                    handler.Dispose();
-                    HandleGenericMessage(completeMessage);
-                };
+                    SegmentedMessageHandler handler = new SegmentedMessageHandler(message.FullPacketSize);
 
-                _incompleteMessages.Add(message.MessageId, handler);
-                handler.Write(message);
-            }
-            else
-            {
-                _incompleteMessages.TryGetValue(message.MessageId, out var handler);
-                handler.Write(message);
+                    handler.MessageComplete += (object o, NetMessageBase completeMessage) =>
+                    {
+                        _incompleteMessages.Remove(message.MessageId);
+                        handler.Dispose();
+                        HandleGenericMessage(completeMessage);
+                    };
+
+                    _incompleteMessages.Add(message.MessageId, handler);
+                    handler.Write(message);
+                }
+                else
+                {
+                    _incompleteMessages.TryGetValue(message.MessageId, out var handler);
+                    handler.Write(message);
+                }
             }
         }
 
         private void HandleReply(NetReplyBase replyMessage)
         {
-            if (_awaitingMessages.TryGetValue(replyMessage.MessageId, out var ret))
-                ret.SetReplyMessage(replyMessage);
+            lock (_awaitingMessagesLock)
+            {
+                if (_awaitingMessages.TryGetValue(replyMessage.MessageId, out var ret))
+                    ret.SetReplyMessage(replyMessage);
+            }
+            
         }
 
         /// <summary>
@@ -135,18 +161,20 @@ namespace InputshareLib.Net
         /// <typeparam name="TReply">Expected reply</typeparam>
         /// <param name="request">The request message</param>
         /// <returns></returns>
-        protected async Task<TReply> SendRequestAsync<TReply>(NetRequestBase request) where TReply : NetReplyBase
+        internal async Task<TReply> SendRequestAsync<TReply>(NetRequestBase request) where TReply : NetReplyBase
         {
             //Create a request object 
             SocketRequest req = new SocketRequest(request);
             //add the request to the awaiting requests dictionary
-            _awaitingMessages.Add(request.MessageId, req);
+            lock(_awaitingMessagesLock)
+                _awaitingMessages.Add(request.MessageId, req);
             //Send the request message
             await SendMessageAsync(req.RequestMessage);
             //Wait for a reply message
             var reply = await req.AwaitReply();
             //Remove the request 
-            _awaitingMessages.Remove(request.MessageId);
+            lock(_awaitingMessagesLock)
+                _awaitingMessages.Remove(request.MessageId);
             //Cast the reply to the expected message reply type
             return reply as TReply;
         }
@@ -206,7 +234,7 @@ namespace InputshareLib.Net
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected async Task SendMessageAsync(NetMessageBase message)
+        internal async Task SendMessageAsync(NetMessageBase message)
         {
             try
             {

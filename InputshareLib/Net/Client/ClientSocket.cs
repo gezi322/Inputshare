@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
+using InputshareLib.Net.RFS.Client;
 using System;
 using System.Drawing;
 using System.IO;

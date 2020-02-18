@@ -1,4 +1,5 @@
 ﻿using InputshareLib.Input;
+using InputshareLib.Net.RFS;
 using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
 using InputshareLib.PlatformModules.Input;
@@ -140,7 +141,7 @@ namespace InputshareLib.Server
                 LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
             }
 
-            
+
         }
 
         /// <summary>
