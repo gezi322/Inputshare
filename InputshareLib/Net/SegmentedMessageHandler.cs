@@ -23,7 +23,6 @@ namespace InputshareLib.Net
         internal void Write(NetMessageSegment message)
         {
             _buffer.Write(message.Data, 0, message.Data.Length);
-            Logger.Write($"{_buffer.Position}/{_buffer.Capacity}");
 
             if (_buffer.Position == _buffer.Capacity)
             {

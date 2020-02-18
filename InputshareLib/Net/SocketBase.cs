@@ -108,6 +108,8 @@ namespace InputshareLib.Net
 
                 handler.MessageComplete += (object o, NetMessageBase completeMessage) =>
                 {
+                    _incompleteMessages.Remove(message.MessageId);
+                    handler.Dispose();
                     HandleGenericMessage(completeMessage);
                 };
 
@@ -275,6 +277,9 @@ namespace InputshareLib.Net
                 {
                     _stream?.Dispose();
                     _tokenSource?.Dispose();
+
+                    foreach (var segment in _incompleteMessages)
+                        segment.Value.Dispose();
                 }
                 disposedValue = true;
             }
