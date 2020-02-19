@@ -12,6 +12,7 @@ using static InputshareLib.PlatformModules.Windows.Native.Ole32;
 using static InputshareLib.PlatformModules.Windows.Native.User32;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.IO;
 
 namespace InputshareLib.PlatformModules.Windows.Clipboard
 {
@@ -20,7 +21,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
     /// </summary>
     internal class ClipboardDataObject : Native.Interfaces.IDataObject, IAsyncOperation
     {
-        internal event EventHandler<ClipboardDataObject> Pasted;
+        internal event EventHandler<ClipboardDataObject> FilesPasted;
 
         private FORMATETC[] _formats;
         internal ClipboardData InnerData { get; private set; }
@@ -36,7 +37,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             return cbobj;
         }
 
-
         public IntPtr GetData([In] ref FORMATETC format, out STGMEDIUM medium)
         {
             medium = new STGMEDIUM();
@@ -50,6 +50,8 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 GetFileContentsStream(ref format, ref medium);
             else if (format.cfFormat == WinClipboardDataFormat.PREFERREDDROPEFFECT)
                 GetDropEffect(ref format, ref medium);
+            else if (format.cfFormat == WinClipboardDataFormat.CF_BITMAP)
+                GetDataBitmap(ref format, ref medium);
 
             return IntPtr.Zero;
         }
@@ -138,7 +140,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 {
                     _fileStreams = new NativeRFSStream[cbData.GetRemoteFiles().Files.Length];
                     _fileStreamToken = await (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync();
-                    Logger.Write("DataObject token = " + _fileStreamToken.Id);
                     formats.Add(CreateFileContentsFormat());
                     formats.Add(CreateFileDescriptorWFormat());
                     formats.Add(CreatePreferredEffectFormat());
@@ -146,19 +147,20 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 {
                     Logger.Write(ex.Message);
                     Logger.Write(ex.StackTrace);
-                }
-              
+                } 
             }
+
+            if (cbData.IsTypeAvailable(ClipboardDataType.Bitmap))
+                formats.Add(CreateBitmapFormat());
+                
 
             _formats = formats.ToArray();
         }
-
-        private uint _tempFormat => RegisterClipboardFormat("InputshareTempData");
         private FORMATETC CreateTempFormat()
         {
             return new FORMATETC
             {
-                cfFormat = (short)_tempFormat,
+                cfFormat = (short)WinClipboardDataFormat.InputshareFormat,
                 dwAspect = DVASPECT.DVASPECT_CONTENT,
                 lindex = -1,
                 ptd = IntPtr.Zero,
@@ -214,6 +216,18 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             };
         }
 
+        private FORMATETC CreateBitmapFormat()
+        {
+            return new FORMATETC
+            {
+                cfFormat = (short)WinClipboardDataFormat.CF_BITMAP,
+                dwAspect = DVASPECT.DVASPECT_CONTENT,
+                lindex = -1,
+                ptd = IntPtr.Zero,
+                tymed = TYMED.TYMED_GDI
+            };
+        }
+
         private void GetTextHGlobal(ref FORMATETC format, ref STGMEDIUM medium)
         {
             try
@@ -246,6 +260,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 RFSFileGroup group = InnerData.GetRemoteFiles();
                 var memStr = FILEDESCRIPTOR.GenerateFileDescriptor(group);
                 IntPtr ptr = CopyHGlobal(memStr.ToArray());
+                memStr.Dispose();
 
 
                 medium.tymed = TYMED.TYMED_HGLOBAL;
@@ -291,8 +306,22 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             }
         }
 
+        private void GetDataBitmap(ref FORMATETC format, ref STGMEDIUM medium)
+        {
+            using (MemoryStream ms = new MemoryStream(InnerData.GetBitmapSerialized()))
+            {
+                using (Bitmap bmp = (Bitmap)Bitmap.FromStream(ms))
+                {
+                    medium.tymed = TYMED.TYMED_GDI;
+                    medium.unionmember = bmp.GetHbitmap();
+                    medium.pUnkForRelease = null;
+                }
+            }
+               
+        }
 
         private bool _isInAsyncOperation = false;
+
         public void SetAsyncMode([In] int fDoOpAsync)
         {
 
@@ -306,7 +335,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         public void StartOperation([In] IBindCtx pbcReserved)
         {
             _isInAsyncOperation = true;
-            Pasted?.Invoke(this, this);
+            FilesPasted?.Invoke(this, this);
         }
 
         public void InOperation([Out] out int pfInAsyncOp)

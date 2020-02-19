@@ -197,28 +197,49 @@ namespace InputshareLib.Net.RFS
 
         private async Task HandleTokenRequest(RFSTokenRequest request, SocketBase sender)
         {
-            if(_hostedGroups.TryGetValue(request.GroupId, out var group))
+            try
             {
-                var token = group.CreateToken();
-                await sender.SendMessageAsync(new RFSTokenReply(token.Id, request.MessageId));
-                Logger.Write("Returned token!");
-            }
-            else
+                if (_hostedGroups.TryGetValue(request.GroupId, out var group))
+                {
+                    var token = group.CreateToken();
+                    await sender.SendMessageAsync(new RFSTokenReply(token.Id, request.MessageId));
+                    Logger.Write("Returned token!");
+                }
+                else
+                {
+                    throw new RFSException("Group ID not found");
+                }
+            }catch(Exception ex)
             {
-                throw new RFSException("Group ID not found");
+                Logger.Write("Failed to handle RFS token request: " + ex.Message);
             }
+            
         }
 
         private async Task HandleSeekRequest(RFSSeekRequest request, SocketBase sender)
         {
-            long newPos = SeekHostedFile(request.TokenId, request.GroupId, request.FileId, request.Origin, request.Offset);
-            await sender.SendMessageAsync(new RFSSeekReply(request.MessageId, newPos));
+            try
+            {
+                long newPos = SeekHostedFile(request.TokenId, request.GroupId, request.FileId, request.Origin, request.Offset);
+                await sender.SendMessageAsync(new RFSSeekReply(request.MessageId, newPos));
+            }
+            catch(Exception ex)
+            {
+                Logger.Write("Failed to handle RFS seek request: " + ex.Message);
+            }
+            
         }
 
         private async Task HandleReadRequest(RFSReadRequest readRequest, SocketBase sender)
         {
-            byte[] data = await ReadHostedFile(readRequest.TokenId, readRequest.GroupId, readRequest.FileId, readRequest.ReadLen);
-            await sender.SendMessageAsync(new RFSReadReply(readRequest.MessageId, data));
+            try
+            {
+                byte[] data = await ReadHostedFile(readRequest.TokenId, readRequest.GroupId, readRequest.FileId, readRequest.ReadLen);
+                await sender.SendMessageAsync(new RFSReadReply(readRequest.MessageId, data));
+            }catch(Exception ex)
+            {
+                Logger.Write("Failed to handle RFS read request: " + ex.Message);
+            }
         }
     }
 }

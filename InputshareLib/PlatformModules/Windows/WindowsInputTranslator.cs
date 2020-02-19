@@ -44,13 +44,13 @@ namespace InputshareLib.PlatformModules.Windows
             {
                 case Win32MessageCode.WM_KEYDOWN:
                 case Win32MessageCode.WM_SYSKEYDOWN:
-                    if (kbStruct.scanCode == 0 || kbStruct.scanCode == 91)
+                    if (kbStruct.scanCode == 0 || kbStruct.scanCode == 91 || kbStruct.vkCode == (uint)WindowsVirtualKey.Snapshot)
                         return new InputData(InputCode.KeyDownVKey, (short)kbStruct.vkCode, 0);
                     else
                         return new InputData(InputCode.KeyDownScan, (short)kbStruct.scanCode, 0);
                 case Win32MessageCode.WM_KEYUP:
                 case Win32MessageCode.WM_SYSKEYUP:
-                    if (kbStruct.scanCode == 0 || kbStruct.scanCode == 91)
+                    if (kbStruct.scanCode == 0 || kbStruct.scanCode == 91 || kbStruct.vkCode == (uint)WindowsVirtualKey.Snapshot)
                         return new InputData(InputCode.KeyUpVKey, (short)kbStruct.vkCode, 0);
                     else
                         return new InputData(InputCode.keyUpScan, (short)kbStruct.scanCode, 0);

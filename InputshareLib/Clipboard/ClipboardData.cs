@@ -2,6 +2,7 @@
 using InputshareLib.Net.RFS.Client;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -28,6 +29,14 @@ namespace InputshareLib.Clipboard
         internal byte[] GetBitmapSerialized()
         {
             return _serializedBitmap;
+        }
+
+        internal Bitmap GetBitmap()
+        {
+            using (MemoryStream ms = new MemoryStream(_serializedBitmap))
+            {
+                return (Bitmap)Bitmap.FromStream(ms);
+            }
         }
 
         internal void SetText(string text)

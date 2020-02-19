@@ -42,8 +42,9 @@ namespace InputshareLib.PlatformModules.Clipboard
                     //When the object is pasted by another program, place a new instance
                     //of the dataobject back on the clipboard to create multiple instances
                     //of the file streams
-                    obj.Pasted += async(object o, ClipboardDataObject obj) =>
+                    obj.FilesPasted += async(object o, ClipboardDataObject obj) =>
                     {
+                        Logger.Write("Files pasted. Resetting clipboard object");
                         await SetClipboardAsync(obj.InnerData);
                     };
 
@@ -205,13 +206,15 @@ namespace InputshareLib.PlatformModules.Clipboard
             if (gdiBitmap == default)
                 throw new Win32Exception();
 
-            Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap);
-
-            using (MemoryStream ms = new MemoryStream())
+            using (Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap))
             {
-                bmp.Save(ms, ImageFormat.Png);
-                cbData.SetBitmap(ms.ToArray());
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    bmp.Save(ms, ImageFormat.Png);
+                    cbData.SetBitmap(ms.ToArray());
+                }
             }
+            
         }
 
         /// <summary>

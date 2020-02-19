@@ -49,7 +49,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 foreach (var si in files.Files)
                 {
                     FileDescriptor.cFileName = si.RelativePath;
-                    Logger.Write($"fileName = {si.RelativePath}");
                     Int64 FileWriteTimeUtc = 0;
                     FileDescriptor.ftLastWriteTime.dwHighDateTime = (Int32)(FileWriteTimeUtc >> 32);
                     FileDescriptor.ftLastWriteTime.dwLowDateTime = (Int32)(FileWriteTimeUtc & 0xFFFFFFFF);
