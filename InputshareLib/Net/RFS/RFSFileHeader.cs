@@ -13,11 +13,18 @@ namespace InputshareLib.Net.RFS
         internal Guid FileId { get; }
         internal string FileName { get; }
         public long FileSize { get; }
+        public string RelativePath { get; }
+        
+        [field:NonSerialized]
+        public string HostPath { get; }
 
-        internal RFSFileHeader(Guid fileId, string fileName, long fileSize)
+        internal RFSFileHeader(Guid fileId, string fileName, long fileSize, string relativePath, string hostPath)
         {
+            FileId = fileId;
             FileName = fileName;
             FileSize = fileSize;
+            RelativePath = relativePath;
+            HostPath = hostPath;
         }
     }
 }

@@ -9,20 +9,21 @@ using System.Threading.Tasks;
 
 namespace InputshareLib.Net.RFS.Client
 {
+    /// <summary>
+    /// A stream of a remote file
+    /// </summary>
     internal class RFSClientStream : Stream
     {
         private RFSClientFileGroup _group;
         private RFSFileHeader _file;
         private SocketBase _host => _group.Host;
-        private RFSToken _token => _group.Token;
+        private RFSToken _token;
 
-        internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file)
+        internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file, RFSToken token)
         {
+            _token = token;
             _group = group;
             _file = file;
-
-            if (_group.Token == default)
-                throw new RFSException("Group token not set");
         }
 
         public override bool CanRead => true;
@@ -37,11 +38,6 @@ namespace InputshareLib.Net.RFS.Client
         }
 
         public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotImplementedException();
         }
@@ -61,6 +57,11 @@ namespace InputshareLib.Net.RFS.Client
             var reply = await _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token.Id, _group.GroupId, _file.FileId, count));
             Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
             return reply.ReturnData.Length;
+        }
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var reply = _host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(_token.Id, _group.GroupId, _file.FileId, origin, offset)).Result;
+            return reply.Position;
         }
     }
 }

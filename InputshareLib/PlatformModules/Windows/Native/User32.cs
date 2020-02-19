@@ -19,8 +19,35 @@ namespace InputshareLib.PlatformModules.Windows.Native
         public const int WS_EX_LAYERED = 0x80000;
         public const int LWA_ALPHA = 0x2;
         public const int LWA_COLORKEY = 0x1;
+
+        [DllImport("user32.dll")]
+        public static extern bool EmptyClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern uint RegisterClipboardFormat(string format);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr SetClipboardData(uint format, IntPtr hMem);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool IsClipboardFormatAvailable(uint format);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool OpenClipboard(IntPtr hWndNewOwner);
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CloseClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr GetClipboardData(uint uFormat);
+
+        [DllImport("user32.dll")]
+        internal static extern int GetClipboardFormatName(uint format, [Out] StringBuilder
+   lpszFormatName, int cchMaxCount);
         [DllImport("user32.dll")]
         public static extern IntPtr SetCapture(IntPtr hWnd);
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool EnableWindow(IntPtr hWnd, bool enable);

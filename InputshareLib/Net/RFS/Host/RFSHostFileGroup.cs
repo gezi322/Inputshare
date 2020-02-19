@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,10 +11,10 @@ namespace InputshareLib.Net.RFS.Host
     /// </summary>
     internal class RFSHostFileGroup : RFSFileGroup, IDisposable
     {
-        internal RFSHostFileHeader[] SourceFiles;
+        internal RFSFileHeader[] SourceFiles;
         private Dictionary<Guid, RFSGroupStreamInstance> _tokenInstances = new Dictionary<Guid, RFSGroupStreamInstance>();
 
-        internal RFSHostFileGroup(Guid groupId, RFSHostFileHeader[] files) : base(groupId, files)
+        internal RFSHostFileGroup(Guid groupId, RFSFileHeader[] files) : base(groupId, files)
         {
             SourceFiles = files;
         }
@@ -39,6 +40,18 @@ namespace InputshareLib.Net.RFS.Host
             if(_tokenInstances.TryGetValue(tokenId, out var tokenInstance))
             {
                 return await tokenInstance.ReadAsync(fileId, buffer, readLen);
+            }
+            else
+            {
+                throw new RFSException("Token not found");
+            }
+        }
+
+        internal long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
+        {
+            if (_tokenInstances.TryGetValue(tokenId, out var tokenInstance))
+            {
+                return tokenInstance.Seek(fileId, origin, offset);
             }
             else
             {

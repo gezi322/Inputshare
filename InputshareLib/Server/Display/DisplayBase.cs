@@ -83,6 +83,7 @@ namespace InputshareLib.Server.Display
 
         protected void OnClipboardChanged(ClipboardData cbData)
         {
+            Logger.Write($"{DisplayName} set clipboard data");
             ClipboardChanged?.Invoke(this, cbData);
         }
 

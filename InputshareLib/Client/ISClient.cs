@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Net.Client;
 using InputshareLib.Net.RFS;
 using InputshareLib.Net.RFS.Client;
+using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
 using InputshareLib.Server.Display;
@@ -19,6 +20,7 @@ namespace InputshareLib.Client
     public sealed class ISClient
     {
         private InputModuleBase inputMod;
+        private ClipboardModuleBase cbMod;
         private OutputModuleBase outMod;
         private ClientSocket soc;
         private bool _input;
@@ -39,6 +41,9 @@ namespace InputshareLib.Client
         {
             inputMod = new WindowsInputModule();
             await inputMod.StartAsync();
+            cbMod = new WindowsClipboardModule();
+            cbMod.ClipboardChanged += CbMod_ClipboardChanged;
+            await cbMod.StartAsync();
             outMod = new WindowsOutputModule();
             inputMod.SideHit += InputMod_SideHit;
             inputMod.DisplayBoundsUpdated += InputMod_DisplayBoundsUpdated;
@@ -54,14 +59,31 @@ namespace InputshareLib.Client
 
         }
 
-        private void Soc_ClipboardDataReceived(object sender, Clipboard.ClipboardData e)
+        private async void CbMod_ClipboardChanged(object sender, Clipboard.ClipboardData cbData)
+        {
+            if (cbData.IsTypeAvailable(Clipboard.ClipboardDataType.HostFileGroup))
+            {
+                string[] files = cbData.GetLocalFiles();
+                var group = _fileController.HostFiles(files);
+                cbData.SetRemoteFiles(group);
+            }
+           
+            await soc.SendClipboardDataAsync(cbData);
+        }
+
+        private async void Soc_ClipboardDataReceived(object sender, Clipboard.ClipboardData e)
         {
             Logger.Write("Received clipboard data! " + e.AvailableTypes.Length);
 
-            foreach(var type in e.AvailableTypes)
+            if (e.IsTypeAvailable(Clipboard.ClipboardDataType.RemoteFileGroup))
             {
-                Logger.Write("Type " + type);
+                var group = e.GetRemoteFiles();
+
+                RFSClientFileGroup fg = new RFSClientFileGroup(group.GroupId, group.Files, soc);
+                e.SetRemoteFiles(fg);
             }
+
+            await cbMod.SetClipboardAsync(e);
         }
 
         private void Soc_SideStateChanged1(object sender, ClientSidesChangedArgs e)

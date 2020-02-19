@@ -34,6 +34,20 @@ namespace InputshareLib.Net.RFS.Host
             }
         }
 
+        internal long Seek(Guid fileId, SeekOrigin origin, long offset)
+        {
+            if (_streams.TryGetValue(fileId, out var stream))
+            {
+                return stream.Seek(offset, origin);
+            }
+            else
+            {
+                var newStream = InitStream(fileId);
+                _streams.Add(fileId, newStream);
+                return 0;
+            }
+        }
+
         private FileStream InitStream(Guid fileId)
         {
             var header = _group.SourceFiles.Where(i => i.FileId == fileId).FirstOrDefault();
@@ -41,7 +55,7 @@ namespace InputshareLib.Net.RFS.Host
             if (header == null)
                 throw new RFSException("File ID not found");
 
-            return File.OpenRead(header.FilePath);
+            return File.OpenRead(header.HostPath);
         }
 
 

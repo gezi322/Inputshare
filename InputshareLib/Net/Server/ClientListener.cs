@@ -43,7 +43,7 @@ namespace InputshareLib.Net.Server
                 while (!_tokenSource.IsCancellationRequested)
                 {
                     var client = await _listener.AcceptSocketAsync();
-                    Task.Run(() => ProcessClient(client, fileController));
+                    await Task.Run(() => ProcessClient(client, fileController));
                 }
             }catch(ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
             {

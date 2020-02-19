@@ -111,9 +111,9 @@ namespace InputshareLib.PlatformModules.Windows
                 style = 0,
             };
 
-           ushort ret = RegisterClassEx(ref cls);
-           if (ret == 0)
-              throw new Win32Exception();
+            ushort ret = RegisterClassEx(ref cls);
+            if (ret == 0)
+                throw new Win32Exception();
 
             return cls;
         }
@@ -125,7 +125,7 @@ namespace InputshareLib.PlatformModules.Windows
                 if (_invokeQueue.TryTake(out var invoke, 1000))
                     invoke();
             }
-                    
+
 
 
             MessageRecevied?.Invoke(this, new Win32Message { hwnd = hWnd, message = msg, wParam = wParam, lParam = lParam });

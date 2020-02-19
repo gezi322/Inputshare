@@ -1,6 +1,7 @@
 ﻿using InputshareLib.Clipboard;
 using InputshareLib.Input;
 using InputshareLib.Net.RFS;
+using InputshareLib.Net.RFS.Client;
 using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
 using InputshareLib.PlatformModules.Clipboard;
@@ -9,7 +10,6 @@ using InputshareLib.PlatformModules.Output;
 using InputshareLib.Server.Config;
 using InputshareLib.Server.Display;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Linq;
@@ -137,8 +137,8 @@ namespace InputshareLib.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
-
-            
+           
+            /*
             if (display.DisplayName == "IPC")
             {
                 display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
@@ -148,7 +148,7 @@ namespace InputshareLib.Server
             {
                 display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
-            }
+            }*/
         }
 
         /// <summary>
@@ -194,8 +194,32 @@ namespace InputshareLib.Server
         {
             display.DisplayRemoved += OnDisplayRemoved;
             display.SideHit += OnDisplaySideHit;
+            display.ClipboardChanged += OnDisplayClipboardChanged;
+
             Displays.Add(display);
             ReloadConfiguration();
+        }
+
+        private async void OnDisplayClipboardChanged(object sender, ClipboardData cbData)
+        {
+            Logger.Write("Server: Clipboard changed!"); 
+
+            if(sender == LocalHostDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
+            {
+                string[] files = cbData.GetLocalFiles();
+                var group = _fileController.HostFiles(files);
+                cbData.SetRemoteFiles(group);
+            }else if(sender != LocalHostDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
+            {
+                var group = cbData.GetRemoteFiles();
+                RFSClientFileGroup fg = new RFSClientFileGroup(group.GroupId, group.Files, (sender as ClientDisplay).Socket);
+                cbData.SetRemoteFiles(fg);
+            }
+
+            foreach(var display in Displays.Where(i => i != sender))
+            {
+                await display.SetClipboardAsync(cbData);
+            }
         }
 
         /// <summary>

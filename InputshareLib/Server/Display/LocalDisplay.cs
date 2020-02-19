@@ -47,10 +47,9 @@ namespace InputshareLib.Server.Display
             return Task.CompletedTask;
         }
 
-        internal override Task SetClipboardAsync(ClipboardData cbData)
+        internal override async Task SetClipboardAsync(ClipboardData cbData)
         {
-            //TODO
-            return Task.CompletedTask;
+            await _clipboardModule.SetClipboardAsync(cbData);
         }
     }
 }

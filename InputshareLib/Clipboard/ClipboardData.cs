@@ -1,6 +1,8 @@
 ﻿using InputshareLib.Net.RFS;
+using InputshareLib.Net.RFS.Client;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -12,7 +14,8 @@ namespace InputshareLib.Clipboard
         internal ClipboardDataType[] AvailableTypes => _availableTypes.ToArray();
         private List<ClipboardDataType> _availableTypes = new List<ClipboardDataType>();
 
-        private RFSFileGroup _remoteFiles;
+        private RFSFileGroup _fileGroup;
+        private string[] _localFiles;
         private string _text;
         private byte[] _serializedBitmap;
 
@@ -40,13 +43,13 @@ namespace InputshareLib.Clipboard
 
         internal void SetRemoteFiles(RFSFileGroup files)
         {
-            _remoteFiles = files;
+            _fileGroup = files;
             SetTypeAvailable(ClipboardDataType.RemoteFileGroup);
         }
 
         internal RFSFileGroup GetRemoteFiles()
         {
-            return _remoteFiles;
+            return _fileGroup;
         }
 
         internal bool IsTypeAvailable(ClipboardDataType type)
@@ -60,5 +63,15 @@ namespace InputshareLib.Clipboard
                 _availableTypes.Add(type);
         }
 
+        internal void SetLocalFiles(string[] sources)
+        {
+            _localFiles = sources;
+            SetTypeAvailable(ClipboardDataType.HostFileGroup);
+        }
+
+        internal string[] GetLocalFiles()
+        {
+            return _localFiles;
+        }
     }
 }
