@@ -51,8 +51,6 @@ namespace InputshareLib.PlatformModules.Output
                 
         }
 
-        private BlockingCollection<InputData> _queue = new BlockingCollection<InputData>();
-
         protected override Task OnStart()
         {
             return Task.CompletedTask;

@@ -182,7 +182,7 @@ namespace InputshareLib.PlatformModules.Clipboard
 
             var sizePtr = GlobalSize(ptr);
 
-            byte[] buffer = new byte[0];
+            byte[] buffer = null;
 
             if(IntPtr.Size == 8)
                 buffer = new byte[sizePtr.ToUInt64()];
@@ -238,7 +238,7 @@ namespace InputshareLib.PlatformModules.Clipboard
             //Remove the header
             str = str.Substring(10);
             //Remove the double null terminator at the end of the string
-            str = str.Substring(0, str.Length - 2);
+            str = str[0..^2];
             //Split the string into seperate files
             var result = str.Split('\0');
 

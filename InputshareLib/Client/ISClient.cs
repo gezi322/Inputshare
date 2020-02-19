@@ -44,7 +44,7 @@ namespace InputshareLib.Client
             cbMod = new WindowsClipboardModule();
             cbMod.ClipboardChanged += CbMod_ClipboardChanged;
             await cbMod.StartAsync();
-            outMod = new WindowsOutputModule();
+            outMod = new WindowsOutputThreadedModule();
             inputMod.SideHit += InputMod_SideHit;
             inputMod.DisplayBoundsUpdated += InputMod_DisplayBoundsUpdated;
             await outMod.StartAsync();

@@ -137,8 +137,8 @@ namespace InputshareLib.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
-           
-            /*
+          
+
             if (display.DisplayName == "IPC")
             {
                 display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
@@ -148,7 +148,7 @@ namespace InputshareLib.Server
             {
                 display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
-            }*/
+            }
         }
 
         /// <summary>
