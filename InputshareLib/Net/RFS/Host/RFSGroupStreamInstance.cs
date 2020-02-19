@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace InputshareLib.Net.RFS.Host
 {
@@ -12,16 +14,41 @@ namespace InputshareLib.Net.RFS.Host
     /// </summary>
     internal class RFSGroupStreamInstance : IDisposable
     {
+        internal event EventHandler<RFSGroupStreamInstance> Closed;
+        internal Guid TokenId { get; }
+
         private Dictionary<Guid, FileStream> _streams = new Dictionary<Guid, FileStream>();
         private RFSHostFileGroup _group;
+        private Timer _timeoutTimer;
 
-        internal RFSGroupStreamInstance(RFSHostFileGroup group)
+        /// <summary>
+        /// Creates a stream instance of a filegroup
+        /// </summary>
+        /// <param name="group"></param>
+        /// <param name="timeout"></param>
+        internal RFSGroupStreamInstance(RFSHostFileGroup group, Guid tokenId, int timeout = 5000)
         {
+            TokenId = tokenId;
             _group = group;
+            _timeoutTimer = new Timer();
+            _timeoutTimer.Interval = timeout;
+            _timeoutTimer.Elapsed += OnTimeoutTimerElapsed;
+        }
+
+        private void OnTimeoutTimerElapsed (object sender, ElapsedEventArgs e)
+        {
+            foreach (var stream in _streams)
+                stream.Value.Dispose();
+
+            Closed?.Invoke(this, this);
+            _timeoutTimer.Dispose();
         }
 
         internal async Task<int> ReadAsync(Guid file, byte[] buffer, int readLen)
         {
+            _timeoutTimer.Stop();
+            _timeoutTimer.Start();
+
             if (_streams.TryGetValue(file, out var stream))
             {
                 return await stream.ReadAsync(buffer, 0, readLen);
@@ -36,6 +63,9 @@ namespace InputshareLib.Net.RFS.Host
 
         internal long Seek(Guid fileId, SeekOrigin origin, long offset)
         {
+            _timeoutTimer.Stop();
+            _timeoutTimer.Start();
+
             if (_streams.TryGetValue(fileId, out var stream))
             {
                 return stream.Seek(offset, origin);
@@ -67,6 +97,8 @@ namespace InputshareLib.Net.RFS.Host
             {
                 if (disposing)
                 {
+                    _timeoutTimer?.Dispose();
+
                     foreach (var stream in _streams)
                         stream.Value.Dispose();
                 }

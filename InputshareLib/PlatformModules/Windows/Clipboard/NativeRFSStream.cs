@@ -42,10 +42,18 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
 
         public void Read(byte[] pv, int cb, IntPtr pcbRead)
         {
-            byte[] data = new byte[cb];
-            int bIn = _stream.ReadAsync(data, 0, cb).Result;
-            Buffer.BlockCopy(data, 0, pv, 0, data.Length);
-            Marshal.WriteIntPtr(pcbRead, new IntPtr(bIn));
+            try
+            {
+                byte[] data = new byte[cb];
+                int bIn = _stream.ReadAsync(data, 0, cb).Result;
+                Buffer.BlockCopy(data, 0, pv, 0, data.Length);
+                Marshal.WriteIntPtr(pcbRead, new IntPtr(bIn));
+            }catch(Exception ex)
+            {
+                Logger.Write("NativeRFSStream read failed: " + ex.Message);
+                Marshal.WriteIntPtr(pcbRead, new IntPtr(0));
+            }
+            
         }
 
         public void Revert()
@@ -55,8 +63,17 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
 
         public void Seek(long dlibMove, int dwOrigin, IntPtr plibNewPosition)
         {
-            long val = _stream.Seek(dlibMove, (SeekOrigin)dwOrigin);
-            Marshal.WriteIntPtr(plibNewPosition, new IntPtr(val));
+            try
+            {
+                long val = _stream.Seek(dlibMove, (SeekOrigin)dwOrigin);
+                Marshal.WriteIntPtr(plibNewPosition, new IntPtr(val));
+            }
+            catch (Exception ex)
+            {
+                Logger.Write("NativeRFSStream seek failed: " + ex.Message);
+                Marshal.WriteIntPtr(plibNewPosition, new IntPtr(-1));
+            }
+            
         }
 
         public void SetSize(long libNewSize)

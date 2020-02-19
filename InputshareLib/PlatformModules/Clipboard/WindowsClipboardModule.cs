@@ -38,7 +38,15 @@ namespace InputshareLib.PlatformModules.Clipboard
                 try
                 {
                     ClipboardDataObject obj = await ClipboardDataObject.CreateAsync(cbData);
-                    //obj.Pasted += (object o, ClipboardDataObject obj) => Ole32.OleSetClipboard(obj);
+
+                    //When the object is pasted by another program, place a new instance
+                    //of the dataobject back on the clipboard to create multiple instances
+                    //of the file streams
+                    obj.Pasted += async(object o, ClipboardDataObject obj) =>
+                    {
+                        await SetClipboardAsync(obj.InnerData);
+                    };
+
                     Ole32.OleFlushClipboard();
                     IntPtr ret = Ole32.OleSetClipboard(obj);
                     SetClipboardData((uint)WinClipboardDataFormat.InputshareFormat, IntPtr.Zero);
@@ -90,11 +98,7 @@ namespace InputshareLib.PlatformModules.Clipboard
                     };
 
                     if(obj.QueryGetData(ref format) == IntPtr.Zero)
-                    {
-                        Logger.Write("Ignoring inputshare data");
                         return;
-                    }
-
                     
                     await OpenClipboardAsync();
                     var data = ReadClipboard();

@@ -28,13 +28,6 @@ namespace InputshareLib.Net.RFS.Client
             return new RFSClientStream(this, header, token);
         }
 
-        internal async Task<int> ReadAsync(RFSToken token, RFSFileHeader header, byte[] buffer, int readLen)
-        {
-            var reply = await Host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(token.Id, GroupId, header.FileId, readLen));
-            Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
-            return reply.ReturnData.Length;
-        }
-
         internal async Task<RFSToken> GetTokenAsync()
         {
             var reply = await Host.SendRequestAsync<RFSTokenReply>(new RFSTokenRequest(GroupId));

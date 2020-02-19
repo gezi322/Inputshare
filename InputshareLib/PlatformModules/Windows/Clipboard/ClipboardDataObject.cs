@@ -23,7 +23,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         internal event EventHandler<ClipboardDataObject> Pasted;
 
         private FORMATETC[] _formats;
-        private ClipboardData _data;
+        internal ClipboardData InnerData { get; private set; }
 
         private NativeRFSStream[] _fileStreams;
         private RFSToken _fileStreamToken;
@@ -31,7 +31,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         internal static async Task<ClipboardDataObject> CreateAsync(ClipboardData cbData)
         {
             ClipboardDataObject cbobj = new ClipboardDataObject();
-            cbobj._data = cbData;
+            cbobj.InnerData = cbData;
             await cbobj.CreateCompatibleFormatsAsync(cbData);
             return cbobj;
         }
@@ -50,12 +50,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 GetFileContentsStream(ref format, ref medium);
             else if (format.cfFormat == WinClipboardDataFormat.PREFERREDDROPEFFECT)
                 GetDropEffect(ref format, ref medium);
-            else
-            {
-                StringBuilder sb = new StringBuilder(256);
-                GetClipboardFormatName((uint)format.cfFormat, sb, 256);
-                Logger.Write($"Shell requested unkown format {sb.ToString()}");
-            }
 
             return IntPtr.Zero;
         }
@@ -66,12 +60,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 GetFileDescriptor(ref format, ref medium);
             else if (format.cfFormat == WinClipboardDataFormat.CFSTR_FILECONTENTS)
                 GetFileContentsStream(ref format, ref medium);
-            else {
-                StringBuilder sb = new StringBuilder(256);
-                GetClipboardFormatName((uint)format.cfFormat, sb, 256);
-                Logger.Write($"Shell requested unkown format {sb.ToString()}");
-            }
-
                 
 
             return IntPtr.Zero;
@@ -149,7 +137,8 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 try
                 {
                     _fileStreams = new NativeRFSStream[cbData.GetRemoteFiles().Files.Length];
-                    _fileStreamToken = await (_data.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync();
+                    _fileStreamToken = await (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync();
+                    Logger.Write("DataObject token = " + _fileStreamToken.Id);
                     formats.Add(CreateFileContentsFormat());
                     formats.Add(CreateFileDescriptorWFormat());
                     formats.Add(CreatePreferredEffectFormat());
@@ -230,7 +219,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             try
             {
                 medium.tymed = TYMED.TYMED_HGLOBAL;
-                byte[] text = Encoding.Unicode.GetBytes(_data.GetText());
+                byte[] text = Encoding.Unicode.GetBytes(InnerData.GetText());
                 medium.unionmember = CopyHGlobal(text);
                 medium.pUnkForRelease = IntPtr.Zero;
             }catch(Exception ex)
@@ -254,7 +243,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
 
             try
             {
-                RFSFileGroup group = _data.GetRemoteFiles();
+                RFSFileGroup group = InnerData.GetRemoteFiles();
                 var memStr = FILEDESCRIPTOR.GenerateFileDescriptor(group);
                 IntPtr ptr = CopyHGlobal(memStr.ToArray());
 
@@ -289,7 +278,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                
                 if (_fileStreams[index] == null)
                 {
-                    var group = (_data.GetRemoteFiles() as RFSClientFileGroup);
+                    var group = (InnerData.GetRemoteFiles() as RFSClientFileGroup);
                     _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], _fileStreamToken));
                     
                 }
@@ -317,6 +306,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         public void StartOperation([In] IBindCtx pbcReserved)
         {
             _isInAsyncOperation = true;
+            Pasted?.Invoke(this, this);
         }
 
         public void InOperation([Out] out int pfInAsyncOp)

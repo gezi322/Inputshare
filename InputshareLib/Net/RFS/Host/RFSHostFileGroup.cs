@@ -22,9 +22,20 @@ namespace InputshareLib.Net.RFS.Host
         internal RFSToken CreateToken()
         {
             RFSToken token = new RFSToken(Guid.NewGuid());
-
-            _tokenInstances.Add(token.Id, new RFSGroupStreamInstance(this));
+            var instance = new RFSGroupStreamInstance(this, token.Id, 5000);
+            instance.Closed += OnStreamInstanceClosed;
+            _tokenInstances.Add(token.Id, instance);
             return token;
+        }
+
+        private void OnStreamInstanceClosed(object sender, RFSGroupStreamInstance e)
+        {
+            if (_tokenInstances.ContainsKey(e.TokenId))
+            {
+                _tokenInstances.Remove(e.TokenId);
+            }
+
+            Logger.Write("Closed group token");
         }
 
         /// <summary>
