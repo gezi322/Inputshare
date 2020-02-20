@@ -1,4 +1,5 @@
-﻿using InputshareLib.Net.Messages;
+﻿using InputshareLib.Net.Formatting;
+using InputshareLib.Net.Messages;
 using InputshareLib.Net.RFS;
 using System;
 using System.Collections.Generic;
@@ -93,7 +94,7 @@ namespace InputshareLib.Net.Server
                 while (bytesIn < NetMessageHeader.HeaderSize)
                     bytesIn += await stream.ReadAsync(clientBuff, bytesIn, NetMessageHeader.HeaderSize - bytesIn, cts.Token);
 
-                var header = new NetMessageHeader(clientBuff, 0);
+                var header = NetMessageHeader.ReadFromBuffer(clientBuff, 0);
 
                 //Read the full message into the buffer
                 bytesIn = 0;
@@ -101,7 +102,7 @@ namespace InputshareLib.Net.Server
                     bytesIn += await stream.ReadAsync(clientBuff, bytesIn, header.MessageLength - bytesIn, cts.Token);
 
                 //Deserialize message, if incorrect message type is sent then throw
-                NetClientConnectionMessage msg = NetMessageSerializer.Deserialize<NetClientConnectionMessage>(clientBuff);
+                NetClientConnectionMessage msg = (NetClientConnectionMessage)MessageSerializer.Deserialize(clientBuff, ref header);
 
                 ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client, fileController), msg.ClientName, msg.ClientId, msg.DisplayBounds));
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)

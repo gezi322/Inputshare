@@ -1,5 +1,6 @@
 ﻿using InputshareLib.Clipboard;
 using InputshareLib.Input;
+using InputshareLib.Net.Formatting;
 using InputshareLib.Net.Messages;
 using InputshareLib.Net.Messages.Replies;
 using InputshareLib.Net.Messages.Requests;
@@ -55,10 +56,10 @@ namespace InputshareLib.Net
             Address = client.RemoteEndPoint as IPEndPoint;
 
             //Start receiving data from the client in a new task
-            Task.Run(async () => await ReceiveData());
+            Task.Run(ReceiveData);
         }
 
-        private async Task ReceiveData()
+        private void ReceiveData()
         {
             try
             {
@@ -73,10 +74,10 @@ namespace InputshareLib.Net
                         bytesIn += _stream.Read(_buffer, bytesIn, NetMessageHeader.HeaderSize - bytesIn);
 
                     //Get the message size
-                    var header = new NetMessageHeader(_buffer, 0);
+                    var header = NetMessageHeader.ReadFromBuffer(_buffer, 0);
 
                     //Check if header is input data
-                    if(header.IsInput)
+                    if(header.MessageType == NetMessageType.InputData)
                     {
                         InputReceived?.Invoke(this, header.Input);
                         continue;
@@ -87,16 +88,20 @@ namespace InputshareLib.Net
                     while (bytesIn < header.MessageLength)
                         bytesIn += _stream.Read(_buffer, bytesIn, header.MessageLength - bytesIn);
 
-                    NetMessageBase message = NetMessageSerializer.Deserialize<NetMessageBase>(_buffer);
+                    NetMessageBase message = MessageSerializer.Deserialize(_buffer, ref header);
 
-                    if (message is NetMessageSegment segMsg)
-                        HandleMessageSegment(segMsg);
-                    else if (message is NetReplyBase replyMessage)
-                        HandleReply(replyMessage);
-                    else if (message is NetRequestBase requestMessage)
-                        await HandleRequestInternalAsync(requestMessage);
-                    else
-                        await HandleGenericMessageInternalAsync(message);
+                    Task.Run(async () =>
+                    {
+                        if (message is NetMessageSegment segMsg)
+                            HandleMessageSegment(segMsg);
+                        else if (message is NetReplyBase replyMessage)
+                            HandleReply(replyMessage);
+                        else if (message is NetRequestBase requestMessage)
+                            await HandleRequestInternalAsync(requestMessage);
+                        else
+                            await HandleGenericMessageInternalAsync(message);
+                    });
+                    
                 }
             }catch(Exception ex)
             {
@@ -235,7 +240,7 @@ namespace InputshareLib.Net
         {
             try
             {
-                NetMessageHeader header = new NetMessageHeader(input);
+                NetMessageHeader header = NetMessageHeader.CreateInputHeader(ref input);
                 _stream.Write(header.Data, 0, header.Data.Length);
             }
             catch (Exception ex)
@@ -253,12 +258,12 @@ namespace InputshareLib.Net
         {
             try
             {
-                byte[] data = NetMessageSerializer.Serialize(message);
+                byte[] data = MessageSerializer.Serialize(message);
                 
                 //If the message is too large, send it as smaller segments
                 if(data.Length > MaxMessageSize)
                 {
-                    data = NetMessageSerializer.SerializeNoHeader(message);
+                    data = MessageSerializer.SerializeNoHeader(message);
                     await SendMessageSegmentedAsync(data);
                     return;
                 }
@@ -278,7 +283,7 @@ namespace InputshareLib.Net
         {
             try
             {
-                byte[] data = NetMessageSerializer.Serialize(message);
+                byte[] data = MessageSerializer.Serialize(message);
                 _stream.Write(data, 0, data.Length);
             }
             catch (Exception ex)

@@ -7,6 +7,8 @@ namespace InputshareLib.Net.Messages.Requests
     [Serializable]
     internal class RFSReadRequest : NetRequestBase
     {
+        internal override bool UseCustomSerialization => true;
+
         public RFSReadRequest(Guid tokenId, Guid groupId, Guid fileId, int readLen)
         {
             TokenId = tokenId;

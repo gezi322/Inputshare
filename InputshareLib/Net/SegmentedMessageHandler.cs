@@ -1,4 +1,5 @@
-﻿using InputshareLib.Net.Messages;
+﻿using InputshareLib.Net.Formatting;
+using InputshareLib.Net.Messages;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +28,7 @@ namespace InputshareLib.Net
             if (_buffer.Position == _buffer.Capacity)
             {
                 _buffer.Seek(0, SeekOrigin.Begin);
-                var fullMessage = NetMessageSerializer.Deserialize<NetMessageBase>(_buffer);
+                var fullMessage = MessageSerializer.Deserialize(_buffer);
                 MessageComplete?.Invoke(this, fullMessage);
             }
         }

@@ -10,6 +10,7 @@ namespace InputshareLib.Net.Messages
     [Serializable]
     internal abstract class NetMessageBase
     {
+        internal virtual bool UseCustomSerialization { get; } = false;
         internal NetMessageBase()
         {
 

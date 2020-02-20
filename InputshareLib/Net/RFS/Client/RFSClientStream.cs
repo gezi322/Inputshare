@@ -27,7 +27,7 @@ namespace InputshareLib.Net.RFS.Client
         }
 
         public override bool CanRead => true;
-        public override bool CanSeek => false;
+        public override bool CanSeek => true;
         public override bool CanWrite => false;
         public override long Length => _file.FileSize;
         public override long Position { get; set; }
@@ -39,7 +39,9 @@ namespace InputshareLib.Net.RFS.Client
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            var reply = _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token.Id, _group.GroupId, _file.FileId, count)).Result;
+            Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
+            return reply.ReturnData.Length;
         }
 
         public override void SetLength(long value)

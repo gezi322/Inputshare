@@ -1,15 +1,19 @@
-﻿using System;
+﻿using InputshareLib.Net.Messages;
+using InputshareLib.Net.Messages.Replies;
+using InputshareLib.Net.Messages.Requests;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography;
 using System.Text;
 
-namespace InputshareLib.Net.Messages
+namespace InputshareLib.Net.Formatting
 {
     /// <summary>
     /// Serializes or deserializes a network message
     /// </summary>
-    internal class NetMessageSerializer
+    internal class MessageSerializer
     {
         private static readonly BinaryFormatter _formatter = new BinaryFormatter();
 
@@ -20,6 +24,9 @@ namespace InputshareLib.Net.Messages
         /// <returns></returns>
         internal static byte[] Serialize(NetMessageBase message)
         {
+            if (message.UseCustomSerialization)
+                return CustomMessageSerializer.SerializeCustom(message);
+
             using MemoryStream ms = new MemoryStream();
 
             //Leave space at the start of the buffer to insert a header struct
@@ -30,7 +37,7 @@ namespace InputshareLib.Net.Messages
             int len = (int)ms.Position - NetMessageHeader.HeaderSize;
             ms.Seek(0, SeekOrigin.Begin);
             //Write a header struct to the start of the array
-            ms.Write(new NetMessageHeader(len).Data, 0, NetMessageHeader.HeaderSize);
+            ms.Write(NetMessageHeader.CreateStandardHeader(len).Data, 0, NetMessageHeader.HeaderSize);
             return ms.ToArray();
         }
 
@@ -51,15 +58,18 @@ namespace InputshareLib.Net.Messages
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        internal static T Deserialize<T>(byte[] data)
+        internal static NetMessageBase Deserialize(byte[] data, ref NetMessageHeader header)
         {
+            if((int)header.MessageType > (int)NetMessageType.CustomSerializedStart)
+                return CustomMessageDeserializer.DeserializeCustom(data, header.MessageType);
+
             using MemoryStream ms = new MemoryStream(data);
-            return (T)_formatter.Deserialize(ms);
+            return (NetMessageBase)_formatter.Deserialize(ms);
         }
 
-        internal static T Deserialize<T>(MemoryStream stream)
+        internal static NetMessageBase Deserialize(MemoryStream stream)
         {
-            return (T)_formatter.Deserialize(stream);
+            return (NetMessageBase)_formatter.Deserialize(stream);
         }
     }
 }

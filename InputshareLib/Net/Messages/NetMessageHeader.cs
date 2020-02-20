@@ -16,35 +16,45 @@ namespace InputshareLib.Net.Messages
         /// </summary>
         internal const int HeaderSize = 6;
 
-        internal bool IsInput => Convert.ToBoolean(Data[0]);
+        internal NetMessageType MessageType => (NetMessageType)Data[0];
         internal int MessageLength => BitConverter.ToInt32(Data, 1);
         internal Input.InputData Input => new Input.InputData(Data, 1);
 
         internal byte[] Data;
 
-        internal NetMessageHeader(int messageLen)
+        internal static NetMessageHeader CreateStandardHeader(int messageLen)
         {
-            Data = new byte[6];
-            Data[0] = Convert.ToByte(false);
-            Buffer.BlockCopy(BitConverter.GetBytes(messageLen), 0, Data, 1, 4);
+            NetMessageHeader header;
+            header.Data = new byte[6];
+            header.Data[0] = (byte)NetMessageType.StandardMessage;
+            Buffer.BlockCopy(BitConverter.GetBytes(messageLen), 0, header.Data, 1, 4);
+            return header;
         }
 
-        internal NetMessageHeader(byte[] buffer, int offset)
+        internal static NetMessageHeader CreateInputHeader(ref InputData input)
         {
-            Data = new byte[6];
-
-            Buffer.BlockCopy(buffer, offset, Data, 0, 6);
+            NetMessageHeader header;
+            header.Data = new byte[6];
+            header.Data[0] = (byte)NetMessageType.InputData;
+            input.CopyToBuffer(header.Data, 1);
+            return header;
         }
 
-        /// <summary>
-        /// Creates a network message header that contains input data
-        /// </summary>
-        /// <param name="input"></param>
-        internal NetMessageHeader(InputData input)
+        internal static NetMessageHeader CreateCustomSerializedHeader(int messageLen, NetMessageType type)
         {
-            Data = new byte[6];
-            Data[0] = Convert.ToByte(true);
-            input.CopyToBuffer(Data, 1);
+            NetMessageHeader header;
+            header.Data = new byte[6];
+            header.Data[0] = (byte)type;
+            Buffer.BlockCopy(BitConverter.GetBytes(messageLen), 0, header.Data, 1, 4);
+            return header;
+        }
+
+        internal static NetMessageHeader ReadFromBuffer(byte[] buffer, int offset)
+        {
+            NetMessageHeader header;
+            header.Data = new byte[6];
+            Buffer.BlockCopy(buffer, offset, header.Data, 0, 6);
+            return header;
         }
     }
 }

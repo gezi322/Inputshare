@@ -141,7 +141,7 @@ namespace InputshareLib.Net.RFS
         /// <param name="fileId"></param>
         /// <param name="readLen"></param>
         /// <returns></returns>
-        private async Task<byte[]> ReadHostedFile(Guid tokenId, Guid groupId, Guid fileId, int readLen)
+        private async Task<byte[]> ReadHostedFileAsync(Guid tokenId, Guid groupId, Guid fileId, int readLen)
         {
             if(_hostedGroups.TryGetValue(groupId, out var group))
             {
@@ -234,7 +234,7 @@ namespace InputshareLib.Net.RFS
         {
             try
             {
-                byte[] data = await ReadHostedFile(readRequest.TokenId, readRequest.GroupId, readRequest.FileId, readRequest.ReadLen);
+                byte[] data = await ReadHostedFileAsync(readRequest.TokenId, readRequest.GroupId, readRequest.FileId, readRequest.ReadLen);
                 await sender.SendMessageAsync(new RFSReadReply(readRequest.MessageId, data));
             }catch(Exception ex)
             {

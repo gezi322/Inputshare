@@ -12,6 +12,6 @@ namespace InputshareLib.Net.Messages.Replies
             MessageId = messageId;
         }
 
-        public Guid MessageId { get; }
+        public Guid MessageId { get; internal set; }
     }
 }
