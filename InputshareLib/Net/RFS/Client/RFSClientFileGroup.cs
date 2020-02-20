@@ -44,7 +44,7 @@ namespace InputshareLib.Net.RFS.Client
 
         internal override long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
         {
-            var reply = Host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(tokenId, GroupId, fileId, origin, offset)).Result;
+            var reply = Host.SendRequest<RFSSeekReply>(new RFSSeekRequest(tokenId, GroupId, fileId, origin, offset));
             return reply.Position;
         }
 

@@ -39,7 +39,7 @@ namespace InputshareLib.Net.RFS.Client
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var reply = _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token, _group.GroupId, _file.FileId, count)).Result;
+            var reply = _host.SendRequest<RFSReadReply>(new RFSReadRequest(_token, _group.GroupId, _file.FileId, count));
             Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
             return reply.ReturnData.Length;
         }
@@ -62,7 +62,7 @@ namespace InputshareLib.Net.RFS.Client
         }
         public override long Seek(long offset, SeekOrigin origin)
         {
-            var reply = _host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(_token, _group.GroupId, _file.FileId, origin, offset)).Result;
+            var reply = _host.SendRequest<RFSSeekReply>(new RFSSeekRequest(_token, _group.GroupId, _file.FileId, origin, offset));
             return reply.Position;
         }
     }

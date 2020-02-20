@@ -27,40 +27,39 @@ namespace InputshareLib.Net.Server
         /// </summary>
         /// <param name="bindAddress"></param>
         /// <returns></returns>
-        internal async Task ListenAsync(IPEndPoint bindAddress, RFSController fileController)
+        internal void BeginListening(IPEndPoint bindAddress, RFSController fileController)
         {
             _listener = new TcpListener(bindAddress);
             _listener.Start();
-            
+
             _tokenSource = new CancellationTokenSource();
             BindAddress = bindAddress;
             _tokenSource.Token.Register(() => _listener.Stop());
             Listening = true;
-
             Logger.Write($"Listening at {bindAddress}");
+            Task.Run(async() => { await ListenLoop(fileController); });
+        }
 
-            try
+        internal async Task ListenLoop(RFSController fileController)
+        {
+            while (!_tokenSource.IsCancellationRequested)
             {
-                while (!_tokenSource.IsCancellationRequested)
+                try
                 {
                     var client = await _listener.AcceptSocketAsync();
                     await Task.Run(() => ProcessClient(client, fileController));
                 }
-            }catch(ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
-            {
-                
-                //If Stop() is called
-            }
-            finally
-            {
-                Logger.Write("??");
-                foreach (var client in _processingClients)
-                    client.Dispose();
+                catch (ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
+                {
 
-                _processingClients.Clear();
-                _listener.Stop();
-                Logger.Write("Stopped listening");
-                Listening = false;
+                    foreach (var client in _processingClients)
+                        client.Dispose();
+
+                    _processingClients.Clear();
+                    _listener.Stop();
+                    Logger.Write("Stopped listening");
+                    Listening = false;
+                }
             }
         }
 
@@ -77,16 +76,20 @@ namespace InputshareLib.Net.Server
         /// <returns></returns>
         private async Task ProcessClient(Socket client, RFSController fileController)
         {
-            _processingClients.Add(client);
-            var stream = new NetworkStream(client);
+            CancellationTokenSource cts = null;
             IPEndPoint clientAddr = client.RemoteEndPoint as IPEndPoint;
-            Logger.Write($"Accepting connection from {clientAddr}");
-
-            //Use a cancellationtoken to timeout after 3000ms
-            using CancellationTokenSource cts = new CancellationTokenSource(3000);
 
             try
             {
+                _processingClients.Add(client);
+                var stream = new NetworkStream(client);
+                
+                Logger.Write($"Accepting connection from {clientAddr}");
+
+                //Use a cancellationtoken to timeout after 3000ms
+                cts = new CancellationTokenSource(3000);
+
+
                 int bytesIn = 0;
                 byte[] clientBuff = new byte[2048];
                 

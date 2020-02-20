@@ -44,9 +44,20 @@ namespace InputshareLib.Net
         /// Waits for a reply to the request
         /// </summary>
         /// <returns></returns>
-        internal async Task<NetReplyBase> AwaitReply()
+        internal async Task<NetReplyBase> WaitAsync()
         {
             if (!await _semaphore.WaitAsync(5000))
+                throw new NetRequestTimedOutException();
+
+            if (_socketClosed)
+                throw new NetConnectionClosedException();
+
+            return _reply;
+        }
+
+        internal NetReplyBase Wait()
+        {
+            if (!_semaphore.Wait(5000))
                 throw new NetRequestTimedOutException();
 
             if (_socketClosed)

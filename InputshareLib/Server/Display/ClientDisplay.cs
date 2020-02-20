@@ -60,6 +60,8 @@ namespace InputshareLib.Server.Display
             if (Socket.Connected)
                 Socket.DisconnectSocket();
 
+            Socket.Dispose();
+
         }
 
         internal override async Task SetClipboardAsync(ClipboardData cbData)

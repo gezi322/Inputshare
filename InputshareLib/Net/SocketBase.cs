@@ -34,12 +34,13 @@ namespace InputshareLib.Net
         private NetworkStream _stream;
         private readonly byte[] _buffer = new byte[BufferSize];
         private CancellationTokenSource _tokenSource;
-        private RFSController _fileController;
+        private readonly RFSController _fileController;
 
-        private object _awaitingMessagesLock = new object();
+        private readonly object _awaitingMessagesLock = new object();
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
-        private object _incompleteMessagesLock = new object();
+        private readonly object _incompleteMessagesLock = new object();
         private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
+        private bool _disconnecting = false;
 
         internal SocketBase(RFSController fileController)
         {
@@ -52,6 +53,7 @@ namespace InputshareLib.Net
         /// <param name="client"></param>
         protected void BeginReceiveData(Socket client)
         {
+            _disconnecting = false;
             _client = client;
             _client.NoDelay = true;
             _client.ReceiveBufferSize = BufferSize;
@@ -191,9 +193,30 @@ namespace InputshareLib.Net
             //Send the request message
             await SendMessageAsync(req.RequestMessage);
             //Wait for a reply message
-            var reply = await req.AwaitReply();
+            var reply = await req.WaitAsync();
             //Remove the request 
             lock(_awaitingMessagesLock)
+                _awaitingMessages.Remove(request.MessageId);
+            //Cast the reply to the expected message reply type
+            return reply as TReply;
+        }
+
+        internal TReply SendRequest<TReply>(NetRequestBase request) where TReply : NetReplyBase
+        {
+            if (Closed)
+                throw new NetConnectionClosedException();
+
+            //Create a request object 
+            SocketRequest req = new SocketRequest(request);
+            //add the request to the awaiting requests dictionary
+            lock (_awaitingMessagesLock)
+                _awaitingMessages.Add(request.MessageId, req);
+            //Send the request message
+            SendMessage(req.RequestMessage);
+            //Wait for a reply message
+            var reply = req.Wait();
+            //Remove the request 
+            lock (_awaitingMessagesLock)
                 _awaitingMessages.Remove(request.MessageId);
             //Cast the reply to the expected message reply type
             return reply as TReply;
@@ -227,6 +250,7 @@ namespace InputshareLib.Net
 
         internal virtual void DisconnectSocket()
         {
+            _disconnecting = true;
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Dispose();
@@ -310,12 +334,16 @@ namespace InputshareLib.Net
         /// <returns></returns>
         protected abstract Task HandleRequestAsync(NetRequestBase request);
 
-        private object _exceptionLock = new object();
+        private readonly object _exceptionLock = new object();
         private void HandleExceptionInternal(Exception ex)
         {
             lock (_exceptionLock)
             {
-                HandleException(ex);
+                if (!_disconnecting)
+                {
+                    HandleException(ex);
+                }
+                
             }
         }
 
@@ -332,6 +360,7 @@ namespace InputshareLib.Net
             {
                 if (disposing)
                 {
+                    _disconnecting = true;
                     Closed = true;
                     _stream?.Dispose();
                     _tokenSource?.Dispose();

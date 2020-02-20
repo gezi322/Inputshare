@@ -33,6 +33,11 @@ namespace InputshareLib.Client
         private SideStates _sideStates;
         private bool _isInputClient;
 
+        /// <summary>
+        /// Starts the inputshare client instance
+        /// </summary>
+        /// <param name="dependencies"></param>
+        /// <returns></returns>
         public async Task StartAsync(ISClientDependencies dependencies)
         {
             if (Running)
@@ -49,6 +54,12 @@ namespace InputshareLib.Client
             Running = true;
         }
 
+        /// <summary>
+        /// Connects to a server with the specified name
+        /// </summary>
+        /// <param name="address"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public async Task<bool> ConnectAsync(IPEndPoint address, string name)
         {
             if (Connected) throw new InvalidOperationException("Client already connected");
@@ -57,6 +68,9 @@ namespace InputshareLib.Client
             return await _socket.ConnectAsync(new ClientConnectArgs(address, name, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
         }
 
+        /// <summary>
+        /// Disconnects from the server
+        /// </summary>
         public void Disconnect()
         {
             if (!Connected) throw new InvalidOperationException("Client not connected");

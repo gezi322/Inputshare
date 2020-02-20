@@ -26,9 +26,6 @@ namespace TestProgram
             _client.Disconnected += _client_Disconnected;
             await _client.StartAsync(ISClientDependencies.GetWindowsDependencies());
             while(!await _client.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"), Environment.MachineName)) { }
-
-            await Task.Delay(2000);
-            _client.Disconnect();
         }
 
         private static async void _client_Disconnected(object sender, string e)

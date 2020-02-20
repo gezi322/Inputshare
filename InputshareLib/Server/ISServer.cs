@@ -1,7 +1,5 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Input;
+﻿using InputshareLib.Input;
 using InputshareLib.Net.RFS;
-using InputshareLib.Net.RFS.Client;
 using InputshareLib.Net.Server;
 using InputshareLib.PlatformModules;
 using InputshareLib.PlatformModules.Clipboard;
@@ -10,11 +8,9 @@ using InputshareLib.PlatformModules.Output;
 using InputshareLib.Server.Config;
 using InputshareLib.Server.Display;
 using System;
-using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace InputshareLib.Server
@@ -67,24 +63,22 @@ namespace InputshareLib.Server
 
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
-                var listenTask = _listener.ListenAsync(bindAddress, _fileController);
-                Running = true;
+                _listener.BeginListening(bindAddress, _fileController);
 
-                await listenTask;
+                Running = true;
+                
             }catch(Exception ex)
-            {
-                Logger.Write("Failed to start server: " + ex.Message);
-                Logger.Write(ex.StackTrace);
-            }
-            finally
             {
                 if (_listener != null && _listener.Listening)
                     _listener.Stop();
 
-                await StopModulesAsync();
-                Running = false;
+                foreach (var display in Displays.ToArray())
+                    if (display != LocalHostDisplay)
+                        display.RemoveDisplay();
+
+                Logger.Write("Failed to start server: " + ex.Message);
+                Logger.Write(ex.StackTrace);
             }
-            
         }
 
         private void OnInputReceived(object sender, InputData e)
@@ -100,8 +94,12 @@ namespace InputshareLib.Server
             if (!Running)
                 throw new InvalidOperationException("Server is not running");
 
+            if (_listener != null && _listener.Listening)
+                _listener.Stop();
+
+
             foreach (var display in Displays.ToArray())
-                if(display != LocalHostDisplay)
+                if (display != LocalHostDisplay)
                     display.RemoveDisplay();
 
             _listener.Stop();
@@ -111,22 +109,16 @@ namespace InputshareLib.Server
 
         private async Task StartModulesAsync()
         {
-            if (!InputModule.Running)
-                await InputModule.StartAsync();
-            if (!OutputModule.Running)
-                await OutputModule.StartAsync();
-            if (!ClipboardModule.Running)
-                await ClipboardModule.StartAsync();
+            await InputModule.StartIfNotRunningAsync();
+            await OutputModule.StartIfNotRunningAsync();
+            await ClipboardModule.StartIfNotRunningAsync();
         }
 
         private async Task StopModulesAsync()
         {
-            if (InputModule.Running)
-                await InputModule.StopAsync();
-            if (OutputModule.Running)
-                await OutputModule.StopAsync();
-            if (ClipboardModule.Running)
-                await ClipboardModule.StopAsync();
+            await InputModule.StopIfRunningAsync();
+            await OutputModule.StopIfRunningAsync();
+            await ClipboardModule.StopIfRunningAsync();
         }
 
         /// <summary>
@@ -253,18 +245,14 @@ namespace InputshareLib.Server
         /// <returns></returns>
         private Point CalculateCursorPosition(DisplayBase newDisplay, Side side, int hitX, int hitY)
         {
-            switch (side) {
-                case Side.Top:
-                    return new Point(hitX, newDisplay.DisplayBounds.Bottom - 2);
-                case Side.Right:
-                    return new Point(newDisplay.DisplayBounds.Left + 2, hitY);
-                case Side.Left:
-                    return new Point(newDisplay.DisplayBounds.Right - 2, hitY);
-                case Side.Bottom:
-                    return new Point(hitX, newDisplay.DisplayBounds.Top + 2);
-                default:
-                    return new Point(0, 0);
-            }
+            return side switch
+            {
+                Side.Top => new Point(hitX, newDisplay.DisplayBounds.Bottom - 2),
+                Side.Right => new Point(newDisplay.DisplayBounds.Left + 2, hitY),
+                Side.Left => new Point(newDisplay.DisplayBounds.Right - 2, hitY),
+                Side.Bottom => new Point(hitX, newDisplay.DisplayBounds.Top + 2),
+                _ => new Point(0, 0),
+            };
         }
 
         /// <summary>
