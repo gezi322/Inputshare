@@ -1,4 +1,5 @@
 ﻿using InputshareLib.Input;
+using InputshareLib.PlatformModules.Windows;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,7 +14,6 @@ namespace InputshareLib.PlatformModules.Output
         private Thread _thread;
         private CancellationTokenSource _tokenSource;
         private BlockingCollection<InputData> _queue;
-        private WindowsOutputModule _defaultOutputModule;
 
         public override void SimulateInput(ref InputData input)
         {
@@ -25,13 +25,12 @@ namespace InputshareLib.PlatformModules.Output
             while (!_tokenSource.IsCancellationRequested)
             {
                 var input = _queue.Take(_tokenSource.Token);
-                _defaultOutputModule.SimulateInput(ref input);
+                WinInputSimulator.SendInput(ref input);
             }
         }
 
         protected override Task OnStart()
         {
-            _defaultOutputModule = new WindowsOutputModule();
             _queue = new BlockingCollection<InputData>();
             _tokenSource = new CancellationTokenSource();
             _thread = new Thread(ThreadLoop);

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Input
+namespace InputshareLib
 {
     public class SideHitArgs : EventArgs
     {

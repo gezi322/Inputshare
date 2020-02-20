@@ -304,7 +304,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 if (_fileStreams[index] == null)
                 {
                     var group = (InnerData.GetRemoteFiles() as RFSClientFileGroup);
-                    _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], new RFSToken(_fileStreamToken)));
+                    _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], _fileStreamToken));
                     
                 }
                 medium.tymed = TYMED.TYMED_ISTREAM;

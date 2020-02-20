@@ -24,7 +24,7 @@ namespace InputshareLib.Net.RFS.Client
             return new RFSClientFileGroup(group.GroupId, group.Files, host);
         }
 
-        internal RFSClientStream CreateStream(RFSFileHeader header, RFSToken token)
+        internal RFSClientStream CreateStream(RFSFileHeader header, Guid token)
         {
             return new RFSClientStream(this, header, token);
         }

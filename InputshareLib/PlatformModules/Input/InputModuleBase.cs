@@ -7,7 +7,8 @@ using System.Text;
 namespace InputshareLib.PlatformModules.Input
 {
     /// <summary>
-    /// Base class for input modules. Used for redirecting user mouse/keyboard input
+    /// Base class for input modules. Used for redirecting user mouse/keyboard input#
+    /// and detecting when the cursor is at the edge of a display
     /// </summary>
     public abstract class InputModuleBase : PlatformModuleBase
     {

@@ -1,12 +1,6 @@
 ﻿using InputshareLib.Net.Messages;
-using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace InputshareLib.Net.Formatting
 {

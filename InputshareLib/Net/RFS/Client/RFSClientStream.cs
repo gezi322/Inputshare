@@ -17,9 +17,9 @@ namespace InputshareLib.Net.RFS.Client
         private RFSClientFileGroup _group;
         private RFSFileHeader _file;
         private SocketBase _host => _group.Host;
-        private RFSToken _token;
+        private Guid _token;
 
-        internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file, RFSToken token)
+        internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file, Guid token)
         {
             _token = token;
             _group = group;
@@ -39,7 +39,7 @@ namespace InputshareLib.Net.RFS.Client
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var reply = _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token.Id, _group.GroupId, _file.FileId, count)).Result;
+            var reply = _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token, _group.GroupId, _file.FileId, count)).Result;
             Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
             return reply.ReturnData.Length;
         }
@@ -56,13 +56,13 @@ namespace InputshareLib.Net.RFS.Client
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            var reply = await _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token.Id, _group.GroupId, _file.FileId, count));
+            var reply = await _host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(_token, _group.GroupId, _file.FileId, count));
             Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
             return reply.ReturnData.Length;
         }
         public override long Seek(long offset, SeekOrigin origin)
         {
-            var reply = _host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(_token.Id, _group.GroupId, _file.FileId, origin, offset)).Result;
+            var reply = _host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(_token, _group.GroupId, _file.FileId, origin, offset)).Result;
             return reply.Position;
         }
     }

@@ -16,6 +16,9 @@ using System.Threading.Tasks;
 
 namespace InputshareLib.Net
 {
+    /// <summary>
+    /// Base class for communicating between client/server
+    /// </summary>
     internal abstract class SocketBase : IDisposable
     {
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
@@ -23,9 +26,9 @@ namespace InputshareLib.Net
         internal event EventHandler<ClipboardData> ClipboardDataReceived;
         internal bool Closed { get; private set; }
 
-        private const int MaxMessageSize = 2046 * 1024;
-        private const int BufferSize = 2048 * 1024;
-        private const int SegmentSize = 2044 * 1024;
+        private const int MaxMessageSize = 510*1024;
+        private const int BufferSize = 512*1024;
+        private const int SegmentSize = 500*1024;
 
         private Socket _client;
         private NetworkStream _stream;

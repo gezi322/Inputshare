@@ -36,7 +36,6 @@ namespace InputshareLib.Net.Server
             sw.Start();
             var reply = await SendRequestAsync<NetScreenshotReply>(new NetScreenshotRequest());
             sw.Stop();
-            Logger.Write("Reply time: " + sw.ElapsedMilliseconds + "MS");
             
             return reply.Bmp;
         }

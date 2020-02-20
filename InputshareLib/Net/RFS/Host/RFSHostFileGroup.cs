@@ -22,11 +22,11 @@ namespace InputshareLib.Net.RFS.Host
 
         private Guid CreateToken()
         {
-            RFSToken token = new RFSToken(Guid.NewGuid());
-            var instance = new RFSGroupStreamInstance(this, token.Id, 5000);
+            Guid token = Guid.NewGuid();
+            var instance = new RFSGroupStreamInstance(this, token, 5000);
             instance.Closed += OnStreamInstanceClosed;
-            TokenInstances.Add(token.Id, instance);
-            return token.Id;
+            TokenInstances.Add(token, instance);
+            return token;
         }
 
         private void OnStreamInstanceClosed(object sender, RFSGroupStreamInstance instance)

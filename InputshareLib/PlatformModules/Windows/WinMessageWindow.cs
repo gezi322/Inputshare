@@ -12,7 +12,7 @@ using static InputshareLib.PlatformModules.Windows.Native.User32;
 namespace InputshareLib.PlatformModules.Windows
 {
     /// <summary>
-    /// A win32 message only window
+    /// A win32 message only window for receiving messages
     /// </summary>
     internal class WinMessageWindow : IDisposable
     {
