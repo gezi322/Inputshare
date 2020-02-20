@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -40,9 +41,14 @@ namespace InputshareLib.Net.Server
             return reply.Bmp;
         }
 
-        internal async Task SendSideUpdateAsync(bool left, bool right, bool top, bool bottom)
+        internal async Task SendSideUpdateAsync(Side[] activeSides)
         {
+            bool left = activeSides.Contains(Side.Left);
+            bool right = activeSides.Contains(Side.Right);
+            bool bottom = activeSides.Contains(Side.Bottom);
+            bool top = activeSides.Contains(Side.Top);
             await SendMessageAsync(new NetClientSideStateMessage(left, right, top, bottom));
+
         }
 
         internal async Task NotifyInputClientAsync(bool inputClient)
@@ -70,9 +76,9 @@ namespace InputshareLib.Net.Server
                 DisplayBoundsChanged?.Invoke(this, displayMsg.NewBounds);
         }
 
-        protected override async Task HandleRequestAsync(NetRequestBase request)
+        protected override Task HandleRequestAsync(NetRequestBase request)
         {
-
+            return Task.CompletedTask;
         }
     }
 }

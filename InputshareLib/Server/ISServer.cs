@@ -26,11 +26,11 @@ namespace InputshareLib.Server
     {
         public bool Running { get; private set; }
         public IPEndPoint BoundAddress { get => _listener.BindAddress; }
-        
+
         /// <summary>
         /// Displays that are connected to the server
         /// </summary>
-        public ObservableCollection<DisplayBase> Displays = new ObservableCollection<DisplayBase>();
+        public ObservableDisplayList Displays;
         internal DisplayBase InputDisplay { get; private set; }
         internal LocalDisplay LocalHostDisplay { get; private set; }
         internal InputModuleBase InputModule => _dependencies.InputModule;
@@ -40,6 +40,7 @@ namespace InputshareLib.Server
         private ClientListener _listener;
         private ISServerDependencies _dependencies;
         private RFSController _fileController;
+        private GlobalClipboard _clipboardController;
 
         /// <summary>
         /// Starts the inputshare server
@@ -54,8 +55,10 @@ namespace InputshareLib.Server
 
             try
             {
+                Displays = new ObservableDisplayList();
                 _dependencies = dependencies;
                 _fileController = new RFSController();
+                _clipboardController = new GlobalClipboard(Displays, _fileController);
                 await StartModulesAsync();
                 LocalHostDisplay = new LocalDisplay(_dependencies);
                 InputDisplay = LocalHostDisplay;
@@ -97,7 +100,7 @@ namespace InputshareLib.Server
             if (!Running)
                 throw new InvalidOperationException("Server is not running");
 
-            foreach (var display in Displays)
+            foreach (var display in Displays.ToArray())
                 if(display != LocalHostDisplay)
                     display.RemoveDisplay();
 
@@ -137,18 +140,6 @@ namespace InputshareLib.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
-          
-
-            if (display.DisplayName == "IPC")
-            {
-                display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
-                LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
-            }
-            else if (display.DisplayName == "ENVY15")
-            {
-                display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
-                LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
-            }
         }
 
         /// <summary>
@@ -194,32 +185,9 @@ namespace InputshareLib.Server
         {
             display.DisplayRemoved += OnDisplayRemoved;
             display.SideHit += OnDisplaySideHit;
-            display.ClipboardChanged += OnDisplayClipboardChanged;
 
             Displays.Add(display);
             ReloadConfiguration();
-        }
-
-        private async void OnDisplayClipboardChanged(object sender, ClipboardData cbData)
-        {
-            Logger.Write("Server: Clipboard changed!"); 
-
-            if(sender == LocalHostDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
-            {
-                string[] files = cbData.GetLocalFiles();
-                var group = _fileController.HostFiles(files);
-                cbData.SetRemoteFiles(group);
-            }else if(sender != LocalHostDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
-            {
-                var group = cbData.GetRemoteFiles();
-                RFSClientFileGroup fg = new RFSClientFileGroup(group.GroupId, group.Files, (sender as ClientDisplay).Socket);
-                cbData.SetRemoteFiles(fg);
-            }
-
-            foreach(var display in Displays.Where(i => i != sender))
-            {
-                await display.SetClipboardAsync(cbData);
-            }
         }
 
         /// <summary>

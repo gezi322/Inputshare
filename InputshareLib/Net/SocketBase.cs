@@ -20,6 +20,7 @@ namespace InputshareLib.Net
         internal IPEndPoint Address { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
         internal event EventHandler<InputData> InputReceived;
         internal event EventHandler<ClipboardData> ClipboardDataReceived;
+        internal bool Closed { get; private set; }
 
         private const int MaxMessageSize = 2046 * 1024;
         private const int BufferSize = 2048 * 1024;
@@ -168,6 +169,9 @@ namespace InputshareLib.Net
         /// <returns></returns>
         internal async Task<TReply> SendRequestAsync<TReply>(NetRequestBase request) where TReply : NetReplyBase
         {
+            if (Closed)
+                throw new NetConnectionClosedException();
+
             //Create a request object 
             SocketRequest req = new SocketRequest(request);
             //add the request to the awaiting requests dictionary
@@ -215,6 +219,7 @@ namespace InputshareLib.Net
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Dispose();
+            Dispose();
         }
 
         internal async Task SendClipboardDataAsync(ClipboardData cbData)
@@ -295,9 +300,14 @@ namespace InputshareLib.Net
         /// <returns></returns>
         protected abstract Task HandleRequestAsync(NetRequestBase request);
 
+        private object _exceptionLock = new object();
         private void HandleExceptionInternal(Exception ex)
         {
-            HandleException(ex);
+            lock (_exceptionLock)
+            {
+                HandleException(ex);
+            }
+            
         }
 
         /// <summary>
@@ -313,8 +323,12 @@ namespace InputshareLib.Net
             {
                 if (disposing)
                 {
+                    Closed = true;
                     _stream?.Dispose();
                     _tokenSource?.Dispose();
+
+                    foreach (var awaitingMessage in _awaitingMessages)
+                        awaitingMessage.Value.SetSocketClosed();
 
                     foreach (var segment in _incompleteMessages)
                         segment.Value.Dispose();

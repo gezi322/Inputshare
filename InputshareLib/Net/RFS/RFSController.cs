@@ -207,7 +207,7 @@ namespace InputshareLib.Net.RFS
                 }
                 else
                 {
-                    throw new RFSException("Group ID not found");
+                    throw new RFSException("Group ID not found ");
                 }
             }catch(Exception ex)
             {

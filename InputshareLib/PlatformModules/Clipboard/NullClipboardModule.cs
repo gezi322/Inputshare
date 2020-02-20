@@ -8,6 +8,7 @@ namespace InputshareLib.PlatformModules.Clipboard
 {
     public class NullClipboardModule : ClipboardModuleBase
     {
+#pragma warning disable CS0067
         public override event EventHandler<ClipboardData> ClipboardChanged;
 
         public override Task SetClipboardAsync(ClipboardData cbData)
@@ -24,5 +25,8 @@ namespace InputshareLib.PlatformModules.Clipboard
         {
             return Task.CompletedTask;
         }
+
+#pragma warning restore CS0067
+
     }
 }

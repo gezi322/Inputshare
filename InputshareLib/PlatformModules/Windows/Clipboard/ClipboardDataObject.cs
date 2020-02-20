@@ -29,18 +29,25 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         private NativeRFSStream[] _fileStreams;
         private RFSToken _fileStreamToken;
 
-        internal static async Task<ClipboardDataObject> CreateAsync(ClipboardData cbData)
+#pragma warning disable IDE0060
+
+        internal static  ClipboardDataObject Create(ClipboardData cbData)
         {
-            ClipboardDataObject cbobj = new ClipboardDataObject();
-            cbobj.InnerData = cbData;
-            await cbobj.CreateCompatibleFormatsAsync(cbData);
+            ClipboardDataObject cbobj = new ClipboardDataObject
+            {
+                InnerData = cbData
+            };
+
+            cbobj.CreateCompatibleFormats(cbData);
             return cbobj;
         }
 
         public IntPtr GetData([In] ref FORMATETC format, out STGMEDIUM medium)
         {
-            medium = new STGMEDIUM();
-            medium.tymed = TYMED.TYMED_NULL;
+            medium = new STGMEDIUM
+            {
+                tymed = TYMED.TYMED_NULL
+            };
 
             if (format.cfFormat == WinClipboardDataFormat.CF_UNICODETEXT)
                 GetTextHGlobal(ref format, ref medium);
@@ -125,7 +132,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         /// </summary>
         /// <param name="cbData"></param>
         /// <returns></returns>
-        private async Task CreateCompatibleFormatsAsync(ClipboardData cbData)
+        private void CreateCompatibleFormats(ClipboardData cbData)
         {
             List<FORMATETC> formats = new List<FORMATETC>();
 
@@ -139,7 +146,6 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 try
                 {
                     _fileStreams = new NativeRFSStream[cbData.GetRemoteFiles().Files.Length];
-                    _fileStreamToken = await (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync();
                     formats.Add(CreateFileContentsFormat());
                     formats.Add(CreateFileDescriptorWFormat());
                     formats.Add(CreatePreferredEffectFormat());
@@ -290,7 +296,11 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             {
                 
                 int index = format.lindex;
-               
+
+                if (_fileStreamToken == null)
+                    _fileStreamToken = (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync().Result;
+
+
                 if (_fileStreams[index] == null)
                 {
                     var group = (InnerData.GetRemoteFiles() as RFSClientFileGroup);
@@ -347,5 +357,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         {
             _isInAsyncOperation = false;
         }
+
+#pragma warning restore IDE0060
     }
 }

@@ -33,11 +33,11 @@ namespace InputshareLib.PlatformModules.Clipboard
         /// <returns></returns>
         public override Task SetClipboardAsync(ClipboardData cbData)
         {
-            _window.InvokeAction(async () => {
+            _window.InvokeAction(() => {
 
                 try
                 {
-                    ClipboardDataObject obj = await ClipboardDataObject.CreateAsync(cbData);
+                    ClipboardDataObject obj = ClipboardDataObject.Create(cbData);
 
                     //When the object is pasted by another program, place a new instance
                     //of the dataobject back on the clipboard to create multiple instances
@@ -182,7 +182,7 @@ namespace InputshareLib.PlatformModules.Clipboard
 
             var sizePtr = GlobalSize(ptr);
 
-            byte[] buffer = null;
+            byte[] buffer;
 
             if(IntPtr.Size == 8)
                 buffer = new byte[sizePtr.ToUInt64()];

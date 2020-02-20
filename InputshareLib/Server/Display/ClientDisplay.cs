@@ -25,12 +25,12 @@ namespace InputshareLib.Server.Display
             if (!Socket.Connected)
                 return;
 
-           await Socket.SendSideUpdateAsync(GetDisplayAtSide(Side.Left) != null,
-                GetDisplayAtSide(Side.Right) != null,
-                GetDisplayAtSide(Side.Top) != null,
-                GetDisplayAtSide(Side.Bottom) != null
-                );
-
+            Side[] activeSides = new Side[4];
+            activeSides[0] = GetDisplayAtSide(Side.Left) == null ? 0 : Side.Left;
+            activeSides[1] = GetDisplayAtSide(Side.Right) == null ? 0 : Side.Right;
+            activeSides[2] = GetDisplayAtSide(Side.Bottom) == null ? 0 : Side.Bottom;
+            activeSides[3] = GetDisplayAtSide(Side.Top) == null ? 0 : Side.Top;
+            await Socket.SendSideUpdateAsync(activeSides);
             await base.SendSideChangedAsync();
         }
 

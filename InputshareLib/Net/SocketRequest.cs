@@ -16,6 +16,7 @@ namespace InputshareLib.Net
         public NetRequestBase RequestMessage { get; }
         private readonly SemaphoreSlim _semaphore;
         private NetReplyBase _reply;
+        private bool _socketClosed = false;
 
         internal SocketRequest(NetRequestBase request)
         {
@@ -33,6 +34,12 @@ namespace InputshareLib.Net
             _semaphore.Release();
         }
 
+        internal void SetSocketClosed()
+        {
+            _socketClosed = true;
+            _semaphore.Release();
+        }
+
         /// <summary>
         /// Waits for a reply to the request
         /// </summary>
@@ -41,6 +48,9 @@ namespace InputshareLib.Net
         {
             if (!await _semaphore.WaitAsync(5000))
                 throw new NetRequestTimedOutException();
+
+            if (_socketClosed)
+                throw new NetConnectionClosedException();
 
             return _reply;
         }

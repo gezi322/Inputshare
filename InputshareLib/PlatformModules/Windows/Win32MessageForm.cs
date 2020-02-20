@@ -90,7 +90,10 @@ namespace InputshareLib.PlatformModules.Windows
             {
                 if (disposing)
                 {
-                    _form?.Close();
+                    _form?.Invoke(new Action(() =>
+                    {
+                        _form.Close();
+                    }));
                 }
                 disposedValue = true;
             }
