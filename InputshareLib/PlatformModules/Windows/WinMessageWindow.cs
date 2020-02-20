@@ -27,6 +27,7 @@ namespace InputshareLib.PlatformModules.Windows
         private Thread _wndThread;
         private wndProcDelegate _wndProc;
         private BlockingCollection<Action> _invokeQueue;
+        private bool _closed;
 
         private WinMessageWindow(string windowName)
         {
@@ -70,13 +71,17 @@ namespace InputshareLib.PlatformModules.Windows
 
             Win32Message msg;
             int ret;
-            while ((ret = GetMessage(out msg, Handle, 0, 0)) != 0)
+
+            //Passing the window handle to getmessage will actually stop
+            //dataobjects set withj olesetclipboard from working proplery... pass intptr.zero instead
+            while ((ret = GetMessage(out msg, IntPtr.Zero, 0, 0)) != 0)
             {
                 if (ret == -1)
                     break;
 
                 DispatchMessage(ref msg);
             }
+            _closed = true;
 
             Logger.Write($"Window {WindowName} exited");
         }
@@ -163,7 +168,11 @@ namespace InputshareLib.PlatformModules.Windows
             {
                 if (disposing)
                 {
-                    PostMessage(Handle, Win32MessageCode.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                    if (!_closed)
+                    {
+                        if (!PostMessage(Handle, Win32MessageCode.WM_QUIT, IntPtr.Zero, IntPtr.Zero))
+                            throw new Win32Exception();
+                    }
                 }
                 disposedValue = true;
             }

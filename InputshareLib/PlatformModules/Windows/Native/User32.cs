@@ -21,6 +21,9 @@ namespace InputshareLib.PlatformModules.Windows.Native
         public const int LWA_COLORKEY = 0x1;
 
         [DllImport("user32.dll")]
+        public static extern bool DestroyWindow(IntPtr handle);
+
+        [DllImport("user32.dll")]
         public static extern bool EmptyClipboard();
 
         [DllImport("user32.dll", SetLastError = true)]

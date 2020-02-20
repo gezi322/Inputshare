@@ -22,7 +22,7 @@ namespace InputshareLib.Client.Config
             }
         }
 
-        internal static bool trySaveLastAddress(IPEndPoint address)
+        internal static bool TrySaveLastAddress(IPEndPoint address)
         {
             return DllConfig.TryWrite("Client.LastAddress", address.ToString());
         }

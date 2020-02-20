@@ -24,7 +24,7 @@ namespace InputshareLib.PlatformModules.Clipboard
     {
         public override event EventHandler<ClipboardData> ClipboardChanged;
 
-        private Win32MessageForm _window;
+        private WinMessageWindow _window;
 
         /// <summary>
         /// Sets the clipboard data
@@ -63,11 +63,11 @@ namespace InputshareLib.PlatformModules.Clipboard
 
         protected override async Task OnStart()
         {
-            _window = await Win32MessageForm.CreateAsync();
+            _window = await WinMessageWindow.CreateWindowAsync("InputshareCBMsg");
             InstallClipboardMontior(_window);
         }
 
-        private void InstallClipboardMontior(Win32MessageForm window)
+        private void InstallClipboardMontior(WinMessageWindow window)
         {
             window.InvokeAction(() => {
                 AddClipboardFormatListener(window.Handle);

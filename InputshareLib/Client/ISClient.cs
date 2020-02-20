@@ -73,7 +73,7 @@ namespace InputshareLib.Client
             if (ClientName == null)
                 ClientName = GenClientName();
 
-            ClientConfig.trySaveLastAddress(address);
+            ClientConfig.TrySaveLastAddress(address);
 
             return await _socket.ConnectAsync(new ClientConnectArgs(address, ClientName, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
         }
