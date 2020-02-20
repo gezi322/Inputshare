@@ -12,8 +12,23 @@ namespace InputshareLib.PlatformModules
     /// </summary>
     public class ISServerDependencies
     {
-        public InputModuleBase InputModule;
-        public OutputModuleBase OutputModule;
-        public ClipboardModuleBase ClipboardModule;
+        public InputModuleBase InputModule { get; private set; }
+        public OutputModuleBase OutputModule { get; private set; }
+        public ClipboardModuleBase ClipboardModule { get; private set; }
+
+        public static ISServerDependencies GetWindowsDependencies()
+        {
+            return new ISServerDependencies
+            {
+                ClipboardModule = new WindowsClipboardModule(),
+                InputModule = new WindowsInputModule(),
+                OutputModule = new WindowsOutputThreadedModule()
+            };
+        }
+
+        private ISServerDependencies()
+        {
+
+        }
     }
 }

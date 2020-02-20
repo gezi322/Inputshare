@@ -40,6 +40,7 @@ namespace InputshareLib.Net
         private readonly Dictionary<Guid, SocketRequest> _awaitingMessages = new Dictionary<Guid, SocketRequest>();
         private object _incompleteMessagesLock = new object();
         private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
+
         internal SocketBase(RFSController fileController)
         {
             _fileController = fileController;
@@ -53,6 +54,8 @@ namespace InputshareLib.Net
         {
             _client = client;
             _client.NoDelay = true;
+            _client.ReceiveBufferSize = BufferSize;
+            _client.SendBufferSize = BufferSize;
             _tokenSource = new CancellationTokenSource();
             _stream = new NetworkStream(client);
             _awaitingMessages.Clear();
@@ -227,7 +230,6 @@ namespace InputshareLib.Net
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Dispose();
-            Dispose();
         }
 
         internal async Task SendClipboardDataAsync(ClipboardData cbData)
@@ -315,7 +317,6 @@ namespace InputshareLib.Net
             {
                 HandleException(ex);
             }
-            
         }
 
         /// <summary>

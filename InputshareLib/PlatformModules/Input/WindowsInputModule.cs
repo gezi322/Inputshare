@@ -141,6 +141,9 @@ namespace InputshareLib.PlatformModules.Input
                     SideHit?.Invoke(this, new SideHitArgs(Side.Bottom, _mouseStruct.pt.X, _mouseStruct.pt.Y));
             }
 
+            if (!InputRedirected)
+                _oldPos = _mouseStruct.pt;
+
             if (InputRedirected && ((_mouseStruct.flags & 4) == 0))
             {
                 //If we are redirecting input, translate the input to generic input data and fire event

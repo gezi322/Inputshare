@@ -14,6 +14,18 @@ namespace InputshareLib.PlatformModules
         public string ModuleName { get => this.GetType().Name; }
         public bool Running { get; private set; }
 
+        internal async Task StopIfRunningAsync()
+        {
+            if (Running)
+                await StopAsync();
+        }
+
+        internal async Task StartIfNotRunningAsync()
+        {
+            if (!Running)
+                await StartAsync();
+        }
+
         internal async Task StartAsync()
         {
             if (Running)

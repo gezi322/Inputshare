@@ -16,7 +16,6 @@ namespace InputshareLib.Net.Client
     {
         internal event EventHandler<Exception> Disconnected;
         internal event EventHandler<bool> InputClientChanged;
-        internal event EventHandler<ScreenshotRequestArgs> ScreenshotRequested;
         internal event EventHandler<ClientSidesChangedArgs> SideStateChanged;
         internal Rectangle VirtualBounds { get; private set; }
         internal ClientSocketState State => _state;
@@ -24,6 +23,7 @@ namespace InputshareLib.Net.Client
 
         private SemaphoreSlim _connectSemaphore;
         private Socket _client;
+        private bool _disconnecting;
 
         internal ClientSocket(RFSController fileController) : base(fileController)
         {
@@ -37,37 +37,50 @@ namespace InputshareLib.Net.Client
         /// <param name="timeout"></param>
         /// <returns></returns>
         /// <exception cref="NetConnectionFailedException"/>
-        internal async Task ConnectAsync(ClientConnectArgs args, int timeout = 5000)
+        internal async Task<bool> ConnectAsync(ClientConnectArgs args, int timeout = 1000)
         {
             if (_state != ClientSocketState.Idle)
                 throw new InvalidOperationException("Cannot connect when state is " + _state);
 
-            _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _state = ClientSocketState.AttemptingConnection;
-            Logger.Write($"Connecting to {args.Address}");
-
-            //Create a waithandle that will release when we receive a NetServerConnectionMessage
-            _connectSemaphore = new SemaphoreSlim(0, 1);
-
-            //Attempt to connect
-            await _client.ConnectAsync(args.Address);
-
-            //Start a background task to receive data
-            BeginReceiveData(_client);
-
-            //Send a initial message to the server containing information about this client
-            await SendConnectionInfoAsync(args);
-
-            //don't return until we receive a ServerConnection message, or throw if timeout reached
-            if (!await _connectSemaphore.WaitAsync(timeout))
+            try
             {
-                Dispose();
-                _state = ClientSocketState.Idle;
-                throw new NetConnectionFailedException("Connection timed out");
-            }
+                _disconnecting = false;
+                _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            Logger.Write($"Connected to {args.Address}");
-            _state = ClientSocketState.Connected;
+                _state = ClientSocketState.AttemptingConnection;
+                Logger.Write($"Connecting to {args.Address}");
+
+                //Create a waithandle that will release when we receive a NetServerConnectionMessage
+                _connectSemaphore = new SemaphoreSlim(0, 1);
+
+                //Attempt to connect
+                await _client.ConnectAsync(args.Address);
+
+                //Start a background task to receive data
+                BeginReceiveData(_client);
+
+                //Send a initial message to the server containing information about this client
+                await SendConnectionInfoAsync(args);
+
+                //don't return until we receive a ServerConnection message, or throw if timeout reached
+                if (!await _connectSemaphore.WaitAsync(timeout))
+                {
+                    _state = ClientSocketState.Idle;
+                    Dispose();
+
+                    throw new NetConnectionFailedException("Connection timed out");
+                }
+
+                Logger.Write($"Connected to {args.Address}");
+                _state = ClientSocketState.Connected;
+                return true;
+            }catch(Exception ex)
+            {
+                _state = ClientSocketState.Idle;
+                Logger.Write("Failed to connect: " + ex.Message);
+                return false;
+            }
+            
         }
 
         /// <summary>
@@ -78,9 +91,8 @@ namespace InputshareLib.Net.Client
             if (_state == ClientSocketState.Idle)
                 throw new InvalidOperationException("Cannot disconnect when state is Idle");
 
-
+            _disconnecting = true;
             base.DisconnectSocket();
-            _state = ClientSocketState.Idle;
             Logger.Write("Disconnected");
         }
 
@@ -101,7 +113,8 @@ namespace InputshareLib.Net.Client
 
         protected override void HandleException(Exception ex)
         {
-            if(_state == ClientSocketState.Connected)
+            //Dont throw an exception if we called disconnectsocket
+            if(_state == ClientSocketState.Connected && !_disconnecting)
             {
                 _state = ClientSocketState.Idle;
                 Disconnected?.Invoke(this, ex);
@@ -126,20 +139,14 @@ namespace InputshareLib.Net.Client
         {
             if (request is NetNameRequest)
                 await SendMessageAsync(new NetNameReply("Hello world", request.MessageId));
-            else if(request is NetScreenshotRequest)
-            {
-                ScreenshotRequestArgs sa = new ScreenshotRequestArgs();
-                ScreenshotRequested?.Invoke(this, sa);
-                await SendMessageAsync(new NetScreenshotReply(request.MessageId, sa.Data));
-            }
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _connectSemaphore?.Dispose();
                 _state = ClientSocketState.Idle;
+                _connectSemaphore?.Dispose();
             }
 
             base.Dispose(disposing);

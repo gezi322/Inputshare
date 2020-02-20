@@ -22,11 +22,19 @@ namespace InputshareLib.PlatformModules.Output
 
         private void ThreadLoop()
         {
-            while (!_tokenSource.IsCancellationRequested)
+            try
             {
-                var input = _queue.Take(_tokenSource.Token);
-                WinInputSimulator.SendInput(ref input);
+                while (!_tokenSource.IsCancellationRequested)
+                {
+                    var input = _queue.Take(_tokenSource.Token);
+                    WinInputSimulator.SendInput(ref input);
+                }
             }
+            catch (OperationCanceledException)
+            {
+
+            }
+            
         }
 
         protected override Task OnStart()

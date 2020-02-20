@@ -29,17 +29,6 @@ namespace InputshareLib.Net.Server
             //Send confirmation message to client
             SendMessage(new NetServerConnectionMessage("hello"));
         }
-
-        internal async Task<byte[]> GetScreenshotAsync()
-        {
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            var reply = await SendRequestAsync<NetScreenshotReply>(new NetScreenshotRequest());
-            sw.Stop();
-            
-            return reply.Bmp;
-        }
-
         internal async Task SendSideUpdateAsync(Side[] activeSides)
         {
             bool left = activeSides.Contains(Side.Left);

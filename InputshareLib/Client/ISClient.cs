@@ -1,17 +1,16 @@
-﻿using InputshareLib.Net.Client;
+﻿using InputshareLib.Clipboard;
+using InputshareLib.Input;
+using InputshareLib.Net.Client;
 using InputshareLib.Net.RFS;
 using InputshareLib.Net.RFS.Client;
 using InputshareLib.PlatformModules.Clipboard;
 using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
-using InputshareLib.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,158 +18,159 @@ namespace InputshareLib.Client
 {
     public sealed class ISClient
     {
-        private InputModuleBase inputMod;
-        private ClipboardModuleBase cbMod;
-        private OutputModuleBase outMod;
-        private ClientSocket soc;
-        private bool _input;
+        public bool Running { get; private set; }
+        public bool Connected => _socket.State == ClientSocketState.Connected;
 
-        private bool cLeft;
-        private bool cRight;
-        private bool cTop;
-        private bool cBottom;
+        public event EventHandler<string> Disconnected;
 
-        public ISClient()
+        private InputModuleBase InputModule => _dependencies.InputModule;
+        private OutputModuleBase OutputModule => _dependencies.OutputModule;
+        private ClipboardModuleBase ClipboardModule => _dependencies.ClipboardModule;
+
+        private ISClientDependencies _dependencies;
+        private ClientSocket _socket;
+        private RFSController _fileController;
+        private SideStates _sideStates;
+        private bool _isInputClient;
+
+        public async Task StartAsync(ISClientDependencies dependencies)
         {
+            if (Running)
+                throw new InvalidOperationException("Client already running");
 
+            _dependencies = dependencies;
+            _fileController = new RFSController();
+            _socket = new ClientSocket(_fileController);
+            _isInputClient = false;
+            _sideStates = default;
+            await StartModulesAsync();
+            AssignSocketEvents();
+            AssignModuleEvents();
+            Running = true;
         }
 
-        private RFSController _fileController = new RFSController();
-
-        public async Task StartAsync()
+        public async Task<bool> ConnectAsync(IPEndPoint address, string name)
         {
-            inputMod = new WindowsInputModule();
-            await inputMod.StartAsync();
-            cbMod = new WindowsClipboardModule();
-            cbMod.ClipboardChanged += CbMod_ClipboardChanged;
-            await cbMod.StartAsync();
-            outMod = new WindowsOutputThreadedModule();
-            inputMod.SideHit += InputMod_SideHit;
-            inputMod.DisplayBoundsUpdated += InputMod_DisplayBoundsUpdated;
-            await outMod.StartAsync();
-            soc = new ClientSocket(_fileController);
-            soc.ClipboardDataReceived += Soc_ClipboardDataReceived;
-            soc.Disconnected += Soc_Disconnected;
-            soc.ScreenshotRequested += Soc_ScreenshotRequested;
-            soc.InputClientChanged += Soc_InputClientChanged;
-            soc.InputReceived += Soc_InputReceived;
-            soc.SideStateChanged += Soc_SideStateChanged1;
-            await soc.ConnectAsync(new ClientConnectArgs(new IPEndPoint(IPAddress.Parse("192.168.0.17"), 1234), Environment.MachineName, Guid.NewGuid(), inputMod.VirtualDisplayBounds));
+            if (Connected) throw new InvalidOperationException("Client already connected");
+            if (!Running) throw new InvalidOperationException("Client not running");
 
+            return await _socket.ConnectAsync(new ClientConnectArgs(address, name, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
         }
 
-        private async void CbMod_ClipboardChanged(object sender, Clipboard.ClipboardData cbData)
+        public void Disconnect()
         {
-            if (cbData.IsTypeAvailable(Clipboard.ClipboardDataType.HostFileGroup))
+            if (!Connected) throw new InvalidOperationException("Client not connected");
+            if (!Running) throw new InvalidOperationException("Client not running");
+
+            _socket.DisconnectSocket();
+        }
+
+        public async Task StopAsync()
+        {
+            if (!Running)
+                throw new InvalidOperationException("Client not running");
+
+            if (_socket.State == ClientSocketState.Connected)
+                _socket.DisconnectSocket();
+
+            _socket.Dispose();
+            await StopModulesAsync();
+            
+            Running = false;
+        }
+
+        private void AssignSocketEvents()
+        {
+            _socket.SideStateChanged += OnSideStatesChanged;
+            _socket.ClipboardDataReceived += OnClipboardDataReceived;
+            _socket.InputClientChanged += OnInputClientChanged;
+            _socket.InputReceived += OnInputReceived;
+            _socket.Disconnected += (object o, Exception ex) => Disconnected?.Invoke(this, ex.Message);
+        }
+
+        private void AssignModuleEvents()
+        {
+            ClipboardModule.ClipboardChanged += OnLocalClipboardChanged;
+            InputModule.DisplayBoundsUpdated += OnLocalDisplayBoundsChanged;
+            InputModule.SideHit += _inputModule_SideHit;
+        }
+
+        private async void _inputModule_SideHit(object sender, SideHitArgs args)
+        {
+            if(Connected && _isInputClient && _sideStates.IsDisplayAtSide(args.Side))
             {
-                string[] files = cbData.GetLocalFiles();
-                var group = _fileController.HostLocalGroup(files);
-                cbData.SetRemoteFiles(group);
+                await _socket.SendSideHitAsync(args.Side, args.PosX, args.PosY);
             }
-           
-            await soc.SendClipboardDataAsync(cbData);
         }
 
-        private async void Soc_ClipboardDataReceived(object sender, Clipboard.ClipboardData e)
+        private async void OnLocalDisplayBoundsChanged(object sender, Rectangle newBounds)
         {
-            Logger.Write("Received clipboard data! " + e.AvailableTypes.Length);
-
-            if (e.IsTypeAvailable(Clipboard.ClipboardDataType.RemoteFileGroup))
+            if (Connected)
             {
-                var group = e.GetRemoteFiles();
-
-                RFSClientFileGroup fg = new RFSClientFileGroup(group.GroupId, group.Files, soc);
-                e.SetRemoteFiles(fg);
+                await _socket.SendDisplayUpdateAsync(newBounds);
             }
-
-            await cbMod.SetClipboardAsync(e);
+            
         }
 
-        private void Soc_SideStateChanged1(object sender, ClientSidesChangedArgs e)
+        private async void OnLocalClipboardChanged(object sender, ClipboardData cbData)
         {
-            cLeft = e.Left;
-            cRight = e.Right;
-            cTop = e.Top;
-            cBottom = e.Bottom;
-            Logger.Write($"Active sides: {cLeft}, {cRight}, {cTop}, {cBottom}");
-        }
-
-        private void Soc_ScreenshotRequested(object sender, ScreenshotRequestArgs e)
-        {
-            //Create a new bitmap.
-            var bmpScreenshot = new Bitmap(1920,
-                                           1080,
-                                           PixelFormat.Format32bppArgb);
-
-            // Create a graphics object from the bitmap.
-            var gfxScreenshot = Graphics.FromImage(bmpScreenshot);
-
-            // Take the screenshot from the upper left corner to the right bottom corner.
-            gfxScreenshot.CopyFromScreen(0,
-                                        0,
-                                        0,
-                                        0,
-                                        new Size(1920,1080),
-                                        CopyPixelOperation.SourceCopy);
-
-            byte[] d = null;
-            using (MemoryStream ms = new MemoryStream())
+            if (Connected)
             {
-                bmpScreenshot.Save(ms, ImageFormat.Png);
-                d = ms.ToArray();
-            }
+                if (cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
+                {
+                    string[] files = cbData.GetLocalFiles();
+                    var group = _fileController.HostLocalGroup(files);
+                    cbData.SetRemoteFiles(group);
+                }
 
-            Logger.Write("Size = " + d.Length);
-            e.Data = d;
-
-        }
-
-        private void Soc_InputClientChanged(object sender, bool e)
-        {
-            _input = e;
-            inputMod.SetMouseHidden(!e);
-        }
-
-        private async void InputMod_DisplayBoundsUpdated(object sender, System.Drawing.Rectangle e)
-        {
-            await soc.SendDisplayUpdateAsync(e);
-        }
-
-        private void Soc_InputReceived(object sender, Input.InputData e)
-        {
-            outMod.SimulateInput(ref e);
-        }
-
-        private void Soc_Disconnected(object sender, Exception e)
-        {
-            Logger.Write("Disconnected: " + e.Message);
-            Logger.Write(e.StackTrace);
-            soc.Dispose();
-        }
-
-        private async void InputMod_SideHit(object sender, SideHitArgs e)
-        {
-            if(soc.State == ClientSocketState.Connected && IsDisplayAtSide(e.Side) &&_input)
-             {
-                await soc.SendSideHitAsync(e.Side, e.PosX, e.PosY);
+                await _socket.SendClipboardDataAsync(cbData);
             }
         }
 
-        bool IsDisplayAtSide(Side side)
+        private void OnInputReceived(object sender, InputData input)
         {
-            switch (side)
+            OutputModule.SimulateInput(ref input);
+        }
+
+        private void OnInputClientChanged(object sender, bool state)
+        {
+            _isInputClient = state;
+            InputModule.SetMouseHidden(!state);
+        }
+
+        private async void OnClipboardDataReceived(object sender, Clipboard.ClipboardData cbData)
+        {
+            if (cbData.IsTypeAvailable(ClipboardDataType.RemoteFileGroup))
             {
-                case Side.Top:
-                    return cTop;
-                case Side.Bottom:
-                    return cBottom;
-                case Side.Left:
-                    return cLeft;
-                case Side.Right:
-                    return cRight;
-                default:
-                    return false;
+                var group = cbData.GetRemoteFiles();
+
+                RFSClientFileGroup fg = new RFSClientFileGroup(group.GroupId, group.Files, _socket);
+                cbData.SetRemoteFiles(fg);
             }
+
+            await ClipboardModule.SetClipboardAsync(cbData);
         }
+
+        private void OnSideStatesChanged(object sender, ClientSidesChangedArgs e)
+        {
+            if(Connected)
+                _sideStates = new SideStates(e.Left, e.Right, e.Top, e.Bottom);
+        }
+
+        private async Task StartModulesAsync()
+        {
+            await InputModule.StartIfNotRunningAsync();
+            await OutputModule.StartIfNotRunningAsync();
+            await ClipboardModule.StartIfNotRunningAsync();
+        }
+
+        private async Task StopModulesAsync()
+        {
+            await InputModule.StopIfRunningAsync();
+            await OutputModule.StopIfRunningAsync();
+            await ClipboardModule.StopIfRunningAsync();
+        }
+
+        
     }
 }
