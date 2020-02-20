@@ -8,6 +8,9 @@ using InputshareLib.Net.Server;
 
 namespace InputshareLib.Server.Display
 {
+    /// <summary>
+    /// Represents the virtual display of a client
+    /// </summary>
     public class ClientDisplay : DisplayBase
     {
         internal readonly ServerSocket Socket;

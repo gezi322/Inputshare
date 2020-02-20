@@ -11,31 +11,33 @@ namespace InputshareLib.Net.RFS.Host
     /// </summary>
     internal class RFSHostFileGroup : RFSFileGroup, IDisposable
     {
+        internal override event EventHandler<RFSFileGroup> TransfersFinished;
         internal RFSFileHeader[] SourceFiles;
-        private Dictionary<Guid, RFSGroupStreamInstance> _tokenInstances = new Dictionary<Guid, RFSGroupStreamInstance>();
+        internal Dictionary<Guid, RFSGroupStreamInstance> TokenInstances = new Dictionary<Guid, RFSGroupStreamInstance>();
 
         internal RFSHostFileGroup(Guid groupId, RFSFileHeader[] files) : base(groupId, files)
         {
             SourceFiles = files;
         }
 
-        internal RFSToken CreateToken()
+        private Guid CreateToken()
         {
             RFSToken token = new RFSToken(Guid.NewGuid());
             var instance = new RFSGroupStreamInstance(this, token.Id, 5000);
             instance.Closed += OnStreamInstanceClosed;
-            _tokenInstances.Add(token.Id, instance);
-            return token;
+            TokenInstances.Add(token.Id, instance);
+            return token.Id;
         }
 
-        private void OnStreamInstanceClosed(object sender, RFSGroupStreamInstance e)
+        private void OnStreamInstanceClosed(object sender, RFSGroupStreamInstance instance)
         {
-            if (_tokenInstances.ContainsKey(e.TokenId))
+            if (TokenInstances.ContainsKey(instance.TokenId))
             {
-                _tokenInstances.Remove(e.TokenId);
+                TokenInstances.Remove(instance.TokenId);
             }
 
-            Logger.Write("Closed group token");
+            if (TokenInstances.Count == 0 && RemoveOnIdle)
+                TransfersFinished?.Invoke(this, this);
         }
 
         /// <summary>
@@ -46,9 +48,9 @@ namespace InputshareLib.Net.RFS.Host
         /// <param name="buffer"></param>
         /// <param name="readLen"></param>
         /// <returns></returns>
-        internal async Task<int> ReadAsync(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
+        internal override async Task<int> ReadAsync(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
         {
-            if(_tokenInstances.TryGetValue(tokenId, out var tokenInstance))
+            if(TokenInstances.TryGetValue(tokenId, out var tokenInstance))
             {
                 return await tokenInstance.ReadAsync(fileId, buffer, readLen);
             }
@@ -58,9 +60,9 @@ namespace InputshareLib.Net.RFS.Host
             }
         }
 
-        internal long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
+        internal override long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
         {
-            if (_tokenInstances.TryGetValue(tokenId, out var tokenInstance))
+            if (TokenInstances.TryGetValue(tokenId, out var tokenInstance))
             {
                 return tokenInstance.Seek(fileId, origin, offset);
             }
@@ -68,6 +70,12 @@ namespace InputshareLib.Net.RFS.Host
             {
                 throw new RFSException("Token not found");
             }
+        }
+
+        internal override Task<Guid> GetTokenAsync()
+        {
+            Guid id = CreateToken();
+            return Task.FromResult(id);
         }
 
         #region IDisposable Support
@@ -79,7 +87,7 @@ namespace InputshareLib.Net.RFS.Host
             {
                 if (disposing)
                 {
-                    foreach (var tokenInstance in _tokenInstances)
+                    foreach (var tokenInstance in TokenInstances)
                         tokenInstance.Value.Dispose();
                 }
                 disposedValue = true;
@@ -89,6 +97,8 @@ namespace InputshareLib.Net.RFS.Host
         {
             Dispose(true);
         }
+
+        
         #endregion
     }
 }

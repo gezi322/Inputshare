@@ -10,6 +10,10 @@ namespace InputshareLib.Net.Messages
     [Serializable]
     internal abstract class NetMessageBase
     {
+        /// <summary>
+        /// If true, the message should be serialize/deserialized without the use
+        /// of a binaryformatter
+        /// </summary>
         internal virtual bool UseCustomSerialization { get; } = false;
         internal NetMessageBase()
         {

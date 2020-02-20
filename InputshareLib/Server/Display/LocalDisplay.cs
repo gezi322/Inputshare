@@ -12,6 +12,9 @@ using InputshareLib.PlatformModules.Output;
 
 namespace InputshareLib.Server.Display
 {
+    /// <summary>
+    /// Represents the virtual display of the server machine
+    /// </summary>
     public class LocalDisplay : DisplayBase
     {
         private readonly InputModuleBase _inputModule;

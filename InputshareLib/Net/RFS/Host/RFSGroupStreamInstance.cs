@@ -26,7 +26,7 @@ namespace InputshareLib.Net.RFS.Host
         /// </summary>
         /// <param name="group"></param>
         /// <param name="timeout"></param>
-        internal RFSGroupStreamInstance(RFSHostFileGroup group, Guid tokenId, int timeout = 60000)
+        internal RFSGroupStreamInstance(RFSHostFileGroup group, Guid tokenId, int timeout = 5000)
         {
             TokenId = tokenId;
             _group = group;

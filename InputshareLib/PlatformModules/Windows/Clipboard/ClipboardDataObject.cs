@@ -27,7 +27,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
         internal ClipboardData InnerData { get; private set; }
 
         private NativeRFSStream[] _fileStreams;
-        private RFSToken _fileStreamToken;
+        private Guid _fileStreamToken;
 
 #pragma warning disable IDE0060
 
@@ -297,14 +297,14 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
                 
                 int index = format.lindex;
 
-                if (_fileStreamToken == null)
+                //Get a token to read the file group
+                if (_fileStreamToken == Guid.Empty)
                     _fileStreamToken = (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync().Result;
-
 
                 if (_fileStreams[index] == null)
                 {
                     var group = (InnerData.GetRemoteFiles() as RFSClientFileGroup);
-                    _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], _fileStreamToken));
+                    _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], new RFSToken(_fileStreamToken)));
                     
                 }
                 medium.tymed = TYMED.TYMED_ISTREAM;

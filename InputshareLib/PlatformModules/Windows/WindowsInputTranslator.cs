@@ -1,4 +1,5 @@
 ﻿using InputshareLib.Input;
+using InputshareLib.Input.Keys;
 using InputshareLib.PlatformModules.Windows.Native;
 using System;
 using System.Collections.Generic;

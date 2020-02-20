@@ -12,234 +12,139 @@ using System.Threading.Tasks;
 namespace InputshareLib.Net.RFS
 {
     /// <summary>
-    /// Controls streaming files between clients
+    /// Controls access to file groups hosted on the server or other clients
     /// </summary>
     internal class RFSController
     {
-        private Dictionary<Guid, RFSHostFileGroup> _hostedGroups = new Dictionary<Guid, RFSHostFileGroup>();
-
-        internal RFSController()
-        {
-
-        }
+        /// <summary>
+        /// Local files that are currently being hosted
+        /// </summary>
+        internal Dictionary<Guid, RFSHostFileGroup> HostedGroups = new Dictionary<Guid, RFSHostFileGroup>();
+        
+        /// <summary>
+        /// File groups that are hosted on clients. This is used for client->client transfers
+        /// </summary>
+        internal Dictionary<Guid, RFSClientFileGroup> RemoteGroups = new Dictionary<Guid, RFSClientFileGroup>();
 
         /// <summary>
-        /// Hosts the specified files and returns a group of file IDS
+        /// Allows clients to access local files
         /// </summary>
         /// <param name="sources"></param>
         /// <returns></returns>
-        internal RFSFileGroup HostFiles(string[] originalSources)
+        internal RFSFileGroup HostLocalGroup(string[] sources)
         {
-            if (originalSources == null)
-                throw new ArgumentNullException(nameof(originalSources));
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
 
-            CreateRelativePathList(originalSources, out var relativePaths, out var fullPaths);
+            RFSFileHeader[] headers = FileStructureConverter.CreateFileHeaders(sources);
+            var group = new RFSHostFileGroup(Guid.NewGuid(), headers);
+            group.TransfersFinished += OnFileGroupFinished;
+            HostedGroups.Add(group.GroupId, group);
+            return new RFSFileGroup(group.GroupId, group.Files);
+        }
 
-            var fileHeaders = CreateHeaders(fullPaths, relativePaths);
-            var group = new RFSHostFileGroup(Guid.NewGuid(), fileHeaders);
-            _hostedGroups.Add(group.GroupId, group);
-            return new RFSFileGroup(group.GroupId, fileHeaders);
+        private void OnFileGroupFinished(object sender, RFSFileGroup e)
+        {
+            //When a file group is unhosted, and all transfers are finished
+            //then remove the group from the dictionary
+            if (HostedGroups.ContainsKey(e.GroupId))
+                HostedGroups.Remove(e.GroupId);
+            else if (RemoteGroups.ContainsKey(e.GroupId))
+                RemoteGroups.Remove(e.GroupId);
         }
 
         /// <summary>
-        /// Returns an array of fileheaders from a list of full paths and matching relative paths
+        /// Stops hosting a file group. Any transfers in progress will continue
         /// </summary>
-        /// <param name="fullPaths"></param>
-        /// <param name="relativePaths"></param>
-        /// <returns></returns>
-        private RFSFileHeader[] CreateHeaders(string[] fullPaths, string[] relativePaths)
+        /// <param name="group"></param>
+        internal void UnHostFiles(RFSFileGroup group)
         {
-            RFSFileHeader[] headers = new RFSFileHeader[relativePaths.Length];
-            for (int i = 0; i < fullPaths.Length; i++)
-            {
-                try
-                {
-                    FileInfo file = new FileInfo(fullPaths[i]);
-                    headers[i] = new RFSFileHeader(Guid.NewGuid(), file.Name, file.Length, relativePaths[i], fullPaths[i]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Write($"Could not copy file {fullPaths[i]} : {ex.Message}");
-                    headers[i] = null;
-                }
-            }
-
-            return headers;
-        }
-
-        /// <summary>
-        /// Sorts an array of full file and folder path names into
-        /// full and relative file paths
-        /// </summary>
-        /// <param name="originalSources"></param>
-        /// <param name="relativePaths"></param>
-        /// <param name="fullPaths"></param>
-        private void CreateRelativePathList(string[] originalSources, out string[] relativePaths, out string[] fullPaths)
-        {
-            List<string> fullPathsList = new List<string>();
-            List<string> relativePathsList = new List<string>();
-
-            int fileCount = 0;
-            foreach (var file in originalSources)
-            {
-                if (File.GetAttributes(file).HasFlag(FileAttributes.Directory))
-                {
-                    AddFilesRecursive(fullPathsList, relativePathsList, file, "./" + new DirectoryInfo(file).Name, ref fileCount);
-                }
+            if (HostedGroups.TryGetValue(group.GroupId, out var hostedGroup))
+                if (hostedGroup.TokenInstances.Count == 0)
+                    HostedGroups.Remove(group.GroupId);
                 else
-                {
-                    fullPathsList.Add(file);
-                    relativePathsList.Add("./" + new FileInfo(file).Name);
-                }
-            }
+                    hostedGroup.RemoveOnIdle = true;
 
-            relativePaths = relativePathsList.ToArray();
-            fullPaths = fullPathsList.ToArray();
+            //TODO - remove remote file groups, but not until we are sure there 
+            //are no files being transfered
         }
-
-        /// <summary>
-        /// Converts a list of file/folder names into a relative folder structure.
-        /// </summary>
-        /// <param name="fullPaths"></param>
-        /// <param name="relativePaths"></param>
-        /// <param name="currentPath"></param>
-        /// <param name="relativePath"></param>
-        private void AddFilesRecursive(List<string> fullPaths, List<string> relativePaths, string currentPath, string relativePath, ref int count)
+        
+        internal void HostRemoteGroup(RFSClientFileGroup group)
         {
-            if (count > 10 * 1000)
-                throw new InvalidDataException("Too many files");
-
-
-            foreach(var path in Directory.GetFileSystemEntries(currentPath))
-            {
-                try
-                {
-                    if (File.GetAttributes(path).HasFlag(FileAttributes.Directory))
-                    {
-                        string dirName = new DirectoryInfo(path).Name;
-                        var nextPath = relativePath + "/" + dirName;
-                        AddFilesRecursive(fullPaths, relativePaths, path, nextPath, ref count);
-                    }
-                    else
-                    {
-                        fullPaths.Add(path);
-                        count++;
-                        relativePaths.Add(relativePath + "/" + new FileInfo(path).Name);
-                    }
-                }catch(Exception ex) when (!(ex is InvalidDataException))
-                {
-                    Logger.Write("Failed to add path " + path + ": " + ex.Message);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Reads data from a locally hosted file
-        /// </summary>
-        /// <param name="tokenId"></param>
-        /// <param name="groupId"></param>
-        /// <param name="fileId"></param>
-        /// <param name="readLen"></param>
-        /// <returns></returns>
-        private async Task<byte[]> ReadHostedFileAsync(Guid tokenId, Guid groupId, Guid fileId, int readLen)
-        {
-            if(_hostedGroups.TryGetValue(groupId, out var group))
-            {
-                byte[] buff = new byte[readLen];
-                int rLen = await group.ReadAsync(tokenId, fileId, buff, readLen);
-
-                //Make sure the returned array is the correct size
-                if(rLen != buff.Length)
-                {
-                    byte[] resizedBuff = new byte[rLen];
-                    Buffer.BlockCopy(buff, 0, resizedBuff, 0, rLen);
-                    buff = resizedBuff;
-                }
-
-                return buff;
-            }
-            else
-            {
-                throw new RFSException("Group not found");
-            }
-        }
-
-        /// <summary>
-        /// Seeks the stream of a locally hosted file
-        /// </summary>
-        /// <param name="tokenId"></param>
-        /// <param name="groupId"></param>
-        /// <param name="fileId"></param>
-        /// <param name="origin"></param>
-        /// <param name="offset"></param>
-        /// <returns></returns>
-        private long SeekHostedFile(Guid tokenId, Guid groupId, Guid fileId, SeekOrigin origin, long offset)
-        {
-            if (_hostedGroups.TryGetValue(groupId, out var group))
-            {
-                return group.Seek(tokenId, fileId, origin, offset);
-            }
-            else
-            {
-                throw new RFSException("Group not found");
-            }
+            RemoteGroups.Add(group.GroupId, group);
+            Logger.Write("Current hosted groups = " + HostedGroups.Count);
         }
 
         internal async Task HandleNetMessageAsync(NetMessageBase message, SocketBase sender)
         {
-            if (message is RFSReadRequest readRequest)
-                await HandleReadRequest(readRequest, sender);
-            else if (message is RFSTokenRequest tokenRequest)
-                await HandleTokenRequest(tokenRequest, sender);
-            else if (message is RFSSeekRequest seekRequest)
-                await HandleSeekRequest(seekRequest, sender);
-        }
-
-        private async Task HandleTokenRequest(RFSTokenRequest request, SocketBase sender)
-        {
             try
             {
-                if (_hostedGroups.TryGetValue(request.GroupId, out var group))
-                {
-                    var token = group.CreateToken();
-                    await sender.SendMessageAsync(new RFSTokenReply(token.Id, request.MessageId));
-                    Logger.Write("Returned token!");
-                }
-                else
-                {
-                    throw new RFSException("Group ID not found ");
-                }
-            }catch(Exception ex)
-            {
-                Logger.Write("Failed to handle RFS token request: " + ex.Message);
-            }
-            
-        }
-
-        private async Task HandleSeekRequest(RFSSeekRequest request, SocketBase sender)
-        {
-            try
-            {
-                long newPos = SeekHostedFile(request.TokenId, request.GroupId, request.FileId, request.Origin, request.Offset);
-                await sender.SendMessageAsync(new RFSSeekReply(request.MessageId, newPos));
+                if (message is RFSTokenRequest tokenRequest)
+                    await HandleTokenRequestAsync(tokenRequest, sender);
+                else if (message is RFSReadRequest readRequest)
+                    await HandleReadRequestAsync(readRequest, sender);
+                else if (message is RFSSeekRequest seekRequest)
+                    await HandleSeekRequestAsync(seekRequest, sender);
             }
             catch(Exception ex)
             {
-                Logger.Write("Failed to handle RFS seek request: " + ex.Message);
+                Logger.Write($"RFSController -> Failed to handle request {message.GetType().Name}: {ex.Message}");
             }
-            
         }
 
-        private async Task HandleReadRequest(RFSReadRequest readRequest, SocketBase sender)
+        private async Task HandleTokenRequestAsync(RFSTokenRequest request, SocketBase sender)
         {
-            try
-            {
-                byte[] data = await ReadHostedFileAsync(readRequest.TokenId, readRequest.GroupId, readRequest.FileId, readRequest.ReadLen);
-                await sender.SendMessageAsync(new RFSReadReply(readRequest.MessageId, data));
-            }catch(Exception ex)
-            {
-                Logger.Write("Failed to handle RFS read request: " + ex.Message);
-            }
+            var group = GetGroup(request.GroupId);
+            Guid tokenId = await group.GetTokenAsync();
+            await sender.SendMessageAsync(new RFSTokenReply(tokenId, request.MessageId));
         }
+
+        private async Task HandleSeekRequestAsync(RFSSeekRequest request, SocketBase sender)
+        {
+            var group = GetGroup(request.GroupId);
+            long newPos = group.Seek(request.TokenId, request.FileId, request.Origin, request.Offset);
+            await sender.SendMessageAsync(new RFSSeekReply(request.MessageId, newPos));
+        }
+
+        private async Task HandleReadRequestAsync(RFSReadRequest request, SocketBase sender)
+        {
+            var group = GetGroup(request.GroupId);
+            var data = await ReadFromGroupFileAsync(group, request.FileId, request.TokenId, request.ReadLen);
+            await sender.SendMessageAsync(new RFSReadReply(request.MessageId, data));
+        }
+
+        /// <summary>
+        /// Reads data from a file in the specified group
+        /// </summary>
+        /// <param name="group"></param>
+        /// <param name="fileId"></param>
+        /// <param name="tokenId"></param>
+        /// <param name="readLen"></param>
+        /// <returns></returns>
+        private async Task<byte[]> ReadFromGroupFileAsync(RFSFileGroup group, Guid fileId, Guid tokenId, int readLen)
+        {
+            byte[] buff = new byte[readLen];
+            int bRead = await group.ReadAsync(tokenId, fileId, buff, readLen);
+
+            //Make sure the returned buffer is the correct size so no random data is included
+            if(buff.Length != bRead)
+            {
+                byte[] resizedBuff = new byte[bRead];
+                Buffer.BlockCopy(buff, 0, resizedBuff, 0, bRead);
+                buff = resizedBuff;
+            }
+
+            return buff;
+        }  
+
+        internal RFSFileGroup GetGroup(Guid group)
+        {
+            if (HostedGroups.TryGetValue(group, out var hostGroup))
+                return hostGroup;
+            if (RemoteGroups.TryGetValue(group, out var remoteGroup))
+                return remoteGroup;
+
+            throw new RFSException("GroupID not found");
+        }
+
     }
 }

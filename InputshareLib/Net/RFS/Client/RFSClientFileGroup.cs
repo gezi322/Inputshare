@@ -2,6 +2,7 @@
 using InputshareLib.Net.Messages.Requests;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,11 +29,25 @@ namespace InputshareLib.Net.RFS.Client
             return new RFSClientStream(this, header, token);
         }
 
-        internal async Task<RFSToken> GetTokenAsync()
+        internal override async Task<Guid> GetTokenAsync()
         {
             var reply = await Host.SendRequestAsync<RFSTokenReply>(new RFSTokenRequest(GroupId));
-            return new RFSToken(reply.TokenId);
+            return reply.TokenId;
         }
+
+        internal override async Task<int> ReadAsync(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
+        {
+            var reply = await Host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(tokenId, GroupId, fileId, readLen));
+            Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
+            return reply.ReturnData.Length;
+        }
+
+        internal override long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
+        {
+            var reply = Host.SendRequestAsync<RFSSeekReply>(new RFSSeekRequest(tokenId, GroupId, fileId, origin, offset)).Result;
+            return reply.Position;
+        }
+
 
 
         [field:NonSerialized]

@@ -64,7 +64,7 @@ namespace InputshareLib.Client
             if (cbData.IsTypeAvailable(Clipboard.ClipboardDataType.HostFileGroup))
             {
                 string[] files = cbData.GetLocalFiles();
-                var group = _fileController.HostFiles(files);
+                var group = _fileController.HostLocalGroup(files);
                 cbData.SetRemoteFiles(group);
             }
            

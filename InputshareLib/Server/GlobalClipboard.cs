@@ -18,6 +18,7 @@ namespace InputshareLib.Server
     {
         private RFSController _fileController;
         private ObservableDisplayList _displays;
+        private RFSFileGroup _previousClipboardFileGroup;
 
         internal GlobalClipboard(ObservableDisplayList clients, RFSController fileController)
         {
@@ -43,20 +44,28 @@ namespace InputshareLib.Server
         {
             Logger.Write($"GlobalClipboard -> {sender.DisplayName} set clipboard");
 
+            //Stop hosting the previous clipboard file group
+            if (_previousClipboardFileGroup != null)
+                _fileController.UnHostFiles(_previousClipboardFileGroup);
+
             if (sender is LocalDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
             {
                 //If localhost copied a list of file sources, convert them into an RFS file group
                 //that a client can read from
                 string[] files = cbData.GetLocalFiles();
-                var group = _fileController.HostFiles(files);
+                var group = _fileController.HostLocalGroup(files);
                 cbData.SetRemoteFiles(group);
+                _previousClipboardFileGroup = group;
             }
             else if (!(sender is LocalDisplay) && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
             {
                 //If another client set the clipboard files, convert the given filegroup into a client filegroup
-                //that we can read the data from
+                //that the server, and other clients can read from the remote file group
                 var group = cbData.GetRemoteFiles();
-                cbData.SetRemoteFiles(RFSClientFileGroup.FromGroup(group, (sender as ClientDisplay).Socket));
+                var clientGroup = RFSClientFileGroup.FromGroup(group, (sender as ClientDisplay).Socket);
+                _fileController.HostRemoteGroup(clientGroup);
+                cbData.SetRemoteFiles(clientGroup);
+                _previousClipboardFileGroup = group;
             }
 
             foreach (var display in _displays.Where(i => i != sender))
