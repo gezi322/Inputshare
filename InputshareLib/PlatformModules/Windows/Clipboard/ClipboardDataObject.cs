@@ -299,7 +299,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
 
                 //Get a token to read the file group
                 if (_fileStreamToken == Guid.Empty)
-                    _fileStreamToken = (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetTokenAsync().Result;
+                    _fileStreamToken = (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetToken();
 
                 if (_fileStreams[index] == null)
                 {

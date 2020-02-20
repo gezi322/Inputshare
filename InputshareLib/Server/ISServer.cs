@@ -39,6 +39,16 @@ namespace InputshareLib.Server
         private GlobalClipboard _clipboardController;
 
         /// <summary>
+        /// Starts the inputshare server with the default dependencies for this platform
+        /// </summary>
+        /// <param name="bindAddress"></param>
+        /// <returns></returns>
+        public Task StartAsync(IPEndPoint bindAddress)
+        {
+            return StartAsync(ISServerDependencies.GetCurrentOSDependencies(), bindAddress);
+        }
+
+        /// <summary>
         /// Starts the inputshare server
         /// </summary>
         /// <param name="dependencies">platform specific dependencies</param>

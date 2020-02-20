@@ -45,7 +45,7 @@ namespace InputshareLib.PlatformModules.Windows.Clipboard
             try
             {
                 byte[] data = new byte[cb];
-                int bIn = _stream.ReadAsync(data, 0, cb).Result;
+                int bIn = _stream.Read(data, 0, cb);
                 Buffer.BlockCopy(data, 0, pv, 0, data.Length);
                 Marshal.WriteIntPtr(pcbRead, new IntPtr(bIn));
             }catch(Exception ex)

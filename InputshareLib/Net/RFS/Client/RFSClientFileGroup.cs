@@ -35,6 +35,11 @@ namespace InputshareLib.Net.RFS.Client
             return reply.TokenId;
         }
 
+        internal override Guid GetToken()
+        {
+            return Host.SendRequest<RFSTokenReply>(new RFSTokenRequest(GroupId)).TokenId;
+        }
+
         internal override async Task<int> ReadAsync(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
         {
             var reply = await Host.SendRequestAsync<RFSReadReply>(new RFSReadRequest(tokenId, GroupId, fileId, readLen));

@@ -3,6 +3,7 @@ using InputshareLib.PlatformModules.Input;
 using InputshareLib.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace InputshareLib.Client
@@ -21,6 +22,14 @@ namespace InputshareLib.Client
                 InputModule = new WindowsInputModule(),
                 ClipboardModule = new WindowsClipboardModule()
             };
+        }
+
+        public static ISClientDependencies GetCurrentOSDependencies()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return GetWindowsDependencies();
+
+            throw new PlatformNotSupportedException();
         }
 
         private ISClientDependencies()

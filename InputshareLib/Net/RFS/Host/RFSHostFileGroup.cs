@@ -78,6 +78,11 @@ namespace InputshareLib.Net.RFS.Host
             return Task.FromResult(id);
         }
 
+        internal override Guid GetToken()
+        {
+            return CreateToken();
+        }
+
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 

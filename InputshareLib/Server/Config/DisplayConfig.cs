@@ -6,6 +6,9 @@ using System.Text;
 
 namespace InputshareLib.Server.Config
 {
+    /// <summary>
+    /// Writes and reads properties for a display to/from the configuration file
+    /// </summary>
     internal static class DisplayConfig
     {
         internal static bool TryGetClientAtSide(DisplayBase display, Side side, out string clientName)

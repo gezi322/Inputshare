@@ -100,12 +100,14 @@ namespace InputshareLib.PlatformModules.Windows
 
         private WNDCLASSEX RegisterWindowClass()
         {
+            Random r = new Random();
+
             WNDCLASSEX cls = new WNDCLASSEX
             {
                 cbClsExtra = 0,
                 cbSize = Marshal.SizeOf(typeof(WNDCLASSEX)),
                 lpfnWndProc = Marshal.GetFunctionPointerForDelegate(_wndProc),
-                lpszClassName = WindowName + "_cls",
+                lpszClassName = WindowName + "_cls" + r.Next(int.MinValue, int.MaxValue),
                 cbWndExtra = 0,
                 hbrBackground = IntPtr.Zero,
                 hCursor = IntPtr.Zero,

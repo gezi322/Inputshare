@@ -33,6 +33,11 @@ namespace InputshareLib.Net.RFS
             throw new NotSupportedException();
         }
 
+        internal virtual Guid GetToken()
+        {
+            throw new NotSupportedException();
+        }
+
         internal virtual long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
         {
             throw new NotSupportedException();

@@ -36,6 +36,15 @@ namespace InputshareLib.Client
         private bool _isInputClient;
 
         /// <summary>
+        /// Starts the inputshare client instance with the default dependencies for this platform
+        /// </summary>
+        /// <returns></returns>
+        public Task StartAsync()
+        {
+            return StartAsync(ISClientDependencies.GetCurrentOSDependencies());
+        }
+
+        /// <summary>
         /// Starts the inputshare client instance
         /// </summary>
         /// <param name="dependencies"></param>
