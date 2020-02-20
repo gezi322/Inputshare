@@ -93,7 +93,7 @@ namespace InputshareLib
                 }
                 catch (ConfigurationErrorsException ex)
                 {
-                    Logger.Write($"Failed to save display property: {ex.Message}");
+                    Logger.Write($"Failed to save property: {ex.Message}");
                     return false;
                 }
             }

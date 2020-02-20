@@ -179,12 +179,15 @@ namespace InputshareLib.Server
 
             Displays.Add(display);
 
-            if(display is ClientDisplay)
+            if(display.DisplayName == "IPC")
             {
                 display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
                 LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
+            }else if(display.DisplayName == "ENVY15")
+            {
+                display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
+                LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
             }
-           
 
             ReloadConfiguration();
         }

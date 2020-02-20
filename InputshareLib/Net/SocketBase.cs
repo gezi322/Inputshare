@@ -41,6 +41,7 @@ namespace InputshareLib.Net
         private readonly object _incompleteMessagesLock = new object();
         private readonly Dictionary<Guid, SegmentedMessageHandler> _incompleteMessages = new Dictionary<Guid, SegmentedMessageHandler>();
         private bool _disconnecting = false;
+        private Timer _pingTimer;
 
         internal SocketBase(RFSController fileController)
         {
@@ -72,6 +73,7 @@ namespace InputshareLib.Net
             try
             {
                 int bytesIn = 0;
+                _pingTimer = new Timer(PingTimerCallback, 0, 1000, 1000);
 
                 while (!_tokenSource.IsCancellationRequested)
                 {
@@ -115,6 +117,11 @@ namespace InputshareLib.Net
             {
                 HandleExceptionInternal(ex);
             }
+        }
+
+        private void PingTimerCallback(object s)
+        {
+            SendMessage(new NetNullMessage());
         }
 
         private async Task HandleRequestInternalAsync(NetRequestBase request)
@@ -251,6 +258,7 @@ namespace InputshareLib.Net
         internal virtual void DisconnectSocket()
         {
             _disconnecting = true;
+            _pingTimer.Dispose();
             _client?.Dispose();
             _stream?.Dispose();
             _tokenSource?.Dispose();
@@ -361,6 +369,7 @@ namespace InputshareLib.Net
                 if (disposing)
                 {
                     _disconnecting = true;
+                    _pingTimer.Dispose();
                     Closed = true;
                     _stream?.Dispose();
                     _tokenSource?.Dispose();

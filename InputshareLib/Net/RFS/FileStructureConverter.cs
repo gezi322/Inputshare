@@ -28,7 +28,7 @@ namespace InputshareLib.Net.RFS
                 try
                 {
                     FileInfo file = new FileInfo(absPaths[i]);
-                    headers[i] = new RFSFileHeader(Guid.NewGuid(), file.Name, file.Length, absPaths[i], absPaths[i]);
+                    headers[i] = new RFSFileHeader(Guid.NewGuid(), file.Name, file.Length, relPaths[i], absPaths[i]);
                 }
                 catch (Exception ex)
                 {
@@ -95,9 +95,10 @@ namespace InputshareLib.Net.RFS
                     }
                     else
                     {
+                        var rel = relativePath + "/" + new FileInfo(path).Name;
                         fullPaths.Add(path);
                         count++;
-                        relativePaths.Add(relativePath + "/" + new FileInfo(path).Name);
+                        relativePaths.Add(rel);
                     }
                 }
                 catch (Exception ex) when (!(ex is InvalidDataException))
