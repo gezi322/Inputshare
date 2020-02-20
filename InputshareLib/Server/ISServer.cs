@@ -64,7 +64,7 @@ namespace InputshareLib.Server
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
                 _listener.BeginListening(bindAddress, _fileController);
-
+                Console.Title = ($"Inputshare server @ {BoundAddress} (LocalHost)");
                 Running = true;
                 
             }catch(Exception ex)
@@ -96,7 +96,6 @@ namespace InputshareLib.Server
 
             if (_listener != null && _listener.Listening)
                 _listener.Stop();
-
 
             foreach (var display in Displays.ToArray())
                 if (display != LocalHostDisplay)
@@ -179,6 +178,14 @@ namespace InputshareLib.Server
             display.SideHit += OnDisplaySideHit;
 
             Displays.Add(display);
+
+            if(display is ClientDisplay)
+            {
+                display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
+                LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
+            }
+           
+
             ReloadConfiguration();
         }
 
@@ -217,7 +224,7 @@ namespace InputshareLib.Server
             await display.NotfyInputActiveAsync();
             await InputDisplay.NotifyClientInvactiveAsync();
             InputDisplay = display;
-            Logger.Write($"Input display: {display.DisplayName}");
+            Console.Title = ($"Inputshare server @ {BoundAddress} ({display.DisplayName})");
         }
 
         /// <summary>
@@ -264,10 +271,11 @@ namespace InputshareLib.Server
             {
                 foreach (Side side in Extensions.AllSides)
                 {
-                    if(DisplayConfig.TryReadProperty(display, side.ToString(), out var dis)){
-                        var target = GetDisplay(dis);
+                    if(DisplayConfig.TryGetClientAtSide(display, side, out var clientName))
+                    {
+                        var target = GetDisplay(clientName);
 
-                        if(target != null)
+                        if (target != null)
                         {
                             display.SetDisplayAtSide(side, target);
                         }

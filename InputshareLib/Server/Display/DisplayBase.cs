@@ -108,7 +108,7 @@ namespace InputshareLib.Server.Display
             {
                 if(GetDisplayAtSide(side) != null)
                 {
-                    DisplayConfig.TryWrite(this, side.ToString(), GetDisplayAtSide(side).DisplayName);
+                    DisplayConfig.TrySaveClientAtSide(this, side, GetDisplayAtSide(side));
                 }
             }
             

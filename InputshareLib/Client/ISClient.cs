@@ -1,4 +1,5 @@
-﻿using InputshareLib.Clipboard;
+﻿using InputshareLib.Client.Config;
+using InputshareLib.Clipboard;
 using InputshareLib.Input;
 using InputshareLib.Net.Client;
 using InputshareLib.Net.RFS;
@@ -19,6 +20,7 @@ namespace InputshareLib.Client
     public sealed class ISClient
     {
         public bool Running { get; private set; }
+        public string ClientName { get; private set; }
         public bool Connected => _socket.State == ClientSocketState.Connected;
 
         public event EventHandler<string> Disconnected;
@@ -43,6 +45,9 @@ namespace InputshareLib.Client
             if (Running)
                 throw new InvalidOperationException("Client already running");
 
+            if (ClientConfig.TryGetLastClientName(out var name))
+                ClientName = name;
+
             _dependencies = dependencies;
             _fileController = new RFSController();
             _socket = new ClientSocket(_fileController);
@@ -60,12 +65,32 @@ namespace InputshareLib.Client
         /// <param name="address"></param>
         /// <param name="name"></param>
         /// <returns></returns>
-        public async Task<bool> ConnectAsync(IPEndPoint address, string name)
+        public async Task<bool> ConnectAsync(IPEndPoint address)
         {
             if (Connected) throw new InvalidOperationException("Client already connected");
             if (!Running) throw new InvalidOperationException("Client not running");
 
-            return await _socket.ConnectAsync(new ClientConnectArgs(address, name, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
+            if (ClientName == null)
+                ClientName = GenClientName();
+
+            ClientConfig.trySaveLastAddress(address);
+
+            return await _socket.ConnectAsync(new ClientConnectArgs(address, ClientName, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
+        }
+
+        public void SetClientName(string name)
+        {
+            ClientName = name;
+            ClientConfig.TrySaveLastClientName(name);
+            Logger.Write($"Client name set to {name}");
+        }
+
+        private string GenClientName()
+        {
+            if (ClientConfig.TryGetLastClientName(out string name))
+                return name;
+            else
+                return Environment.MachineName;
         }
 
         /// <summary>

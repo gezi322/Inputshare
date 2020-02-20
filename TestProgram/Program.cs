@@ -25,13 +25,14 @@ namespace TestProgram
             _client = new ISClient();
             _client.Disconnected += _client_Disconnected;
             await _client.StartAsync(ISClientDependencies.GetWindowsDependencies());
-            while(!await _client.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"), Environment.MachineName)) { }
+            _client.SetClientName(Environment.MachineName);
+            while(!await _client.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"))) { }
         }
 
         private static async void _client_Disconnected(object sender, string e)
         {
             Logger.Write("Lost connection...");
-            while(!await _client.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"), Environment.MachineName)) { }
+            while(!await _client.ConnectAsync(IPEndPoint.Parse("192.168.0.17:1234"))) { }
         }
 
         static bool HandleConsoleExit(Kernel32.CtrlTypes type)
