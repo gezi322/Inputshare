@@ -8,6 +8,7 @@ namespace Inputshare.Common.Net.UDP.Messages
     {
         ServerOK,
         ClientOK,
-        InputData
+        InputData,
+        ServerBroadcast
     }
 }

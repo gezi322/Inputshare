@@ -19,8 +19,14 @@ namespace Inputshare.CLI.Client
             _address = address;
 
             await _client.StartAsync();
+            _client.ServerBroadcastReceived += _client_ServerBroadcastReceived;
             _client.Disconnected += OnDisconnect;
             while(!await _client.ConnectAsync(_address)) { }
+        }
+
+        private void _client_ServerBroadcastReceived(object sender, IPEndPoint e)
+        {
+            Console.WriteLine("Found server @ " + e.ToString());
         }
 
         private async void OnDisconnect(object sender, string reason)

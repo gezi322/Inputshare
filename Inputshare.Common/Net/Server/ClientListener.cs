@@ -47,7 +47,7 @@ namespace Inputshare.Common.Net.Server
                 try
                 {
                     var client = await _listener.AcceptSocketAsync();
-                    await Task.Run(() => ProcessClient(client, fileController));
+                    await ProcessClient(client, fileController);
                 }
                 catch (ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
                 {

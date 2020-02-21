@@ -126,6 +126,8 @@ namespace Inputshare.Common.Net
 
         private void PingTimerCallback(object s)
         {
+            //Sends a message every 1500MS to make sure that the socket knows if it
+            //is disconnected
             SendMessage(new NetNullMessage());
         }
 
@@ -273,8 +275,10 @@ namespace Inputshare.Common.Net
             await SendMessageAsync(new NetSetClipboardMessage(cbData));
         }
 
-        
-
+        /// <summary>
+        /// Writes raw bytes to the socket. Used for sending input data
+        /// </summary>
+        /// <param name="data"></param>
         protected void WriteRawData(byte[] data)
         {
             try

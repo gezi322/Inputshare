@@ -19,18 +19,18 @@ namespace Inputshare.Common.Net.RFS.Client
         private SocketBase _host => _group.Host;
         private Guid _token;
 
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _file.FileSize;
+        public override long Position { get; set; }
+
         internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file, Guid token)
         {
             _token = token;
             _group = group;
             _file = file;
         }
-
-        public override bool CanRead => true;
-        public override bool CanSeek => true;
-        public override bool CanWrite => false;
-        public override long Length => _file.FileSize;
-        public override long Position { get; set; }
 
         public override void Flush()
         {
@@ -63,6 +63,7 @@ namespace Inputshare.Common.Net.RFS.Client
         public override long Seek(long offset, SeekOrigin origin)
         {
             var reply = _host.SendRequest<RFSSeekReply>(new RFSSeekRequest(_token, _group.GroupId, _file.FileId, origin, offset));
+            Position = reply.Position;
             return reply.Position;
         }
     }

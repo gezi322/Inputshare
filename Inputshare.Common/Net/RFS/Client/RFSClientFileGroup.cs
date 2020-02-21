@@ -60,8 +60,6 @@ namespace Inputshare.Common.Net.RFS.Client
             return reply.Position;
         }
 
-
-
         [field:NonSerialized]
         internal SocketBase Host { get; }
     }

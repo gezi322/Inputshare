@@ -16,6 +16,10 @@ namespace Inputshare.Common.Net
         public NetRequestBase RequestMessage { get; }
         private readonly SemaphoreSlim _semaphore;
         private NetReplyBase _reply;
+
+        /// <summary>
+        /// If true, the socket has been closed and the request has failed
+        /// </summary>
         private bool _socketClosed = false;
 
         internal SocketRequest(NetRequestBase request)

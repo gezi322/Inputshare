@@ -1,6 +1,7 @@
 ﻿using Inputshare.Common.Client.Config;
 using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input;
+using Inputshare.Common.Net.Broadcast;
 using Inputshare.Common.Net.Client;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.RFS.Client;
@@ -19,11 +20,12 @@ namespace Inputshare.Common.Client
 {
     public sealed class ISClient
     {
+        public event EventHandler<string> Disconnected;
+        public event EventHandler<IPEndPoint> ServerBroadcastReceived;
+
         public bool Running { get; private set; }
         public string ClientName { get; private set; }
         public bool Connected => _socket.State == ClientSocketState.Connected;
-
-        public event EventHandler<string> Disconnected;
 
         private InputModuleBase InputModule => _dependencies.InputModule;
         private OutputModuleBase OutputModule => _dependencies.OutputModule;
@@ -34,6 +36,7 @@ namespace Inputshare.Common.Client
         private RFSController _fileController;
         private SideStates _sideStates;
         private bool _isInputClient;
+        private BroadcastListener _broadcastListener;
 
         /// <summary>
         /// Starts the inputshare client instance with the default dependencies for this platform
@@ -65,7 +68,14 @@ namespace Inputshare.Common.Client
             await StartModulesAsync();
             AssignSocketEvents();
             AssignModuleEvents();
+            _broadcastListener = BroadcastListener.Create();
+            _broadcastListener.BroadcastReceived += OnBroadcastReceived;
             Running = true;
+        }
+
+        private void OnBroadcastReceived(object sender, IPEndPoint address)
+        {
+            ServerBroadcastReceived?.Invoke(this, address);
         }
 
         /// <summary>
@@ -84,8 +94,15 @@ namespace Inputshare.Common.Client
 
             ClientConfig.TrySaveLastAddress(address);
 
-            return await _socket.ConnectAsync(new ClientConnectArgs(address, ClientName, Guid.NewGuid(), InputModule.VirtualDisplayBounds));
+            if(await _socket.ConnectAsync(new ClientConnectArgs(address, ClientName, Guid.NewGuid(), InputModule.VirtualDisplayBounds)))
+            {
+                _broadcastListener?.Dispose();
+                return true;
+            }
+
+            return false;
         }
+
 
         public void SetClientName(string name)
         {
@@ -123,6 +140,7 @@ namespace Inputshare.Common.Client
 
             _socket.Dispose();
             await StopModulesAsync();
+            _broadcastListener?.Dispose();
             
             Running = false;
         }
@@ -133,7 +151,14 @@ namespace Inputshare.Common.Client
             _socket.ClipboardDataReceived += OnClipboardDataReceived;
             _socket.InputClientChanged += OnInputClientChanged;
             _socket.InputReceived += OnInputReceived;
-            _socket.Disconnected += (object o, Exception ex) => Disconnected?.Invoke(this, ex.Message);
+            _socket.Disconnected += OnSocketDisconnected;
+        }
+
+        private void OnSocketDisconnected(object sender, Exception ex)
+        {
+            _broadcastListener = BroadcastListener.Create();
+            _broadcastListener.BroadcastReceived += OnBroadcastReceived;
+            Disconnected?.Invoke(this, ex.Message);
         }
 
         private void AssignModuleEvents()

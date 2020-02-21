@@ -1,4 +1,5 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.Net.Broadcast;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.Server;
 using Inputshare.Common.Net.UDP;
@@ -43,6 +44,7 @@ namespace Inputshare.Common.Server
         private object _clientListLock = new object();
         private object _inputClientLock = new object();
         private ServerUdpSocket _udpHost;
+        private BroadcastSender _broadcaster;
 
         /// <summary>
         /// Starts the inputshare server with the default dependencies for this platform
@@ -81,6 +83,8 @@ namespace Inputshare.Common.Server
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
                 _listener.BeginListening(bindAddress, _fileController);
+                _broadcaster = BroadcastSender.Create(2000, bindAddress.Port);
+
                 Running = true;
                 
             }catch(Exception ex)
@@ -117,6 +121,7 @@ namespace Inputshare.Common.Server
                 if (display != LocalHostDisplay)
                     display.RemoveDisplay();
 
+            _broadcaster?.Dispose();
             _udpHost?.Dispose();
             _listener.Stop();
             await StopModulesAsync();

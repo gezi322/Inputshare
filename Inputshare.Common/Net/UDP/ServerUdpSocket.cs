@@ -41,6 +41,9 @@ namespace Inputshare.Common.Net.UDP
                     var iar = _udpSocket.BeginReceiveFrom(_buffer, 0, _buffer.Length, SocketFlags.None, ref sender, null, null);
                     int bytesIn = _udpSocket.EndReceiveFrom(iar, ref sender);
                     HandleDatagram(_buffer, sender as IPEndPoint);
+                }catch(Exception) when (_tokenSource.IsCancellationRequested)
+                {
+                    return;
                 }
                 catch(Exception ex)
                 {
@@ -56,6 +59,7 @@ namespace Inputshare.Common.Net.UDP
 
         protected override void DisposeSocket()
         {
+            _tokenSource?.Cancel();
             _udpSocket?.Dispose();
         }
 

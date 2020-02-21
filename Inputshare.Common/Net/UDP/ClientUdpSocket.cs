@@ -29,7 +29,7 @@ namespace Inputshare.Common.Net.UDP
         {
             _serverAddress = serverAddress;
             _udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            _udpSocket.Bind(new IPEndPoint(IPAddress.Any, 4444));
+            _udpSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
             BindAddress = _udpSocket.LocalEndPoint as IPEndPoint;
 
             _readThread = new Thread(ReadThreadLoop);
@@ -46,6 +46,9 @@ namespace Inputshare.Common.Net.UDP
                 {
                     _udpSocket.ReceiveFrom(_buffer, SocketFlags.None, ref sender);
                     HandleDatagram(_buffer, sender as IPEndPoint);
+                }catch(Exception) when (_exitLoop)
+                {
+                    //Ignore errors after disposed
                 }
                 catch (Exception ex)
                 {
