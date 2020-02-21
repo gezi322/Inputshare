@@ -59,7 +59,7 @@ namespace Inputshare.Common.Client
 
             _dependencies = dependencies;
             _fileController = new RFSController();
-            _socket = new ClientSocket(_fileController);
+            _socket = new ClientSocket(_fileController, true);
             _isInputClient = false;
             _sideStates = default;
             await StartModulesAsync();

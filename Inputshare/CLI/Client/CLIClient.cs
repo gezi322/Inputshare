@@ -20,7 +20,7 @@ namespace Inputshare.CLI.Client
 
             await _client.StartAsync();
             _client.Disconnected += OnDisconnect;
-            await _client.ConnectAsync(_address);
+            while(!await _client.ConnectAsync(_address)) { }
         }
 
         private async void OnDisconnect(object sender, string reason)

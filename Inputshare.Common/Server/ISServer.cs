@@ -1,6 +1,8 @@
 ﻿using Inputshare.Common.Input;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.Server;
+using Inputshare.Common.Net.UDP;
+using Inputshare.Common.Net.UDP.Messages;
 using Inputshare.Common.PlatformModules;
 using Inputshare.Common.PlatformModules.Clipboard;
 using Inputshare.Common.PlatformModules.Input;
@@ -40,6 +42,7 @@ namespace Inputshare.Common.Server
         private GlobalClipboard _clipboardController;
         private object _clientListLock = new object();
         private object _inputClientLock = new object();
+        private ServerUdpSocket _udpHost;
 
         /// <summary>
         /// Starts the inputshare server with the default dependencies for this platform
@@ -68,6 +71,7 @@ namespace Inputshare.Common.Server
                 _dependencies = dependencies;
                 _fileController = new RFSController();
                 _clipboardController = new GlobalClipboard(Displays, _fileController);
+                _udpHost = ServerUdpSocket.Create(bindAddress.Port);
                 await StartModulesAsync();
                 LocalHostDisplay = new LocalDisplay(_dependencies);
                 InputDisplay = LocalHostDisplay;
@@ -77,7 +81,6 @@ namespace Inputshare.Common.Server
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
                 _listener.BeginListening(bindAddress, _fileController);
-                Console.Title = ($"Inputshare server @ {BoundAddress} (LocalHost)");
                 Running = true;
                 
             }catch(Exception ex)
@@ -114,8 +117,11 @@ namespace Inputshare.Common.Server
                 if (display != LocalHostDisplay)
                     display.RemoveDisplay();
 
+            _udpHost?.Dispose();
             _listener.Stop();
             await StopModulesAsync();
+            _fileController.Dispose();
+
             Running = false;
         }
 
@@ -150,6 +156,10 @@ namespace Inputshare.Common.Server
 
             //Create a display object and set it up
             var display = new ClientDisplay(args);
+
+            if(_udpHost != null)
+                args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));
+
             OnDisplayAdded(display);
         }
 
@@ -179,6 +189,9 @@ namespace Inputshare.Common.Server
         {
             lock (_clientListLock)
             {
+                if (display is ClientDisplay cDisplay)
+                    _udpHost?.RemoveHandlersForAddress(cDisplay.Socket.UdpAddress);
+
                 Logger.Write($"Removed display {display.DisplayName}");
                 Displays.Remove(display);
                 RemoveReferences(display);
@@ -203,17 +216,6 @@ namespace Inputshare.Common.Server
                 display.SideHit += OnDisplaySideHit;
 
                 Displays.Add(display);
-
-                if (display.DisplayName == "IPC")
-                {
-                    display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
-                    LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
-                }
-                else if (display.DisplayName == "ENVY15")
-                {
-                    display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
-                    LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
-                }
             }
 
             ReloadConfiguration();

@@ -33,7 +33,7 @@ namespace Inputshare.Common.PlatformModules
 
              await OnStart();
             Running = true;
-            Logger.Write($"Module {ModuleName} started");
+            //Logger.Write($"Module {ModuleName} started");
         }
 
         internal async Task StopAsync()
@@ -43,7 +43,7 @@ namespace Inputshare.Common.PlatformModules
 
             await OnStop();
             Running = false;
-            Logger.Write($"Module {ModuleName} stopped");
+            //Logger.Write($"Module {ModuleName} stopped");
         }
 
         protected abstract Task OnStart();

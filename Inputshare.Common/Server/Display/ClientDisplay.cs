@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input;
 using Inputshare.Common.Net.Server;
+using Inputshare.Common.Net.UDP;
+using Inputshare.Common.Net.UDP.Messages;
 
 namespace Inputshare.Common.Server.Display
 {
@@ -14,6 +16,7 @@ namespace Inputshare.Common.Server.Display
     public class ClientDisplay : DisplayBase
     {
         internal readonly ServerSocket Socket;
+        public bool UdpConnected { get; private set; }
 
         internal ClientDisplay(ClientConnectedArgs connectedArgs) : base(connectedArgs.DisplayBounds, connectedArgs.Name)
         {
@@ -39,8 +42,18 @@ namespace Inputshare.Common.Server.Display
 
         internal override void SendInput(ref InputData input)
         {
-            if(Socket.Connected)
-                Socket.SendInput(ref input);
+            if (Socket.Connected)
+            {
+                if (UdpConnected)
+                {
+
+                }
+                else
+                {
+                    Socket.SendInput(ref input);
+                }
+            }
+                
         }
 
         internal override void NotfyInputActive()

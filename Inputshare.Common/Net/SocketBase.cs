@@ -73,7 +73,7 @@ namespace Inputshare.Common.Net
             try
             {
                 int bytesIn = 0;
-                _pingTimer = new Timer(PingTimerCallback, 0, 1000, 1000);
+                _pingTimer = new Timer(PingTimerCallback, 0, 2000, 2000);
 
                 while (!_tokenSource.IsCancellationRequested)
                 {
@@ -105,6 +105,11 @@ namespace Inputshare.Common.Net
             {
                 HandleExceptionInternal(ex);
             }
+        }
+
+        protected void RaiseInputReceived(InputData input)
+        {
+            InputReceived?.Invoke(this, input);
         }
 
         private void DispatchMessage(NetMessageBase message)
@@ -151,6 +156,7 @@ namespace Inputshare.Common.Net
                 {
                     SegmentedMessageHandler handler = new SegmentedMessageHandler(message.FullPacketSize);
 
+                    //Dispatch the message when it is fully read
                     handler.MessageComplete += (object o, NetMessageBase completeMessage) =>
                     {
                         _incompleteMessages.Remove(message.MessageId);
@@ -267,18 +273,14 @@ namespace Inputshare.Common.Net
             await SendMessageAsync(new NetSetClipboardMessage(cbData));
         }
 
-        /// <summary>
-        /// Sends input data to the client
-        /// </summary>
-        /// <param name="input"></param>
-        internal void SendInput(ref InputData input)
+        
+
+        protected void WriteRawData(byte[] data)
         {
             try
             {
-                NetMessageHeader header = NetMessageHeader.CreateInputHeader(ref input);
-                _stream.Write(header.Data, 0, header.Data.Length);
-            }
-            catch (Exception ex)
+                _stream.Write(data);
+            }catch(Exception ex)
             {
                 HandleExceptionInternal(ex);
             }
@@ -376,9 +378,9 @@ namespace Inputshare.Common.Net
             {
                 if (disposing)
                 {
+                    Closed = true;
                     _disconnecting = true;
                     _pingTimer?.Dispose();
-                    Closed = true;
                     _stream?.Dispose();
                     _tokenSource?.Dispose();
 

@@ -107,7 +107,7 @@ namespace Inputshare.Common.Net.Server
                 //Deserialize message, if incorrect message type is sent then throw
                 NetClientConnectionMessage msg = (NetClientConnectionMessage)MessageSerializer.Deserialize(clientBuff, ref header);
 
-                ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client, fileController), msg.ClientName, msg.ClientId, msg.DisplayBounds));
+                ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client, fileController), msg.ClientName, msg.ClientId, msg.DisplayBounds, msg.UdpPort));
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)
             {
                 Logger.Write($"{clientAddr} timed out");

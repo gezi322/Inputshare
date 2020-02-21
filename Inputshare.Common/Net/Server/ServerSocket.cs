@@ -1,7 +1,10 @@
-﻿using Inputshare.Common.Net.Messages;
+﻿using Inputshare.Common.Input;
+using Inputshare.Common.Net.Messages;
 using Inputshare.Common.Net.Messages.Replies;
 using Inputshare.Common.Net.Messages.Requests;
 using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.UDP;
+using Inputshare.Common.Net.UDP.Messages;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,6 +23,11 @@ namespace Inputshare.Common.Net.Server
         internal event EventHandler<Tuple<Side, int, int>> SideHit;
         internal event EventHandler<Rectangle> DisplayBoundsChanged;
         internal bool Connected { get; private set; }
+        internal bool UdpConnected { get; private set; }
+        internal IPEndPoint UdpAddress { get; private set; } = new IPEndPoint(IPAddress.Any, 0);
+
+        private ServerUdpSocket _udpSocket;
+       
 
         internal ServerSocket(Socket client, RFSController fileController) : base(fileController)
         {
@@ -29,6 +37,24 @@ namespace Inputshare.Common.Net.Server
             //Send confirmation message to client
             SendMessage(new NetServerConnectionMessage("hello"));
         }
+
+        internal void SetUdpSocket(ServerUdpSocket socket, IPEndPoint udpAddress)
+        {
+            _udpSocket = socket;
+            UdpAddress = udpAddress;
+            socket.RegisterHandlerForAddress(udpAddress, HandleUdpMessage);
+            _udpSocket.SendMessage(new UdpGenericMessage(UdpMessageType.ServerOK), UdpAddress);
+        }
+
+        private void HandleUdpMessage(IUdpMessage message)
+        {
+            if(message.Type == UdpMessageType.ClientOK && !UdpConnected)
+            {
+                UdpConnected = true;
+                Logger.Write($"{Address.Address}: Udp enabled");
+            }
+        }
+
         internal async Task SendSideUpdateAsync(Side[] activeSides)
         {
             bool left = activeSides.Contains(Side.Left);
@@ -36,7 +62,24 @@ namespace Inputshare.Common.Net.Server
             bool bottom = activeSides.Contains(Side.Bottom);
             bool top = activeSides.Contains(Side.Top);
             await SendMessageAsync(new NetClientSideStateMessage(left, right, top, bottom));
+        }
 
+        /// <summary>
+        /// Sends input data to the client
+        /// </summary>
+        /// <param name="input"></param>
+        internal void SendInput(ref InputData input)
+        {
+            if (UdpConnected)
+            {
+                _udpSocket.SendMessage(new UdpInputMessage(input), UdpAddress);
+            }
+            else
+            {
+                NetMessageHeader header = NetMessageHeader.CreateInputHeader(ref input);
+                WriteRawData(header.Data);
+            }
+            
         }
 
         internal void NotifyInputClient(bool inputClient)

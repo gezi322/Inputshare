@@ -3,9 +3,12 @@ using Inputshare.Common.Net.Messages.Replies;
 using Inputshare.Common.Net.Messages.Requests;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.RFS.Client;
+using Inputshare.Common.Net.UDP;
+using Inputshare.Common.Net.UDP.Messages;
 using System;
 using System.Drawing;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,15 +22,17 @@ namespace Inputshare.Common.Net.Client
         internal event EventHandler<ClientSidesChangedArgs> SideStateChanged;
         internal Rectangle VirtualBounds { get; private set; }
         internal ClientSocketState State => _state;
-        private ClientSocketState _state;
+        private ClientSocketState _state; 
 
         private SemaphoreSlim _connectSemaphore;
         private Socket _client;
         private bool _disconnecting;
+        private ClientUdpSocket _udpSocket;
+        private bool _bindUdp;
 
-        internal ClientSocket(RFSController fileController) : base(fileController)
+        internal ClientSocket(RFSController fileController, bool bindUdp) : base(fileController)
         {
-
+            _bindUdp = bindUdp;
         }
 
         /// <summary>
@@ -35,7 +40,7 @@ namespace Inputshare.Common.Net.Client
         /// </summary>
         /// <param name="address"></param>
         /// <param name="timeout"></param>
-        /// <returns></returns>
+        /// <returns>True if connected</returns>
         /// <exception cref="NetConnectionFailedException"/>
         internal async Task<bool> ConnectAsync(ClientConnectArgs args, int timeout = 1000)
         {
@@ -59,8 +64,11 @@ namespace Inputshare.Common.Net.Client
                 //Start a background task to receive data
                 BeginReceiveData(_client);
 
+                if (_bindUdp)
+                    CreateUdpClient(args.Address);
+
                 //Send a initial message to the server containing information about this client
-                await SendConnectionInfoAsync(args);
+                await SendConnectionInfoAsync(args, _udpSocket == null ? 0 : _udpSocket.BindAddress.Port);
 
                 //don't return until we receive a ServerConnection message, or throw if timeout reached
                 if (!await _connectSemaphore.WaitAsync(timeout))
@@ -73,6 +81,7 @@ namespace Inputshare.Common.Net.Client
 
                 Logger.Write($"Connected to {args.Address}");
                 _state = ClientSocketState.Connected;
+                _udpSocket.SendToServer(new UdpGenericMessage(UdpMessageType.ClientOK));
                 return true;
             }catch(Exception ex)
             {
@@ -83,6 +92,20 @@ namespace Inputshare.Common.Net.Client
             
         }
 
+        private void CreateUdpClient(IPEndPoint serverAddress)
+        {
+            _udpSocket = ClientUdpSocket.Create(serverAddress);
+            _udpSocket.RegisterHandlerForAddress(serverAddress, new UdpBase.UdpMessageHandler(HandleUdpMessage));
+        }
+
+        private void HandleUdpMessage(IUdpMessage message)
+        {
+            if (message.Type == UdpMessageType.ServerOK)
+                _udpSocket.SendToServer(new UdpGenericMessage(UdpMessageType.ClientOK));
+            else if (message is UdpInputMessage inputMessage)
+                RaiseInputReceived(inputMessage.Input);
+        }
+
         /// <summary>
         /// Disconnects from the server
         /// </summary>
@@ -91,6 +114,7 @@ namespace Inputshare.Common.Net.Client
             if (_state == ClientSocketState.Idle)
                 throw new InvalidOperationException("Cannot disconnect when state is Idle");
 
+            _udpSocket?.Dispose();
             _disconnecting = true;
             base.DisconnectSocket();
             Logger.Write("Disconnected");
@@ -106,9 +130,9 @@ namespace Inputshare.Common.Net.Client
             await SendMessageAsync(new NetSideHitMessage(side, posX, posY));
         }
 
-        private async Task SendConnectionInfoAsync(ClientConnectArgs args)
+        private async Task SendConnectionInfoAsync(ClientConnectArgs args, int udpPort)
         {
-            await SendMessageAsync(new NetClientConnectionMessage(args.Name, args.Id, "0.1", args.VirtualBounds));
+            await SendMessageAsync(new NetClientConnectionMessage(args.Name, args.Id, "0.1", args.VirtualBounds, udpPort));
         }
 
         protected override void HandleException(Exception ex)
@@ -116,6 +140,7 @@ namespace Inputshare.Common.Net.Client
             //Dont throw an exception if we called disconnectsocket
             if(_state == ClientSocketState.Connected && !_disconnecting)
             {
+                _udpSocket?.Dispose();
                 _state = ClientSocketState.Idle;
                 Disconnected?.Invoke(this, ex);
             }
@@ -145,6 +170,7 @@ namespace Inputshare.Common.Net.Client
         {
             if (disposing)
             {
+                _udpSocket?.Dispose();
                 _state = ClientSocketState.Idle;
                 _connectSemaphore?.Dispose();
             }

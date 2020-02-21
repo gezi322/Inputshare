@@ -64,6 +64,10 @@ namespace Inputshare.Common.Net.RFS
                         HandleSeekRequest(seekRequest, rfsMsg.Sender);
 
                 }
+                catch (OperationCanceledException)
+                {
+                    Logger.Write("RFSController stopped");
+                }
                 catch (Exception ex)
                 {
                     Logger.Write("Failed to handle RFS message: " + ex.Message);
@@ -133,6 +137,11 @@ namespace Inputshare.Common.Net.RFS
             sender.SendMessage(new RFSSeekReply(request.MessageId, newPos));
         }
 
+        /// <summary>
+        /// Handles the specified request to read from a file
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="sender"></param>
         private void HandleReadRequest(RFSReadRequest request, SocketBase sender)
         {
             var group = GetGroup(request.GroupId);
@@ -141,7 +150,7 @@ namespace Inputshare.Common.Net.RFS
         }
 
         /// <summary>
-        /// Reads data from a file in the specified group
+        /// Reads data from a file in the specified group with the given token
         /// </summary>
         /// <param name="group"></param>
         /// <param name="fileId"></param>

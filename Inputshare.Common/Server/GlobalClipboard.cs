@@ -30,13 +30,11 @@ namespace Inputshare.Common.Server
 
         private void OnDisplayRemoved(DisplayBase display)
         {
-            Logger.Write("GlobalClipboard: removed " + display.DisplayName);
 
         }
 
         private void OnDisplayAdded(DisplayBase display)
         {
-            Logger.Write("GlobalClipboard: added " + display.DisplayName);
             display.ClipboardChanged += (object o, ClipboardData cbData) => OnDisplayClipboardChanged(o as DisplayBase, cbData);
         }
 
@@ -52,26 +50,36 @@ namespace Inputshare.Common.Server
             {
                 //If localhost copied a list of file sources, convert them into an RFS file group
                 //that a client can read from
-                string[] files = cbData.GetLocalFiles();
-                var group = _fileController.HostLocalGroup(files);
-                cbData.SetRemoteFiles(group);
-                _previousClipboardFileGroup = group;
+                ConvertLocalFileGroup(cbData);
             }
             else if (!(sender is LocalDisplay) && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
             {
                 //If another client set the clipboard files, convert the given filegroup into a client filegroup
                 //that the server, and other clients can read from the remote file group
-                var group = cbData.GetRemoteFiles();
-                var clientGroup = RFSClientFileGroup.FromGroup(group, (sender as ClientDisplay).Socket);
-                _fileController.HostRemoteGroup(clientGroup);
-                cbData.SetRemoteFiles(clientGroup);
-                _previousClipboardFileGroup = group;
+                ConvertRemoteFileGroup(cbData, sender);
             }
 
             foreach (var display in _displays.Where(i => i != sender))
             {
                 await display.SetClipboardAsync(cbData);
             }
+        }
+
+        private void ConvertRemoteFileGroup(ClipboardData cbData, DisplayBase sender)
+        {
+            var group = cbData.GetRemoteFiles();
+            var clientGroup = RFSClientFileGroup.FromGroup(group, (sender as ClientDisplay).Socket);
+            _fileController.HostRemoteGroup(clientGroup);
+            cbData.SetRemoteFiles(clientGroup);
+            _previousClipboardFileGroup = group;
+        }
+
+        private void ConvertLocalFileGroup(ClipboardData cbData)
+        {
+            string[] files = cbData.GetLocalFiles();
+            var group = _fileController.HostLocalGroup(files);
+            cbData.SetRemoteFiles(group);
+            _previousClipboardFileGroup = group;
         }
     }
 }

@@ -67,7 +67,6 @@ namespace Inputshare.Common.PlatformModules.Windows
             Handle = CreateWindow();
 
             _creationWaitHandle.Release();
-            Logger.Write($"Window {WindowName} created");
 
             Win32Message msg;
             int ret;
@@ -82,8 +81,6 @@ namespace Inputshare.Common.PlatformModules.Windows
                 DispatchMessage(ref msg);
             }
             _closed = true;
-
-            Logger.Write($"Window {WindowName} exited");
         }
 
         private IntPtr CreateWindow()
