@@ -43,14 +43,14 @@ namespace Inputshare.Common.Server.Display
                 Socket.SendInput(ref input);
         }
 
-        internal override async Task NotfyInputActiveAsync()
+        internal override void NotfyInputActive()
         {
-            await Socket.NotifyInputClientAsync(true);
+            Socket.NotifyInputClient(true);
         }
 
-        internal override async Task NotifyClientInvactiveAsync()
+        internal override void NotifyClientInvactive()
         {
-            await Socket.NotifyInputClientAsync(false);
+            Socket.NotifyInputClient(false);
         }
 
         internal override void RemoveDisplay()

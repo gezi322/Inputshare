@@ -30,7 +30,7 @@ namespace Inputshare.Common.Net.Server
         internal void BeginListening(IPEndPoint bindAddress, RFSController fileController)
         {
             _listener = new TcpListener(bindAddress);
-            _listener.Start();
+            _listener.Start(6);
 
             _tokenSource = new CancellationTokenSource();
             BindAddress = bindAddress;
@@ -114,7 +114,7 @@ namespace Inputshare.Common.Net.Server
                 client?.Dispose();
             }catch(Exception ex)
             {
-                Logger.Write($"Failed to accept connection from {client.RemoteEndPoint}: {ex.Message}");
+                Logger.Write($"Failed to accept connection from {client.RemoteEndPoint}: {ex.Message}\n{ex.StackTrace}");
                 client?.Dispose();
             }
             finally

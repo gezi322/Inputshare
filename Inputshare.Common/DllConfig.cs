@@ -24,9 +24,9 @@ namespace Inputshare.Common
                     return true;
                 }
             }
-            catch (ConfigurationErrorsException ex)
+            catch (Exception ex)
             {
-                Logger.Write($"Failed to open configuration file: {ex.Message}");
+                //Logger.Write($"Failed to open configuration file: {ex.Message}");
                 return false;
             }
         }
@@ -91,9 +91,9 @@ namespace Inputshare.Common
                     configFile.Save();
                     return true;
                 }
-                catch (ConfigurationErrorsException ex)
+                catch (Exception ex)
                 {
-                    Logger.Write($"Failed to save property: {ex.Message}");
+                    //Logger.Write($"Failed to save property: {ex.Message}");
                     return false;
                 }
             }

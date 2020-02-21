@@ -11,6 +11,7 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Inputshare.Common.Server
@@ -37,6 +38,8 @@ namespace Inputshare.Common.Server
         private ISServerDependencies _dependencies;
         private RFSController _fileController;
         private GlobalClipboard _clipboardController;
+        private object _clientListLock = new object();
+        private object _inputClientLock = new object();
 
         /// <summary>
         /// Starts the inputshare server with the default dependencies for this platform
@@ -138,6 +141,13 @@ namespace Inputshare.Common.Server
         /// <param name="args"></param>
         private void OnClientConnected(object sender, ClientConnectedArgs args)
         {
+            if(Displays.Where(i => i.DisplayName.ToLower() == args.Name.ToLower()).FirstOrDefault() != null)
+            {
+                Logger.Write($"Removed client {args.Name}: Duplicate client name");
+                args.Socket.Dispose();
+                return;
+            }
+
             //Create a display object and set it up
             var display = new ClientDisplay(args);
             OnDisplayAdded(display);
@@ -148,7 +158,7 @@ namespace Inputshare.Common.Server
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private async void OnDisplaySideHit(object sender, SideHitArgs args)
+        private void OnDisplaySideHit(object sender, SideHitArgs args)
         {
             var display = sender as DisplayBase;
             if(InputDisplay == display)
@@ -156,9 +166,7 @@ namespace Inputshare.Common.Server
                 var target = display.GetDisplayAtSide(args.Side);
 
                 if(target != null)
-                {
-                    await SetInputDisplayAsync(target, args.Side, args.PosX, args.PosY);
-                }
+                    SetInputDisplay(target, args.Side, args.PosX, args.PosY);
             }
         }
 
@@ -167,15 +175,20 @@ namespace Inputshare.Common.Server
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="display"></param>
-        private async void OnDisplayRemoved(object sender, DisplayBase display)
+        private void OnDisplayRemoved(object sender, DisplayBase display)
         {
-            Logger.Write($"Removed display {display.DisplayName}");
-            Displays.Remove(display);
-            RemoveReferences(display);
+            lock (_clientListLock)
+            {
+                Logger.Write($"Removed display {display.DisplayName}");
+                Displays.Remove(display);
+                RemoveReferences(display);
 
-            //If the display that was removed was the input display, switch back to local input
-            if (display == InputDisplay)
-                await SetInputDisplayAsync(LocalHostDisplay);
+                //If the display that was removed was the input display, switch back to local input
+                if (display == InputDisplay)
+                    SetInputDisplay(LocalHostDisplay);
+            }
+
+           
         }
 
         /// <summary>
@@ -184,19 +197,23 @@ namespace Inputshare.Common.Server
         /// <param name="display"></param>
         private void OnDisplayAdded(DisplayBase display)
         {
-            display.DisplayRemoved += OnDisplayRemoved;
-            display.SideHit += OnDisplaySideHit;
-
-            Displays.Add(display);
-
-            if(display.DisplayName == "IPC")
+            lock (_clientListLock)
             {
-                display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
-                LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
-            }else if(display.DisplayName == "ENVY15")
-            {
-                display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
-                LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
+                display.DisplayRemoved += OnDisplayRemoved;
+                display.SideHit += OnDisplaySideHit;
+
+                Displays.Add(display);
+
+                if (display.DisplayName == "IPC")
+                {
+                    display.SetDisplayAtSide(Side.Right, LocalHostDisplay);
+                    LocalHostDisplay.SetDisplayAtSide(Side.Left, display);
+                }
+                else if (display.DisplayName == "ENVY15")
+                {
+                    display.SetDisplayAtSide(Side.Top, LocalHostDisplay);
+                    LocalHostDisplay.SetDisplayAtSide(Side.Bottom, display);
+                }
             }
 
             ReloadConfiguration();
@@ -225,19 +242,23 @@ namespace Inputshare.Common.Server
         /// Switches input to the specified display
         /// </summary>
         /// <param name="display"></param>
-        internal async Task SetInputDisplayAsync(DisplayBase display)
+        internal void SetInputDisplay(DisplayBase display)
         {
-            if (!Displays.Contains(display))
+            lock (_inputClientLock)
             {
-                Logger.Write($"Can't switch to {display.DisplayName}: Not in display list");
-                RemoveReferences(display);
-                return;
+                if (!Displays.Contains(display))
+                {
+                    Logger.Write($"Can't switch to {display.DisplayName}: Not in display list");
+                    RemoveReferences(display);
+                    return;
+                }
+
+                display.NotfyInputActive();
+                InputDisplay.NotifyClientInvactive();
+                InputDisplay = display;
             }
 
-            await display.NotfyInputActiveAsync();
-            await InputDisplay.NotifyClientInvactiveAsync();
-            InputDisplay = display;
-            Console.Title = ($"Inputshare server @ {BoundAddress} ({display.DisplayName})");
+            
         }
 
         /// <summary>
@@ -248,12 +269,12 @@ namespace Inputshare.Common.Server
         /// <param name="side"></param>
         /// <param name="hitX"></param>
         /// <param name="hitY"></param>
-        internal async Task SetInputDisplayAsync(DisplayBase display, Side side, int hitX, int hitY)
+        internal void SetInputDisplay(DisplayBase display, Side side, int hitX, int hitY)
         {
             var newPos = CalculateCursorPosition(display, side, hitX, hitY);
             var input = new InputData(InputCode.MouseMoveAbsolute, (short)newPos.X, (short)newPos.Y);
             display.SendInput(ref input);
-            await SetInputDisplayAsync(display);
+            SetInputDisplay(display);
         }
 
         /// <summary>
@@ -280,17 +301,20 @@ namespace Inputshare.Common.Server
         /// </summary>
         private void ReloadConfiguration()
         {
-            foreach(var display in Displays)
+            lock (_clientListLock)
             {
-                foreach (Side side in Extensions.AllSides)
+                foreach (var display in Displays)
                 {
-                    if(DisplayConfig.TryGetClientAtSide(display, side, out var clientName))
+                    foreach (Side side in Extensions.AllSides)
                     {
-                        var target = GetDisplay(clientName);
-
-                        if (target != null)
+                        if (DisplayConfig.TryGetClientAtSide(display, side, out var clientName))
                         {
-                            display.SetDisplayAtSide(side, target);
+                            var target = GetDisplay(clientName);
+
+                            if (target != null)
+                            {
+                                display.SetDisplayAtSide(side, target);
+                            }
                         }
                     }
                 }

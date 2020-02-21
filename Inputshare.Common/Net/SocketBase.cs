@@ -377,7 +377,7 @@ namespace Inputshare.Common.Net
                 if (disposing)
                 {
                     _disconnecting = true;
-                    _pingTimer.Dispose();
+                    _pingTimer?.Dispose();
                     Closed = true;
                     _stream?.Dispose();
                     _tokenSource?.Dispose();

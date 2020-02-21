@@ -47,6 +47,13 @@ namespace Inputshare.Common.Net.RFS.Client
             return reply.ReturnData.Length;
         }
 
+        internal override int Read(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
+        {
+            var reply = Host.SendRequest<RFSReadReply>(new RFSReadRequest(tokenId, GroupId, fileId, readLen));
+            Buffer.BlockCopy(reply.ReturnData, 0, buffer, 0, reply.ReturnData.Length);
+            return reply.ReturnData.Length;
+        }
+
         internal override long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
         {
             var reply = Host.SendRequest<RFSSeekReply>(new RFSSeekRequest(tokenId, GroupId, fileId, origin, offset));

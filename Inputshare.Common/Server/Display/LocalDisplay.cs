@@ -36,18 +36,16 @@ namespace Inputshare.Common.Server.Display
            _outputModule.SimulateInput(ref input);
         }
 
-        internal override Task NotfyInputActiveAsync()
+        internal override void NotfyInputActive()
         {
             _inputModule.SetInputRedirected(false);
             _inputModule.SetMouseHidden(false);
-            return Task.CompletedTask;
         }
 
-        internal override Task NotifyClientInvactiveAsync()
+        internal override void NotifyClientInvactive()
         {
             _inputModule.SetInputRedirected(true);
             _inputModule.SetMouseHidden(true);
-            return Task.CompletedTask;
         }
 
         internal override async Task SetClipboardAsync(ClipboardData cbData)

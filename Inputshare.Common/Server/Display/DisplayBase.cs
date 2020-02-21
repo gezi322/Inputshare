@@ -94,8 +94,8 @@ namespace Inputshare.Common.Server.Display
             DisplayRemoved?.Invoke(this, this);
         }
 
-        internal abstract Task NotfyInputActiveAsync();
-        internal abstract Task NotifyClientInvactiveAsync();
+        internal abstract void NotfyInputActive();
+        internal abstract void NotifyClientInvactive();
         internal abstract void SendInput(ref InputData input);
         internal abstract Task SetClipboardAsync(ClipboardData cbData);
 

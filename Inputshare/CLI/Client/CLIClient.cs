@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Inputshare.CLI.Client
@@ -19,14 +20,14 @@ namespace Inputshare.CLI.Client
 
             await _client.StartAsync();
             _client.Disconnected += OnDisconnect;
-            while(!await _client.ConnectAsync(_address)) { }
+            await _client.ConnectAsync(_address);
         }
 
         private async void OnDisconnect(object sender, string reason)
         {
             Console.WriteLine("Disconnected: " + reason);
 
-            while (!await _client.ConnectAsync(_address)) { }
+            while (!await (sender as ISClient).ConnectAsync(_address)) { }
         }
     }
 }

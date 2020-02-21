@@ -39,9 +39,9 @@ namespace Inputshare.Common.Net.Server
 
         }
 
-        internal async Task NotifyInputClientAsync(bool inputClient)
+        internal void NotifyInputClient(bool inputClient)
         {
-            await SendMessageAsync(new NetInputClientStateMessage(inputClient));
+            SendMessage(new NetInputClientStateMessage(inputClient));
         }
 
         protected override void HandleException(Exception ex)
