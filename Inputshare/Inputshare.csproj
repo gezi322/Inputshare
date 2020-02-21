@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InputshareLib\Inputshare.Common.csproj" />
+    <ProjectReference Include="..\Inputshare.Common\Inputshare.Common.csproj" />
   </ItemGroup>
 
 </Project>
