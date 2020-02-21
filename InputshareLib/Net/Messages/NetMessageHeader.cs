@@ -1,9 +1,9 @@
-﻿using InputshareLib.Input;
+﻿using Inputshare.Common.Input;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages
+namespace Inputshare.Common.Net.Messages
 {
     /// <summary>
     /// Contains information about a network message. Contains an InputData struct

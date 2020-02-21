@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace InputshareLib.Client.Config
+namespace Inputshare.Common.Client.Config
 {
     internal static class ClientConfig
     {

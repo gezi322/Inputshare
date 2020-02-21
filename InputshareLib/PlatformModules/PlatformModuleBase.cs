@@ -1,10 +1,10 @@
-﻿using InputshareLib.PlatformModules.Windows;
+﻿using Inputshare.Common.PlatformModules.Windows;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.PlatformModules
+namespace Inputshare.Common.PlatformModules
 {
     /// <summary>
     /// Base class for platform specific modules (clipboard, input hooks, simulating user input etc)

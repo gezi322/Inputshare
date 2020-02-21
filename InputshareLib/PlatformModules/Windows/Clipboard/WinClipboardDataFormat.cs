@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace InputshareLib.PlatformModules.Windows.Clipboard
+namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     public static class WinClipboardDataFormat
     {

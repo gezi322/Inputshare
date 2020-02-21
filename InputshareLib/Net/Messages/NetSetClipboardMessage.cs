@@ -1,9 +1,9 @@
-﻿using InputshareLib.Clipboard;
+﻿using Inputshare.Common.Clipboard;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages
+namespace Inputshare.Common.Net.Messages
 {
     [Serializable]
     internal class NetSetClipboardMessage : NetMessageBase

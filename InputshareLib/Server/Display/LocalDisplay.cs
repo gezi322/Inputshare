@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
-using InputshareLib.Clipboard;
-using InputshareLib.Input;
-using InputshareLib.PlatformModules;
-using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Input;
-using InputshareLib.PlatformModules.Output;
+using Inputshare.Common.Clipboard;
+using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules;
+using Inputshare.Common.PlatformModules.Clipboard;
+using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Output;
 
-namespace InputshareLib.Server.Display
+namespace Inputshare.Common.Server.Display
 {
     /// <summary>
     /// Represents the virtual display of the server machine

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
-using IDataObject = InputshareLib.PlatformModules.Windows.Native.Interfaces.IDataObject;
+using IDataObject = Inputshare.Common.PlatformModules.Windows.Native.Interfaces.IDataObject;
 
-namespace InputshareLib.PlatformModules.Windows.Native
+namespace Inputshare.Common.PlatformModules.Windows.Native
 {
     internal static class Ole32
     {

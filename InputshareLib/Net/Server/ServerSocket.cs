@@ -1,7 +1,7 @@
-﻿using InputshareLib.Net.Messages;
-using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
-using InputshareLib.Net.RFS;
+﻿using Inputshare.Common.Net.Messages;
+using Inputshare.Common.Net.Messages.Replies;
+using Inputshare.Common.Net.Messages.Requests;
+using Inputshare.Common.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,7 +12,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net.Server
+namespace Inputshare.Common.Net.Server
 {
     internal class ServerSocket : SocketBase
     {

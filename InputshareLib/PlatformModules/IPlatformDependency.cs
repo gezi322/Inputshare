@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.PlatformModules
+namespace Inputshare.Common.PlatformModules
 {
     /// <summary>
     /// A dependency that is shared between modules, EG an X server connection

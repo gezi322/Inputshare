@@ -1,11 +1,11 @@
-﻿using InputshareLib.Net.Messages;
-using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
+﻿using Inputshare.Common.Net.Messages;
+using Inputshare.Common.Net.Messages.Replies;
+using Inputshare.Common.Net.Messages.Requests;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Formatting
+namespace Inputshare.Common.Net.Formatting
 {
     /// <summary>
     /// Deserializes messages without the overhead of a binaryformatter

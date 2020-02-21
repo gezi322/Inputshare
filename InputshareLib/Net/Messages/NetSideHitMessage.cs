@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages
+namespace Inputshare.Common.Net.Messages
 {
     [Serializable]
     internal class NetSideHitMessage : NetMessageBase

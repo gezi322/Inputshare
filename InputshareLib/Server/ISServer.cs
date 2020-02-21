@@ -1,19 +1,19 @@
-﻿using InputshareLib.Input;
-using InputshareLib.Net.RFS;
-using InputshareLib.Net.Server;
-using InputshareLib.PlatformModules;
-using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Input;
-using InputshareLib.PlatformModules.Output;
-using InputshareLib.Server.Config;
-using InputshareLib.Server.Display;
+﻿using Inputshare.Common.Input;
+using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.Server;
+using Inputshare.Common.PlatformModules;
+using Inputshare.Common.PlatformModules.Clipboard;
+using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.Server.Config;
+using Inputshare.Common.Server.Display;
 using System;
 using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Server
+namespace Inputshare.Common.Server
 {
     /// <summary>
     /// Inputshare server implementation

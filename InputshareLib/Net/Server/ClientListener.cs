@@ -1,6 +1,6 @@
-﻿using InputshareLib.Net.Formatting;
-using InputshareLib.Net.Messages;
-using InputshareLib.Net.RFS;
+﻿using Inputshare.Common.Net.Formatting;
+using Inputshare.Common.Net.Messages;
+using Inputshare.Common.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net.Server
+namespace Inputshare.Common.Net.Server
 {
     internal sealed class ClientListener
     {

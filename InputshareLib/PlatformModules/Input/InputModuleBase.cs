@@ -1,10 +1,10 @@
-﻿using InputshareLib.Input;
+﻿using Inputshare.Common.Input;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Input
 {
     /// <summary>
     /// Base class for input modules. Used for redirecting user mouse/keyboard input#

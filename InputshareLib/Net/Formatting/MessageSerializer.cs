@@ -1,8 +1,8 @@
-﻿using InputshareLib.Net.Messages;
+﻿using Inputshare.Common.Net.Messages;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace InputshareLib.Net.Formatting
+namespace Inputshare.Common.Net.Formatting
 {
     /// <summary>
     /// Serializes or deserializes a network message

@@ -1,15 +1,15 @@
-﻿using InputshareLib.Net.Messages;
-using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
-using InputshareLib.Net.RFS.Client;
-using InputshareLib.Net.RFS.Host;
+﻿using Inputshare.Common.Net.Messages;
+using Inputshare.Common.Net.Messages.Replies;
+using Inputshare.Common.Net.Messages.Requests;
+using Inputshare.Common.Net.RFS.Client;
+using Inputshare.Common.Net.RFS.Host;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net.RFS
+namespace Inputshare.Common.Net.RFS
 {
     /// <summary>
     /// Controls access to file groups hosted on the server or other clients

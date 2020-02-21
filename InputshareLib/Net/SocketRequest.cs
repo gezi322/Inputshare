@@ -1,12 +1,12 @@
-﻿using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
+﻿using Inputshare.Common.Net.Messages.Replies;
+using Inputshare.Common.Net.Messages.Requests;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net
+namespace Inputshare.Common.Net
 {
     /// <summary>
     /// Represents a network request that is awaiting a reply

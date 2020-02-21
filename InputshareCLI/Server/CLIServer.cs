@@ -1,12 +1,12 @@
-﻿using InputshareLib.PlatformModules;
-using InputshareLib.Server;
+﻿using Inputshare.Common.PlatformModules;
+using Inputshare.Common.Server;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareCLI.Server
+namespace Inputshare.Server
 {
     internal sealed class CLIServer
     {

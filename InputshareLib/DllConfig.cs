@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Text;
 
-namespace InputshareLib
+namespace Inputshare.Common
 {
     /// <summary>
     /// Reads/Writes to/from the Inputshare.dll.config file

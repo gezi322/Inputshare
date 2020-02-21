@@ -1,10 +1,10 @@
-﻿using InputshareLib.Server.Display;
+﻿using Inputshare.Common.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace InputshareLib.Server
+namespace Inputshare.Common.Server
 {
     public class ObservableDisplayList : ObservableCollection<DisplayBase>
     {

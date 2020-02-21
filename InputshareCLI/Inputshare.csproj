@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,14 +8,14 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\InputshareLib\InputshareLib.csproj" />
-  </ItemGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <OutputPath>..\build_linux</OutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InputshareLib\Inputshare.Common.csproj" />
+  </ItemGroup>
 
 </Project>

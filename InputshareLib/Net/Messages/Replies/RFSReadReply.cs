@@ -1,9 +1,9 @@
-﻿using InputshareLib.Net.RFS;
+﻿using Inputshare.Common.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages.Replies
+namespace Inputshare.Common.Net.Messages.Replies
 {
     [Serializable]
     internal class RFSReadReply : NetReplyBase

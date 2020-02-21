@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Client
+namespace Inputshare.Common.Client
 {
     public struct SideStates
     {

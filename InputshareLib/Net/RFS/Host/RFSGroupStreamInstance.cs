@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
-namespace InputshareLib.Net.RFS.Host
+namespace Inputshare.Common.Net.RFS.Host
 {
     /// <summary>
     /// Represents an instance of a file group access by a token

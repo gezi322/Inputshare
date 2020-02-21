@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Input
+namespace Inputshare.Common.Input
 {
     /// <summary>
     /// Repesents an platform independant input type

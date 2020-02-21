@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Native
+namespace Inputshare.Common.PlatformModules.Windows.Native
 {
     public static class Kernel32
     {

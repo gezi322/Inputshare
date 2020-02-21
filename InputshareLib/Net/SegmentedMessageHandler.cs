@@ -1,11 +1,11 @@
-﻿using InputshareLib.Net.Formatting;
-using InputshareLib.Net.Messages;
+﻿using Inputshare.Common.Net.Formatting;
+using Inputshare.Common.Net.Messages;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace InputshareLib.Net
+namespace Inputshare.Common.Net
 {
     /// <summary>
     /// Stores an incomplete segmented message

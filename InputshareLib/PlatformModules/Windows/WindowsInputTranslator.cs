@@ -1,12 +1,12 @@
-﻿using InputshareLib.Input;
-using InputshareLib.Input.Keys;
-using InputshareLib.PlatformModules.Windows.Native;
+﻿using Inputshare.Common.Input;
+using Inputshare.Common.Input.Keys;
+using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace InputshareLib.PlatformModules.Windows
+namespace Inputshare.Common.PlatformModules.Windows
 {
     internal static class WindowsInputTranslator
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages
+namespace Inputshare.Common.Net.Messages
 {
     /// <summary>
     /// Base class for creating network messages

@@ -1,10 +1,10 @@
-﻿using InputshareLib.Server.Display;
+﻿using Inputshare.Common.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Text;
 
-namespace InputshareLib.Server.Config
+namespace Inputshare.Common.Server.Config
 {
     /// <summary>
     /// Writes and reads properties for a display to/from the configuration file

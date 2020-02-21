@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace InputshareLib.Net.RFS
+namespace Inputshare.Common.Net.RFS
 {
     /// <summary>
     /// Converts a list of folder & files into 

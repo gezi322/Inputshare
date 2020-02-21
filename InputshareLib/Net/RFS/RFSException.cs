@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.RFS
+namespace Inputshare.Common.Net.RFS
 {
     [Serializable]
     internal class RFSException : Exception

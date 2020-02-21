@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Native
+namespace Inputshare.Common.PlatformModules.Windows.Native
 {
     internal struct Win32Message
     {

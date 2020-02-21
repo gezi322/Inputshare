@@ -1,6 +1,6 @@
-﻿using InputshareLib.Input;
-using InputshareLib.PlatformModules.Windows;
-using InputshareLib.PlatformModules.Windows.Native;
+﻿using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules.Windows;
+using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,9 +10,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace InputshareLib.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Input
 {
     public class WindowsInputModule : InputModuleBase
     {

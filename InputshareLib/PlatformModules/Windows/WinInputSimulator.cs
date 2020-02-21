@@ -1,10 +1,10 @@
-﻿using InputshareLib.Input;
+﻿using Inputshare.Common.Input;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace InputshareLib.PlatformModules.Windows
+namespace Inputshare.Common.PlatformModules.Windows
 {
     internal static class WinInputSimulator
     {

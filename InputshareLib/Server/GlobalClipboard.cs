@@ -1,7 +1,7 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Net.RFS;
-using InputshareLib.Net.RFS.Client;
-using InputshareLib.Server.Display;
+﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.RFS.Client;
+using Inputshare.Common.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,7 +9,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 
-namespace InputshareLib.Server
+namespace Inputshare.Common.Server
 {
     /// <summary>
     /// Controls the shared clipboard

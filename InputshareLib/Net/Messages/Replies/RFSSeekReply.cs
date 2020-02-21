@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages.Replies
+namespace Inputshare.Common.Net.Messages.Replies
 {
     [Serializable]
     internal class RFSSeekReply : NetReplyBase

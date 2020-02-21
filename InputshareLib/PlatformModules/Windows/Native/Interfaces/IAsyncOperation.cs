@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Native.Interfaces
+namespace Inputshare.Common.PlatformModules.Windows.Native.Interfaces
 {
     [ComImport]
     [Guid("3D8B0590-F691-11d2-8EA9-006097DF5BD4")]

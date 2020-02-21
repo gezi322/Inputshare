@@ -1,14 +1,14 @@
-﻿using InputshareLib.Net.RFS;
+﻿using Inputshare.Common.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using static InputshareLib.PlatformModules.Windows.Native.Kernel32;
+using static Inputshare.Common.PlatformModules.Windows.Native.Kernel32;
 using System.Text;
 using System.ComponentModel;
 
-namespace InputshareLib.PlatformModules.Windows.Clipboard
+namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     public struct FILEDESCRIPTOR

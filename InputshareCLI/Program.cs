@@ -1,9 +1,9 @@
-﻿using InputshareCLI.Client;
-using InputshareCLI.Server;
+﻿using Inputshare.Client;
+using Inputshare.Server;
 using System;
 using System.Threading.Tasks;
 
-namespace InputshareCLI
+namespace Inputshare
 {
     class Program
     {

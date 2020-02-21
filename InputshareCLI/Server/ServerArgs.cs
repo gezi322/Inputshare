@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareCLI.Server
+namespace Inputshare.Server
 {
     internal class ServerArgs
     {

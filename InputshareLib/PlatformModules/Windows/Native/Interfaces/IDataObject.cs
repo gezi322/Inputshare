@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Native.Interfaces
+namespace Inputshare.Common.PlatformModules.Windows.Native.Interfaces
 {
 
     [ComImport, Guid("0000010E-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

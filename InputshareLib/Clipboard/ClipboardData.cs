@@ -1,5 +1,5 @@
-﻿using InputshareLib.Net.RFS;
-using InputshareLib.Net.RFS.Client;
+﻿using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.RFS.Client;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace InputshareLib.Clipboard
+namespace Inputshare.Common.Clipboard
 {
     [Serializable]
     public class ClipboardData

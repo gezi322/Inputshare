@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Client
+namespace Inputshare.Common.Net.Client
 {
     internal class ClientSidesChangedArgs
     {

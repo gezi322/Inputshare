@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29111.141
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareLib", "InputshareLib\InputshareLib.csproj", "{3723C1A3-59F6-46E0-B4E3-DBCD2181E5A8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare.Common", "InputshareLib\Inputshare.Common.csproj", "{3723C1A3-59F6-46E0-B4E3-DBCD2181E5A8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputshareCLI", "InputshareCLI\InputshareCLI.csproj", "{06C7C8F2-D962-434F-A5AF-7FE2F98D1796}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare", "InputshareCLI\Inputshare.csproj", "{06C7C8F2-D962-434F-A5AF-7FE2F98D1796}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

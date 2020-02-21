@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 
-namespace InputshareLib.Net.Server
+namespace Inputshare.Common.Net.Server
 {
     internal class ClientConnectedArgs
     {

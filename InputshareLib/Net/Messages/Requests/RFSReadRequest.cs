@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net.Messages.Requests
+namespace Inputshare.Common.Net.Messages.Requests
 {
     [Serializable]
     internal class RFSReadRequest : NetRequestBase

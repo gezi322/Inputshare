@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net.RFS.Host
+namespace Inputshare.Common.Net.RFS.Host
 {
     /// <summary>
     /// Represents a file group that is being hosted.

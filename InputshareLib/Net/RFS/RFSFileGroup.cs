@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net.RFS
+namespace Inputshare.Common.Net.RFS
 {
     /// <summary>
     /// A group of remote files

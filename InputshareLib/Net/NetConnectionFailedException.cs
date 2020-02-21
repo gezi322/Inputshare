@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Net
+namespace Inputshare.Common.Net
 {
     internal class NetConnectionFailedException : Exception
     {

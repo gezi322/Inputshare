@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Input.Keys
+namespace Inputshare.Common.Input.Keys
 {
     public enum WindowsVirtualKey : short
     {

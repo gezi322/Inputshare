@@ -1,20 +1,20 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Net.RFS;
-using InputshareLib.Net.RFS.Client;
-using InputshareLib.PlatformModules.Windows.Native.Interfaces;
+﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.RFS.Client;
+using Inputshare.Common.PlatformModules.Windows.Native.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
-using static InputshareLib.PlatformModules.Windows.Native.Ole32;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.Ole32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.IO;
 
-namespace InputshareLib.PlatformModules.Windows.Clipboard
+namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     /// <summary>
     /// An object that can be placed on the windows clipboard

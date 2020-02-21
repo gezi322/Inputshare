@@ -1,12 +1,12 @@
-﻿using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Input;
-using InputshareLib.PlatformModules.Output;
+﻿using Inputshare.Common.PlatformModules.Clipboard;
+using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace InputshareLib.PlatformModules
+namespace Inputshare.Common.PlatformModules
 {
     /// <summary>
     /// Contains modules required to run inputshare server

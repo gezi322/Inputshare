@@ -1,14 +1,14 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Input;
-using InputshareLib.PlatformModules.Input;
-using InputshareLib.Server.Config;
+﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.Server.Config;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Server.Display
+namespace Inputshare.Common.Server.Display
 {
     public abstract class DisplayBase
     {

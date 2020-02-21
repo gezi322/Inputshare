@@ -1,12 +1,12 @@
-﻿using InputshareLib.Client.Config;
-using InputshareLib.Clipboard;
-using InputshareLib.Input;
-using InputshareLib.Net.Client;
-using InputshareLib.Net.RFS;
-using InputshareLib.Net.RFS.Client;
-using InputshareLib.PlatformModules.Clipboard;
-using InputshareLib.PlatformModules.Input;
-using InputshareLib.PlatformModules.Output;
+﻿using Inputshare.Common.Client.Config;
+using Inputshare.Common.Clipboard;
+using Inputshare.Common.Input;
+using Inputshare.Common.Net.Client;
+using Inputshare.Common.Net.RFS;
+using Inputshare.Common.Net.RFS.Client;
+using Inputshare.Common.PlatformModules.Clipboard;
+using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -15,7 +15,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Client
+namespace Inputshare.Common.Client
 {
     public sealed class ISClient
     {

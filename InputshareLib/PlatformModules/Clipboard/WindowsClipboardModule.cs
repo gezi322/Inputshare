@@ -1,13 +1,13 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.PlatformModules.Windows;
-using InputshareLib.PlatformModules.Windows.Clipboard;
-using InputshareLib.PlatformModules.Windows.Native;
+﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.PlatformModules.Windows;
+using Inputshare.Common.PlatformModules.Windows.Clipboard;
+using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
 using System.ComponentModel;
 using System.Text;
 using System.Threading.Tasks;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
-using static InputshareLib.PlatformModules.Windows.Native.Kernel32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.Kernel32;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
@@ -15,7 +15,7 @@ using System.Drawing.Imaging;
 using System.Threading;
 using System.Runtime.InteropServices.ComTypes;
 
-namespace InputshareLib.PlatformModules.Clipboard
+namespace Inputshare.Common.PlatformModules.Clipboard
 {
     /// <summary>
     /// Monitors and sets the clipboard for windows

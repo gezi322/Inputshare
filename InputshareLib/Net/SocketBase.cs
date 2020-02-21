@@ -1,10 +1,10 @@
-﻿using InputshareLib.Clipboard;
-using InputshareLib.Input;
-using InputshareLib.Net.Formatting;
-using InputshareLib.Net.Messages;
-using InputshareLib.Net.Messages.Replies;
-using InputshareLib.Net.Messages.Requests;
-using InputshareLib.Net.RFS;
+﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.Input;
+using Inputshare.Common.Net.Formatting;
+using Inputshare.Common.Net.Messages;
+using Inputshare.Common.Net.Messages.Replies;
+using Inputshare.Common.Net.Messages.Requests;
+using Inputshare.Common.Net.RFS;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +14,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace InputshareLib.Net
+namespace Inputshare.Common.Net
 {
     /// <summary>
     /// Base class for communicating between client/server

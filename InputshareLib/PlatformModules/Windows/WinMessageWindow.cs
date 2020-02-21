@@ -1,4 +1,4 @@
-﻿using InputshareLib.PlatformModules.Windows.Native;
+﻿using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using static InputshareLib.PlatformModules.Windows.Native.User32;
+using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace InputshareLib.PlatformModules.Windows
+namespace Inputshare.Common.PlatformModules.Windows
 {
     /// <summary>
     /// A win32 message only window for receiving messages

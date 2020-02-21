@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using InputshareLib.Clipboard;
-using InputshareLib.Input;
-using InputshareLib.Net.Server;
+using Inputshare.Common.Clipboard;
+using Inputshare.Common.Input;
+using Inputshare.Common.Net.Server;
 
-namespace InputshareLib.Server.Display
+namespace Inputshare.Common.Server.Display
 {
     /// <summary>
     /// Represents the virtual display of a client

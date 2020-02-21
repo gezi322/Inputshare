@@ -1,10 +1,10 @@
-﻿using InputshareLib.Input;
+﻿using Inputshare.Common.Input;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InputshareLib.PlatformModules.Output
+namespace Inputshare.Common.PlatformModules.Output
 {
     /// <summary>
     /// Base class for output modules. Used to simulate user mouse/keyboard input

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Native
+namespace Inputshare.Common.PlatformModules.Windows.Native
 {
 	/// <summary>
 	/// Stolen from https://gist.github.com/amgine/2395987

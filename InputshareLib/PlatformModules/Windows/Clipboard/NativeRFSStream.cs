@@ -1,4 +1,4 @@
-﻿using InputshareLib.Net.RFS.Client;
+﻿using Inputshare.Common.Net.RFS.Client;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
-namespace InputshareLib.PlatformModules.Windows.Clipboard
+namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     /// <summary>
     /// Allows sharing a RFS stream on the windows clipboard as a standard IStream

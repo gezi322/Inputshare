@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace InputshareLib.Clipboard
+namespace Inputshare.Common.Clipboard
 {
     public enum ClipboardDataType
     {
