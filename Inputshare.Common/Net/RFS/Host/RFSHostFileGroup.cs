@@ -60,6 +60,18 @@ namespace Inputshare.Common.Net.RFS.Host
             }
         }
 
+        internal override int Read(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
+        {
+            if (TokenInstances.TryGetValue(tokenId, out var tokenInstance))
+            {
+                return tokenInstance.Read(fileId, buffer, readLen);
+            }
+            else
+            {
+                throw new RFSException("Token not found");
+            }
+        }
+
         internal override long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
         {
             if (TokenInstances.TryGetValue(tokenId, out var tokenInstance))

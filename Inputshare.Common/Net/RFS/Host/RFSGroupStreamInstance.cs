@@ -20,6 +20,7 @@ namespace Inputshare.Common.Net.RFS.Host
         private Dictionary<Guid, FileStream> _streams = new Dictionary<Guid, FileStream>();
         private RFSHostFileGroup _group;
         private Timer _timeoutTimer;
+        private int _timeout;
 
         /// <summary>
         /// Creates a stream instance of a filegroup
@@ -28,20 +29,27 @@ namespace Inputshare.Common.Net.RFS.Host
         /// <param name="timeout"></param>
         internal RFSGroupStreamInstance(RFSHostFileGroup group, Guid tokenId, int timeout = 5000)
         {
+            _timeout = timeout;
             TokenId = tokenId;
             _group = group;
             _timeoutTimer = new Timer();
-            _timeoutTimer.Interval = timeout;
+            _timeoutTimer.Interval = 1500;
             _timeoutTimer.Elapsed += OnTimeoutTimerElapsed;
         }
 
         private void OnTimeoutTimerElapsed (object sender, ElapsedEventArgs e)
         {
-            foreach (var stream in _streams)
-                stream.Value.Dispose();
+            var lastReadMS = (DateTime.Now - e.SignalTime).TotalMilliseconds;
 
-            Closed?.Invoke(this, this);
-            _timeoutTimer.Dispose();
+            if(lastReadMS > _timeout)
+            {
+                foreach (var stream in _streams)
+                    stream.Value.Dispose();
+
+                Closed?.Invoke(this, this);
+                _timeoutTimer.Dispose();
+                Logger.Write("Token timed out!");
+            }
         }
 
         internal async Task<int> ReadAsync(Guid file, byte[] buffer, int readLen)
@@ -58,6 +66,19 @@ namespace Inputshare.Common.Net.RFS.Host
                 var newStream = InitStream(file);
                 _streams.Add(file, newStream);
                 return await newStream.ReadAsync(buffer, 0, readLen);
+            }
+        }
+        internal int Read(Guid file, byte[] buffer, int readLen)
+        {
+            if (_streams.TryGetValue(file, out var stream))
+            {
+                return stream.Read(buffer, 0, readLen);
+            }
+            else
+            {
+                var newStream = InitStream(file);
+                _streams.Add(file, newStream);
+                return newStream.Read(buffer, 0, readLen);
             }
         }
 

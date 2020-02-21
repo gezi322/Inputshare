@@ -1,29 +1,68 @@
-﻿using Inputshare.Client;
-using Inputshare.Server;
+﻿using Inputshare.CLI.Client;
+using Inputshare.CLI.Server;
 using System;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Inputshare
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-
-            Console.WriteLine("Press C to run client");
-            Console.WriteLine("Press S to run server");
-
-            ConsoleKeyInfo key = Console.ReadKey();
-
-            if (key.Key == ConsoleKey.S)
-                Task.Run(async () => await new CLIServer().Run(args));
-            else if (key.Key == ConsoleKey.C)
-                Task.Run(async () => await new CliClient().Run(args));
-            else
+            if(args.Length < 1)
+            {
+                PrintArgs();
                 return;
+            }
 
-            Console.ReadLine();
+            if(string.Compare(args[0], "-server", true) == 0)
+            {
+                if(string.Compare(args[1], "-startport", true) == 0)
+                {
+                    if(int.TryParse(args[2], out var port))
+                    {
+                        await new CLIServer().Run(port);
+                    }
+                    else
+                    {
+                        PrintArgs();
+                        return;
+                    }
+                }
+                else
+                {
+                    PrintArgs();
+                    return;
+                }
+            }else if(string.Compare(args[0], "-client", true) == 0)
+            {
+                if(string.Compare(args[1], "-connect", true) == 0)
+                {
+                    if(IPEndPoint.TryParse(args[2], out var address))
+                    {
+                        await new CLIClient().Run(address);
+                    }
+                    else
+                    {
+                        PrintArgs();
+                        return;
+                    }
+                }
+                else
+                {
+                    PrintArgs();
+                    return;
+                }
+            }
+        }
+        
+        static void PrintArgs()
+        {
+            Console.WriteLine("Usage:");
+
+            Console.WriteLine("Inputshare -server -startport 1234");
+            Console.WriteLine("Inputshare -client -connect address:port");
         }
     }
 }

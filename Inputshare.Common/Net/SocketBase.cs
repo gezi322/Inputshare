@@ -99,19 +99,7 @@ namespace Inputshare.Common.Net
                         bytesIn += _stream.Read(_buffer, bytesIn, header.MessageLength - bytesIn);
 
                     NetMessageBase message = MessageSerializer.Deserialize(_buffer, ref header);
-
-                    Task.Run(async () =>
-                    {
-                        if (message is NetMessageSegment segMsg)
-                            HandleMessageSegment(segMsg);
-                        else if (message is NetReplyBase replyMessage)
-                            HandleReply(replyMessage);
-                        else if (message is NetRequestBase requestMessage)
-                            await HandleRequestInternalAsync(requestMessage);
-                        else
-                            await HandleGenericMessageInternalAsync(message);
-                    });
-                    
+                    DispatchMessage(message);
                 }
             }catch(Exception ex)
             {
@@ -119,25 +107,35 @@ namespace Inputshare.Common.Net
             }
         }
 
+        private void DispatchMessage(NetMessageBase message)
+        {
+            if (message is NetMessageSegment segMsg)
+                HandleMessageSegment(segMsg);
+            else if (message is NetReplyBase replyMessage)
+                HandleReply(replyMessage);
+            else if (message is NetRequestBase requestMessage)
+                HandleRequestInternal(requestMessage);
+            else
+                HandleGenericMessageInternal(message);
+        }
+
         private void PingTimerCallback(object s)
         {
             SendMessage(new NetNullMessage());
         }
 
-        private async Task HandleRequestInternalAsync(NetRequestBase request)
+        private void HandleRequestInternal(NetRequestBase request)
         {
-            await _fileController.HandleNetMessageAsync(request, this);
-
-            await HandleRequestAsync(request);
+            _fileController.HandleMessage(request, this);
+            HandleRequest(request);
         }
 
-        private async Task HandleGenericMessageInternalAsync(NetMessageBase message)
+        private void HandleGenericMessageInternal(NetMessageBase message)
         {
             if (message is NetSetClipboardMessage cbMessage)
                 ClipboardDataReceived?.Invoke(this, cbMessage.Data);
 
-            await _fileController.HandleNetMessageAsync(message, this);
-
+            _fileController.HandleMessage(message, this);
             HandleGenericMessage(message);
         }
 
@@ -157,7 +155,7 @@ namespace Inputshare.Common.Net
                     {
                         _incompleteMessages.Remove(message.MessageId);
                         handler.Dispose();
-                        HandleGenericMessage(completeMessage);
+                        DispatchMessage(completeMessage);
                     };
 
                     _incompleteMessages.Add(message.MessageId, handler);
@@ -313,14 +311,24 @@ namespace Inputshare.Common.Net
         }
 
         /// <summary>
-        /// Sends a network message to the client asynchronously
+        /// Sends a network message to the client synchronously
         /// </summary>
         /// <param name="message"></param>
-        protected void SendMessage(NetMessageBase message)
+        internal void SendMessage(NetMessageBase message)
         {
             try
             {
                 byte[] data = MessageSerializer.Serialize(message);
+
+                //If the message is too large, send it as smaller segments
+                if (data.Length > MaxMessageSize)
+                {
+                    data = MessageSerializer.SerializeNoHeader(message);
+                    Task.Run(async () => await SendMessageSegmentedAsync(data));
+                    return;
+                }
+
+
                 _stream.Write(data, 0, data.Length);
             }
             catch (Exception ex)
@@ -340,7 +348,7 @@ namespace Inputshare.Common.Net
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        protected abstract Task HandleRequestAsync(NetRequestBase request);
+        protected abstract void HandleRequest(NetRequestBase request);
 
         private readonly object _exceptionLock = new object();
         private void HandleExceptionInternal(Exception ex)

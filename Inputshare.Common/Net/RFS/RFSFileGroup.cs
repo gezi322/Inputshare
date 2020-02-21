@@ -33,6 +33,10 @@ namespace Inputshare.Common.Net.RFS
             throw new NotSupportedException();
         }
 
+        internal virtual int Read(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
+        {
+            throw new NotSupportedException();
+        }
         internal virtual Guid GetToken()
         {
             throw new NotSupportedException();

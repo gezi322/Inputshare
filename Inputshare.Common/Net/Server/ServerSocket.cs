@@ -64,9 +64,9 @@ namespace Inputshare.Common.Net.Server
                 DisplayBoundsChanged?.Invoke(this, displayMsg.NewBounds);
         }
 
-        protected override Task HandleRequestAsync(NetRequestBase request)
+        protected override void HandleRequest(NetRequestBase request)
         {
-            return Task.CompletedTask;
+
         }
     }
 }

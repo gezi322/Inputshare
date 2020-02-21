@@ -135,10 +135,10 @@ namespace Inputshare.Common.Net.Client
             }
         }
 
-        protected override async Task HandleRequestAsync(NetRequestBase request)
+        protected override void HandleRequest(NetRequestBase request)
         {
             if (request is NetNameRequest)
-                await SendMessageAsync(new NetNameReply("Hello world", request.MessageId));
+                SendMessage(new NetNameReply("Hello world", request.MessageId));
         }
 
         protected override void Dispose(bool disposing)
