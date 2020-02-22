@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging.Serilog;
 using Avalonia.ReactiveUI;
 using Inputshare.Common.Server;
+using Inputshare.Tray;
 
 namespace Inputshare
 {
@@ -23,6 +24,8 @@ namespace Inputshare
                 Console.ReadLine();
                 return;
             }
+
+            
 
             BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);

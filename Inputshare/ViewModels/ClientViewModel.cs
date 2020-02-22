@@ -21,23 +21,24 @@ namespace Inputshare.ViewModels
         public ClientViewModel()
         {
             _model = new ClientModel();
-            _model.StartAsync();
             _model.Connected += OnClientConnect;
             _model.Disconnected += OnClientDisconnect;
             _disconnectedVM = new ClientDisconnectedViewModel(_model);
             _connectedVM = new ClientConnectedViewModel(_model);
-
             SelectedView = _disconnectedVM;
+            _model.MonitorBroadcasts = true;
         }
 
         private void OnClientDisconnect(object sender, string e)
         {
             SetViewModel(_disconnectedVM);
+            _model.MonitorBroadcasts = true;
         }
 
         private void OnClientConnect(object sender, EventArgs e)
         {
             SetViewModel(_connectedVM);
+            _model.MonitorBroadcasts = false;
         }
 
         private void SetViewModel(ViewModelBase vm)
@@ -65,7 +66,6 @@ namespace Inputshare.ViewModels
 
         public override void HandleWindowClosing()
         {
-            Console.WriteLine("Closing");
             if (_model.ClientRunning)
                 _model.StopAsync();
         }

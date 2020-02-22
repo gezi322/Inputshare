@@ -46,6 +46,9 @@ namespace Inputshare.ViewModels
 
         private async Task ExecConnect()
         {
+            if (!_model.ClientRunning)
+                await _model.StartAsync();
+
             await _model.ConnectAsync(IPEndPoint.Parse(AddressEntryText));
         }
 
@@ -83,6 +86,8 @@ namespace Inputshare.ViewModels
 
         private async Task ExecConnectSelected()
         {
+            if (!_model.ClientRunning)
+                await _model.StartAsync();
 
             if (ServerSelectedAddress != null)
                 await _model.ConnectAsync(ServerSelectedAddress);

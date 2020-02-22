@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Inputshare.Tray
 {
-    internal interface ITrayIcon
+    internal interface ITrayIcon : IDisposable
     {
         event EventHandler TrayIconClicked;
-        void MinimizeToTray();
+        event EventHandler TrayIconDoubleClicked;
     }
 }

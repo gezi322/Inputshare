@@ -27,6 +27,8 @@ namespace Inputshare.Common.Client
 
         public bool Running { get; private set; }
 
+        private bool _monitorBroadcasts = false;
+        public bool MonitorBroadcasts { get => _monitorBroadcasts; set => EnableMonitoringBroadcasts(value); }
 
         private string _clientName;
         public string ClientName { get => _clientName; set => SetClientName(value); }
@@ -79,14 +81,26 @@ namespace Inputshare.Common.Client
             await StartModulesAsync();
             AssignSocketEvents();
             AssignModuleEvents();
-            _broadcastListener = BroadcastListener.Create();
-            _broadcastListener.BroadcastReceived += OnBroadcastReceived;
+            
             Running = true;
         }
 
         private void OnBroadcastReceived(object sender, BroadcastReceivedArgs args)
         {
             ServerBroadcastReceived?.Invoke(this, args);
+        }
+
+        private void EnableMonitoringBroadcasts(bool enable)
+        {
+            if (enable)
+            {
+                _broadcastListener = BroadcastListener.Create();
+                _broadcastListener.BroadcastReceived += OnBroadcastReceived;
+            }
+            else
+            {
+                _broadcastListener?.Dispose();
+            }
         }
 
         /// <summary>

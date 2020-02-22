@@ -20,7 +20,6 @@ namespace Inputshare.Common
                 lock (confLock)
                 {
                     configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                    Logger.Write($"Loaded configuration file");
                     return true;
                 }
             }
