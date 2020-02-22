@@ -37,7 +37,7 @@ namespace Inputshare.Views
 
         private void CreateTrayIcon()
         {
-            using (Bitmap icon = (Bitmap)Bitmap.FromFile(@"test.ico"))
+            using (Bitmap icon = (Bitmap)Bitmap.FromFile(@"./assets/test.ico"))
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     _trayIcon = WinTrayIcon.Create(icon);

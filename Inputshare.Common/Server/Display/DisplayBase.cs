@@ -5,6 +5,7 @@ using Inputshare.Common.Server.Config;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,9 +14,10 @@ namespace Inputshare.Common.Server.Display
     public abstract class DisplayBase
     {
         public event EventHandler<DisplayBase> DisplayRemoved;
+        public event EventHandler<Side> DisplayAtSideChanged;
+
         internal event EventHandler<ClipboardData> ClipboardChanged;
         internal event EventHandler<SideHitArgs> SideHit;
-
         public string DisplayName { get; }
         public Rectangle DisplayBounds { get; }
 
@@ -24,11 +26,19 @@ namespace Inputshare.Common.Server.Display
         protected DisplayBase topDisplay;
         protected DisplayBase bottomDisplay;
 
-        internal DisplayBase(Rectangle bounds, string name)
+        private ObservableDisplayList _displays;
+
+        internal DisplayBase(ObservableDisplayList displayList, Rectangle bounds, string name)
         {
+            _displays = displayList;
             DisplayName = name;
             DisplayBounds = bounds;
             Logger.Write($"Created display {name} ({bounds.Width}:{bounds.Height})");
+        }
+
+        public override string ToString()
+        {
+            return DisplayName;
         }
 
         /// <summary>
@@ -36,14 +46,28 @@ namespace Inputshare.Common.Server.Display
         /// </summary>
         /// <param name="side"></param>
         /// <param name="display"></param>
-        public void SetDisplayAtSide(Side side, DisplayBase display)
+        internal void SetDisplayAtSide(Side side, DisplayBase display)
         {
             if (display == null)
                 throw new ArgumentNullException(nameof(display));
 
+            if (display == this)
+                throw new ArgumentException("Cannot set X to the side of X");
+
             GetDisplayAtSide(side) = display;
             Logger.Write($"Set side {side} of {DisplayName} to {display.DisplayName}");
+            DisplayAtSideChanged?.Invoke(this, side);
             SendSideChangedAsync();
+        }
+
+        public void SetDisplayAtSide(Side side, string displayName)
+        {
+            var target = _displays.Where(i => i.DisplayName == displayName).FirstOrDefault();
+
+            if (target == null)
+                RemoveDisplayAtSide(side);
+            else
+                SetDisplayAtSide(side, target);
         }
 
         /// <summary>
@@ -73,6 +97,7 @@ namespace Inputshare.Common.Server.Display
         {
             Logger.Write($"Removing side {side} of {DisplayName}");
             GetDisplayAtSide(side) = null;
+            DisplayAtSideChanged?.Invoke(this, side);
             SendSideChangedAsync();
         }
 

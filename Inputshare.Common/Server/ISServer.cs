@@ -30,12 +30,13 @@ namespace Inputshare.Common.Server
         /// <summary>
         /// Displays that are connected to the server
         /// </summary>
-        public ObservableDisplayList Displays;
-        internal DisplayBase InputDisplay { get; private set; }
-        internal LocalDisplay LocalHostDisplay { get; private set; }
-        internal InputModuleBase InputModule => _dependencies.InputModule;
-        internal OutputModuleBase OutputModule => _dependencies.OutputModule;
-        internal ClipboardModuleBase ClipboardModule => _dependencies.ClipboardModule;
+        public ObservableDisplayList Displays = new ObservableDisplayList();
+
+        private DisplayBase InputDisplay;
+        private LocalDisplay LocalHostDisplay;
+        private InputModuleBase InputModule => _dependencies.InputModule;
+        private OutputModuleBase OutputModule => _dependencies.OutputModule;
+        private ClipboardModuleBase ClipboardModule => _dependencies.ClipboardModule;
 
         private ClientListener _listener;
         private ISServerDependencies _dependencies;
@@ -69,13 +70,13 @@ namespace Inputshare.Common.Server
 
             try
             {
-                Displays = new ObservableDisplayList();
+                
                 _dependencies = dependencies;
                 _fileController = new RFSController();
                 _clipboardController = new GlobalClipboard(Displays, _fileController);
                 _udpHost = ServerUdpSocket.Create(bindAddress.Port);
                 await StartModulesAsync();
-                LocalHostDisplay = new LocalDisplay(_dependencies);
+                LocalHostDisplay = new LocalDisplay(_dependencies, Displays);
                 InputDisplay = LocalHostDisplay;
                 OnDisplayAdded(LocalHostDisplay);
                 InputModule.InputReceived += OnInputReceived;
@@ -121,6 +122,7 @@ namespace Inputshare.Common.Server
                 if (display != LocalHostDisplay)
                     display.RemoveDisplay();
 
+            Displays.Clear();
             _broadcaster?.Dispose();
             _udpHost?.Dispose();
             _listener.Stop();
@@ -160,7 +162,7 @@ namespace Inputshare.Common.Server
             }
 
             //Create a display object and set it up
-            var display = new ClientDisplay(args);
+            var display = new ClientDisplay(Displays, args);
 
             if(_udpHost != null && args.UdpPort != 0)
                 args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));

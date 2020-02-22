@@ -21,7 +21,7 @@ namespace Inputshare.Common.Server.Display
         private readonly OutputModuleBase _outputModule;
         private readonly ClipboardModuleBase _clipboardModule;
 
-        internal LocalDisplay(ISServerDependencies deps) : base(deps.InputModule.VirtualDisplayBounds, "Localhost")
+        internal LocalDisplay(ISServerDependencies deps, ObservableDisplayList displayList) : base(displayList, deps.InputModule.VirtualDisplayBounds, "Localhost")
         {
             _inputModule = deps.InputModule;
             _outputModule = deps.OutputModule;

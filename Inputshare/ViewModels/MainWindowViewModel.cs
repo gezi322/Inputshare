@@ -14,6 +14,7 @@ namespace Inputshare.ViewModels
 
         private HomeViewModel _homeVM = new HomeViewModel();
         private ClientViewModel _clientVM = new ClientViewModel();
+        private ServerViewModel _serverVM = new ServerViewModel();
 
         public MainWindowViewModel() {
             _homeVM = new HomeViewModel();
@@ -21,8 +22,11 @@ namespace Inputshare.ViewModels
             CurrentView = _homeVM;
 
             _homeVM.SelectClient += OnHomeClientSelected;
+            _homeVM.SelectServer += OnHomeServerSelected;
             _clientVM.Leave += OnViewModelLeave;
         }
+
+       
 
         private void OnHomeVMLeave(object sender, EventArgs e)
         {
@@ -37,6 +41,11 @@ namespace Inputshare.ViewModels
         private void OnHomeClientSelected(object sender, EventArgs e)
         {
             SetViewModel(_clientVM);
+        }
+
+        private void OnHomeServerSelected(object sender, EventArgs e)
+        {
+            SetViewModel(_serverVM);
         }
 
         private void SetViewModel(ViewModelBase vm)

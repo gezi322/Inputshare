@@ -65,7 +65,10 @@ namespace Inputshare.Common.PlatformModules.Input
             _window = await WinMessageWindow.CreateWindowAsync("IS_InputWnd");
             _window.MessageRecevied += OnWindowMessageReceived;
             SetProcessDpiAwareness(new IntPtr(2));
-            await InstallHooksAsync(_window);
+
+            if(!DEBUGSETTINGS.DISABLEWINHOOKS)
+                await InstallHooksAsync(_window);
+
             UpdateVirtualDisplayBounds();
         }
 

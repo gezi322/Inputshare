@@ -1,0 +1,36 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Inputshare.Views.ServerRunningView">
+
+  <StackPanel Spacing="10">
+    <ListBox Items="{Binding ServerDisplaysList}" SelectionMode="Single" SelectedItem="{Binding SelectedDisplay}"/>
+
+    <StackPanel HorizontalAlignment="Center">
+      <TextBlock Text="{Binding Path=SelectedDisplay, StringFormat=Display settings for {0}}"/>
+      
+      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+        <TextBlock Text="Left display"/>
+        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.LeftDisplay}"/>
+      </StackPanel>
+
+      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+        <TextBlock Text="Right display"/>
+        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.RightDisplay}"/>
+      </StackPanel>
+
+      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+        <TextBlock Text="Top display"/>
+        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.TopDisplay}"/>
+      </StackPanel>
+
+      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+        <TextBlock Text="Bottom display"/>
+        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.BottomDisplay}"/>
+      </StackPanel>
+    </StackPanel>
+
+  </StackPanel>
+</UserControl>

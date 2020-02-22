@@ -19,12 +19,18 @@
     <AvaloniaResource Remove="Views\ClientDisconnectedView.xaml" />
     <AvaloniaResource Remove="Views\ClientView.xaml" />
     <AvaloniaResource Remove="Views\HomeView.xaml" />
+    <AvaloniaResource Remove="Views\ServerRunningView.xaml" />
+    <AvaloniaResource Remove="Views\ServerStoppedView.xaml" />
+    <AvaloniaResource Remove="Views\ServerView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Views\ClientConnectedView.xaml" />
     <None Remove="Views\ClientDisconnectedView.xaml" />
     <None Remove="Views\ClientView.xaml" />
     <None Remove="Views\HomeView.xaml" />
+    <None Remove="Views\ServerRunningView.xaml" />
+    <None Remove="Views\ServerStoppedView.xaml" />
+    <None Remove="Views\ServerView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\Debug\netcoreapp3.0\test.ico" />
@@ -51,6 +57,21 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Views\ClientConnectedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\ServerView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\ServerStoppedView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\ServerRunningView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>

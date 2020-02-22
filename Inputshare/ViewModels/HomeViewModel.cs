@@ -15,17 +15,26 @@ namespace Inputshare.ViewModels
 
         public override string BottomButtonText { get; protected set; } = "Exit";
         public ReactiveCommand<Unit, Unit> CommandSelectClient { get; }
+        public ReactiveCommand<Unit, Unit> CommandSelectServer { get; }
+
 
         public event EventHandler SelectClient;
+        public event EventHandler SelectServer;
 
         public HomeViewModel()
         {
+            CommandSelectServer = ReactiveCommand.Create(OnServerSelected);
             CommandSelectClient = ReactiveCommand.Create(OnClientSelected);
         }
 
         private void OnClientSelected()
         {
             SelectClient?.Invoke(this, null);
+        }
+
+        private void OnServerSelected()
+        {
+            SelectServer?.Invoke(this, null);
         }
         
 

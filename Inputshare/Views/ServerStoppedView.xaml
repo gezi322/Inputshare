@@ -3,13 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Inputshare.Views.HomeView">
-  <Border BorderThickness="5" BorderBrush="Gray" Background="LightGray">
-    <StackPanel>
-      <Button Content="Client" Command="{Binding CommandSelectClient}"/>
-      <Button Content="Server" Command="{Binding CommandSelectServer}"/>
-
-    </StackPanel>
-  </Border>
-
+             x:Class="Inputshare.Views.ServerStoppedView">
+  <StackPanel>
+    <Button Content="Start" Command="{Binding CommandStart}"/>
+  </StackPanel>
 </UserControl>

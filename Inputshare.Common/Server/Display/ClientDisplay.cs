@@ -18,7 +18,7 @@ namespace Inputshare.Common.Server.Display
         internal readonly ServerSocket Socket;
         public bool UdpConnected { get; private set; }
 
-        internal ClientDisplay(ClientConnectedArgs connectedArgs) : base(connectedArgs.DisplayBounds, connectedArgs.Name)
+        internal ClientDisplay(ObservableDisplayList displayList, ClientConnectedArgs connectedArgs) : base(displayList, connectedArgs.DisplayBounds, connectedArgs.Name)
         {
             Socket = connectedArgs.Socket;
             Socket.ClipboardDataReceived += (object obj, ClipboardData cbData) => base.OnClipboardChanged(cbData);
