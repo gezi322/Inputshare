@@ -9,25 +9,28 @@ using System.Threading;
 
 namespace Inputshare.Common.Net.Broadcast
 {
-    public sealed class BroadcastSender : IDisposable
+    internal sealed class BroadcastSender : IDisposable
     {
         private UdpClient _broadcastSocket;
-        private IPEndPoint _broadcastAddress = new IPEndPoint(IPAddress.Broadcast, 4444);
+        private IPEndPoint _broadcastAddress = new IPEndPoint(IPAddress.Broadcast, 12333);
         private Timer _broadcastTimer;
         private IPEndPoint _serverAddress;
+        private string _version;
 
-        public static BroadcastSender Create(int broadcastInterval, int localServerPort)
+
+        public static BroadcastSender Create(int broadcastInterval, int localServerPort, string serverVersion)
         {
             BroadcastSender instance = new BroadcastSender();
             instance._serverAddress = GetLocalAddress(localServerPort);
             instance._broadcastSocket = new UdpClient();
             instance._broadcastTimer = new Timer(instance.BroadcastTimerCallback, 0, 0, broadcastInterval);
+            instance._version = serverVersion;
             return instance;
         }
 
         private void BroadcastTimerCallback(object sync)
         {
-            byte[] data = new UdpServerBroadcastMessage(_serverAddress.ToString()).ToBytes();
+            byte[] data = new UdpServerBroadcastMessage(_serverAddress.ToString(), _version).ToBytes();
             _broadcastSocket.Send(data, data.Length, _broadcastAddress);
         }
 

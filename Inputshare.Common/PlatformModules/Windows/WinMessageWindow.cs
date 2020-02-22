@@ -14,7 +14,7 @@ namespace Inputshare.Common.PlatformModules.Windows
     /// <summary>
     /// A win32 message only window for receiving messages
     /// </summary>
-    internal class WinMessageWindow : IDisposable
+    public class WinMessageWindow : IDisposable
     {
         internal event EventHandler<Win32Message> MessageRecevied;
 

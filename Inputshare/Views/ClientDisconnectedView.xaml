@@ -1,0 +1,29 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Inputshare.Views.ClientDisconnectedView">
+
+  <StackPanel>
+    <StackPanel>
+      <TextBlock Text="Client name:" HorizontalAlignment="Center"/>
+      <TextBox Text="{Binding ClientNameEntryText}" HorizontalAlignment="Center" MinWidth="100"/>
+    </StackPanel>
+
+
+    <StackPanel >
+      <TextBlock Text="Local network servers" HorizontalAlignment="Center"/>
+      <ListBox Items="{Binding ServerAddressList}" SelectedItem="{Binding ServerSelectedAddress}"/>
+      <Button Content="Connect" Command="{Binding CommandConnectSelected}"/>
+    </StackPanel>
+
+    <StackPanel HorizontalAlignment="Center">
+      <TextBlock Text="Manual server entry"/>
+      <TextBlock Text="Address:port :"/>
+      <TextBox Text="{Binding AddressEntryText}" MaxWidth="100"/>
+      <Button Content="Connect" Command="{Binding CommandConnect}"/>
+    </StackPanel>
+  </StackPanel>
+  
+</UserControl>

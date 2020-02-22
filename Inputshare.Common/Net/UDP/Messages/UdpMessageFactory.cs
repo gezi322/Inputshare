@@ -1,6 +1,7 @@
 ﻿using Inputshare.Common.Input;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Inputshare.Common.Net.UDP.Messages
@@ -22,8 +23,16 @@ namespace Inputshare.Common.Net.UDP.Messages
         
         private static UdpServerBroadcastMessage ReadServerBroadcast(byte[] data)
         {
-            int mLen = BitConverter.ToInt32(data, 1);
-            return new UdpServerBroadcastMessage(Encoding.Unicode.GetString(data, 5, mLen));
+            using (MemoryStream ms = new MemoryStream(data))
+            {
+                using (BinaryReader br = new BinaryReader(ms))
+                {
+                    ms.Position = 1;
+                    var address = br.ReadString();
+                    var serverVer = br.ReadString();
+                    return new UdpServerBroadcastMessage(address, serverVer);
+                }
+            }
         }
 
 

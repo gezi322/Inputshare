@@ -83,7 +83,7 @@ namespace Inputshare.Common.Server
                 _listener = new ClientListener();
                 _listener.ClientConnected += OnClientConnected;
                 _listener.BeginListening(bindAddress, _fileController);
-                _broadcaster = BroadcastSender.Create(2000, bindAddress.Port);
+                _broadcaster = BroadcastSender.Create(2000, bindAddress.Port, "0.0.0.10");
 
                 Running = true;
                 
@@ -162,7 +162,7 @@ namespace Inputshare.Common.Server
             //Create a display object and set it up
             var display = new ClientDisplay(args);
 
-            if(_udpHost != null)
+            if(_udpHost != null && args.UdpPort != 0)
                 args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));
 
             OnDisplayAdded(display);

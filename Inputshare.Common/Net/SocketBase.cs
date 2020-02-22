@@ -26,9 +26,9 @@ namespace Inputshare.Common.Net
         internal event EventHandler<ClipboardData> ClipboardDataReceived;
         internal bool Closed { get; private set; }
 
-        private const int MaxMessageSize = 510*1024;
-        private const int BufferSize = 512*1024;
-        private const int SegmentSize = 500*1024;
+        private const int MaxMessageSize = 275*1024;
+        private const int BufferSize = 280*1024;
+        private const int SegmentSize = 270*1024;
 
         private Socket _client;
         private NetworkStream _stream;
@@ -128,7 +128,8 @@ namespace Inputshare.Common.Net
         {
             //Sends a message every 1500MS to make sure that the socket knows if it
             //is disconnected
-            SendMessage(new NetNullMessage());
+            if(!Closed && !_disconnecting)
+                SendMessage(new NetNullMessage());
         }
 
         private void HandleRequestInternal(NetRequestBase request)

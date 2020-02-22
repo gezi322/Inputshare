@@ -22,7 +22,7 @@ namespace Inputshare.Common.Net.Client
         internal event EventHandler<ClientSidesChangedArgs> SideStateChanged;
         internal Rectangle VirtualBounds { get; private set; }
         internal ClientSocketState State => _state;
-        private ClientSocketState _state; 
+        private ClientSocketState _state = ClientSocketState.Idle;
 
         private SemaphoreSlim _connectSemaphore;
         private Socket _client;
@@ -81,7 +81,6 @@ namespace Inputshare.Common.Net.Client
 
                 Logger.Write($"Connected to {args.Address}");
                 _state = ClientSocketState.Connected;
-                _udpSocket.SendToServer(new UdpGenericMessage(UdpMessageType.ClientOK));
                 return true;
             }catch(Exception ex)
             {
@@ -117,6 +116,7 @@ namespace Inputshare.Common.Net.Client
             _udpSocket?.Dispose();
             _disconnecting = true;
             base.DisconnectSocket();
+            _state = ClientSocketState.Idle;
             Logger.Write("Disconnected");
         }
 

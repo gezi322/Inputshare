@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Inputshare": {
-      "commandName": "Project",
-      "commandLineArgs": "-server -startport 1234"
+      "commandName": "Project"
     }
   }
 }

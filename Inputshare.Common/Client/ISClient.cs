@@ -12,8 +12,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Inputshare.Common.Client
@@ -21,11 +23,15 @@ namespace Inputshare.Common.Client
     public sealed class ISClient
     {
         public event EventHandler<string> Disconnected;
-        public event EventHandler<IPEndPoint> ServerBroadcastReceived;
+        public event EventHandler<BroadcastReceivedArgs> ServerBroadcastReceived;
 
         public bool Running { get; private set; }
-        public string ClientName { get; private set; }
-        public bool Connected => _socket.State == ClientSocketState.Connected;
+
+
+        private string _clientName;
+        public string ClientName { get => _clientName; set => SetClientName(value); }
+        public IPEndPoint ServerAddress { get => _socket.Address; }
+        public bool Connected => _socket == null ? false : _socket.State == ClientSocketState.Connected;
 
         private InputModuleBase InputModule => _dependencies.InputModule;
         private OutputModuleBase OutputModule => _dependencies.OutputModule;
@@ -37,6 +43,11 @@ namespace Inputshare.Common.Client
         private SideStates _sideStates;
         private bool _isInputClient;
         private BroadcastListener _broadcastListener;
+
+        public ISClient()
+        {
+            _clientName = Environment.MachineName;
+        }
 
         /// <summary>
         /// Starts the inputshare client instance with the default dependencies for this platform
@@ -73,9 +84,9 @@ namespace Inputshare.Common.Client
             Running = true;
         }
 
-        private void OnBroadcastReceived(object sender, IPEndPoint address)
+        private void OnBroadcastReceived(object sender, BroadcastReceivedArgs args)
         {
-            ServerBroadcastReceived?.Invoke(this, address);
+            ServerBroadcastReceived?.Invoke(this, args);
         }
 
         /// <summary>
@@ -90,10 +101,10 @@ namespace Inputshare.Common.Client
             if (!Running) throw new InvalidOperationException("Client not running");
 
             if (ClientName == null)
-                ClientName = GenClientName();
+                ClientName = TryLoadClientName();
 
             ClientConfig.TrySaveLastAddress(address);
-
+            
             if(await _socket.ConnectAsync(new ClientConnectArgs(address, ClientName, Guid.NewGuid(), InputModule.VirtualDisplayBounds)))
             {
                 _broadcastListener?.Dispose();
@@ -103,15 +114,20 @@ namespace Inputshare.Common.Client
             return false;
         }
 
-
         public void SetClientName(string name)
         {
-            ClientName = name;
+            //Remove non-unicode chars
+            name = Regex.Replace(name, @"[^\u0020-\u007E]", string.Empty);
+
+            if (!string.IsNullOrWhiteSpace(name))
+                _clientName = name;
+            else
+                _clientName = Environment.MachineName;
+
             ClientConfig.TrySaveLastClientName(name);
-            Logger.Write($"Client name set to {name}");
         }
 
-        private string GenClientName()
+        private string TryLoadClientName()
         {
             if (ClientConfig.TryGetLastClientName(out string name))
                 return name;
@@ -139,9 +155,10 @@ namespace Inputshare.Common.Client
                 _socket.DisconnectSocket();
 
             _socket.Dispose();
+            _fileController?.Dispose();
             await StopModulesAsync();
             _broadcastListener?.Dispose();
-            
+            Logger.Write("Stopped");
             Running = false;
         }
 

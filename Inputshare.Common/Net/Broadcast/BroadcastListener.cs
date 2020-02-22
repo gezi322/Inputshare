@@ -2,14 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 
 namespace Inputshare.Common.Net.Broadcast
 {
-    public sealed class BroadcastListener : IDisposable
+    internal sealed class BroadcastListener : IDisposable
     {
-        public event EventHandler<IPEndPoint> BroadcastReceived;
+        public event EventHandler<BroadcastReceivedArgs> BroadcastReceived;
 
         private UdpClient _listenClient;
         
@@ -21,9 +22,8 @@ namespace Inputshare.Common.Net.Broadcast
         public static BroadcastListener Create()
         {
             BroadcastListener instance = new BroadcastListener();
-            instance._listenClient = new UdpClient(4444);
+            instance._listenClient = new UdpClient(12333);
             instance._listenClient.BeginReceive(instance.ReceiveCallback, null);
-            Logger.Write("Waiting for broadcast...");
             return instance;
         }
 
@@ -35,20 +35,23 @@ namespace Inputshare.Common.Net.Broadcast
 
                 byte[] data = _listenClient.EndReceive(ar, ref ipe);
                 _listenClient.BeginReceive(ReceiveCallback, null);
-
-
                 IUdpMessage msg = UdpMessageFactory.ReadMessage(data);
                 if (msg is UdpServerBroadcastMessage broadcastMessage)
                 {
                     if (IPEndPoint.TryParse(broadcastMessage.Address, out var address))
                     {
-                        BroadcastReceived?.Invoke(this, address);
+                        Ping p = new Ping();
+                        var reply = p.Send(address.Address, 500);
+                        BroadcastReceived?.Invoke(this, new BroadcastReceivedArgs(address, reply, broadcastMessage.ServerVersion));
                     }
                 }
             }
-            catch(Exception ex) when (disposedValue)
+            catch(Exception) when (disposedValue)
             {
                 //Ignore errors after dispose is called
+            }catch(Exception ex)
+            {
+                Logger.Write("Failed to read UDP broadcast: " + ex.Message);
             }
            
         }
