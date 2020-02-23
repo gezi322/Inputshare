@@ -1,4 +1,5 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.Input.Keys;
 using Inputshare.Common.PlatformModules.Windows;
 using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
@@ -171,7 +172,12 @@ namespace Inputshare.Common.PlatformModules.Input
         {
             Marshal.PtrToStructure(lParam, _kbStruct);
 
-            if (InputRedirected && ((_mouseStruct.flags & 4) == 0))
+            if ((int)wParam == (int)Win32MessageCode.WM_KEYDOWN || (int)wParam == (int)Win32MessageCode.WM_SYSKEYDOWN)
+                HandleKeyDown((WindowsVirtualKey)_kbStruct.vkCode);
+            else if ((int)wParam == (int)Win32MessageCode.WM_KEYUP || (int)wParam == (int)Win32MessageCode.WM_SYSKEYUP)
+                HandleKeyUp((WindowsVirtualKey)_kbStruct.vkCode);
+
+                if (InputRedirected && ((_mouseStruct.flags & 4) == 0))
             {
                 InputReceived?.Invoke(this, WindowsInputTranslator.WindowsToGeneric((Win32MessageCode)wParam, ref _kbStruct));
                 return new IntPtr(-1);

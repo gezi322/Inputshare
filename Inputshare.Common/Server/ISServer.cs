@@ -1,9 +1,9 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.Input.Hotkeys;
 using Inputshare.Common.Net.Broadcast;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.Server;
 using Inputshare.Common.Net.UDP;
-using Inputshare.Common.Net.UDP.Messages;
 using Inputshare.Common.PlatformModules;
 using Inputshare.Common.PlatformModules.Clipboard;
 using Inputshare.Common.PlatformModules.Input;
@@ -42,8 +42,8 @@ namespace Inputshare.Common.Server
         private ISServerDependencies _dependencies;
         private RFSController _fileController;
         private GlobalClipboard _clipboardController;
-        private object _clientListLock = new object();
-        private object _inputClientLock = new object();
+        private readonly object _clientListLock = new object();
+        private readonly object _inputClientLock = new object();
         private ServerUdpSocket _udpHost;
         private BroadcastSender _broadcaster;
 
@@ -101,6 +101,7 @@ namespace Inputshare.Common.Server
                 Logger.Write(ex.StackTrace);
             }
         }
+
 
         private void OnInputReceived(object sender, InputData e)
         {
@@ -168,6 +169,8 @@ namespace Inputshare.Common.Server
                 args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));
 
             OnDisplayAdded(display);
+
+            KeyModifiers mods = Hotkey.CreateKeyModifiers(false, true, true, false);
         }
 
         /// <summary>
@@ -221,11 +224,37 @@ namespace Inputshare.Common.Server
             {
                 display.DisplayRemoved += OnDisplayRemoved;
                 display.SideHit += OnDisplaySideHit;
-
+                display.HotkeyChanging += OnDisplayHotkeyChanging;
+                display.HotkeyChanged += OnDisplayHotkeyChanged;
                 Displays.Add(display);
             }
 
             ReloadConfiguration();
+        }
+
+        /// <summary>
+        /// Runs before a displays hotkey is changed and unregisters the 
+        /// old hotkey
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="hk"></param>
+        private void OnDisplayHotkeyChanging(object sender, Hotkey hk)
+        {
+            if (InputModule.IsHotkeyInUse(hk))
+                InputModule.RemoveHotkey(hk);
+        }
+
+        private void OnDisplayHotkeyChanged(object sender, Hotkey hk)
+        {
+            var display = sender as DisplayBase;
+
+            InputModule.RegisterHotkey(hk, new Action(() => {
+                SetInputDisplay(display);
+                Logger.Write($"Hotkey for {display} pressed");
+            }));
+
+            display.Hotkey = hk;
+            Logger.Write($"Set hotkey for {display} to {hk}");
         }
 
         /// <summary>
@@ -253,6 +282,9 @@ namespace Inputshare.Common.Server
         /// <param name="display"></param>
         internal void SetInputDisplay(DisplayBase display)
         {
+            if(InputDisplay == display)
+                return;
+
             lock (_inputClientLock)
             {
                 if (!Displays.Contains(display))

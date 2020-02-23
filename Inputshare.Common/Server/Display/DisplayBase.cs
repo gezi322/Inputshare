@@ -1,5 +1,7 @@
 ﻿using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input;
+using Inputshare.Common.Input.Hotkeys;
+using Inputshare.Common.Input.Keys;
 using Inputshare.Common.PlatformModules.Input;
 using Inputshare.Common.Server.Config;
 using System;
@@ -16,10 +18,15 @@ namespace Inputshare.Common.Server.Display
         public event EventHandler<DisplayBase> DisplayRemoved;
         public event EventHandler<Side> DisplayAtSideChanged;
 
+        public event EventHandler<Hotkey> HotkeyChanged;
+
+        internal event EventHandler<Hotkey> HotkeyChanging;
         internal event EventHandler<ClipboardData> ClipboardChanged;
         internal event EventHandler<SideHitArgs> SideHit;
+
         public string DisplayName { get; }
         public Rectangle DisplayBounds { get; }
+        public Hotkey Hotkey { get; internal set; }
 
         protected DisplayBase leftDisplay;
         protected DisplayBase rightDisplay;
@@ -34,6 +41,18 @@ namespace Inputshare.Common.Server.Display
             DisplayName = name;
             DisplayBounds = bounds;
             Logger.Write($"Created display {name} ({bounds.Width}:{bounds.Height})");
+        }
+
+        /// <summary>
+        /// Sets the hotkey for this display. Removes the old hotkey if exists
+        /// </summary>
+        /// <param name="hk"></param>
+        public void SetHotkey(Hotkey hk)
+        {
+            if (Hotkey != null)
+                HotkeyChanging?.Invoke(this, Hotkey);
+
+            HotkeyChanged?.Invoke(this, hk);
         }
 
         public override string ToString()
@@ -60,6 +79,12 @@ namespace Inputshare.Common.Server.Display
             SendSideChangedAsync();
         }
 
+        /// <summary>
+        /// Sets a display to the specified side of this display.
+        /// If the display name is not found, the display at the specified side is removed
+        /// </summary>
+        /// <param name="side"></param>
+        /// <param name="displayName"></param>
         public void SetDisplayAtSide(Side side, string displayName)
         {
             var target = _displays.Where(i => i.DisplayName == displayName).FirstOrDefault();
@@ -93,6 +118,10 @@ namespace Inputshare.Common.Server.Display
             throw new Exception();
         }
 
+        /// <summary>
+        /// Removes the display at the specified side
+        /// </summary>
+        /// <param name="side"></param>
         public void RemoveDisplayAtSide(Side side)
         {
             Logger.Write($"Removing side {side} of {DisplayName}");

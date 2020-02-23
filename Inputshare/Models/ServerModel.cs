@@ -1,4 +1,6 @@
 ﻿using Avalonia.Threading;
+using Inputshare.Common.Input.Hotkeys;
+using Inputshare.Common.Input.Keys;
 using Inputshare.Common.Server;
 using Inputshare.Common.Server.Display;
 using System;
@@ -36,6 +38,11 @@ namespace Inputshare.Models
                 var model = new ServerDisplayModel(display, Displays);
                 Displays.Add(model);
                 DisplayAdded?.Invoke(this, model);
+
+                if (display.DisplayName == "IPC")
+                    display.SetHotkey(new Hotkey(WindowsVirtualKey.X, KeyModifiers.Alt));
+                else if (display.DisplayName == "Localhost")
+                    display.SetHotkey(new Hotkey(WindowsVirtualKey.S, KeyModifiers.Alt));
             });
         }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Inputshare.Common.Input.Hotkeys;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -24,6 +25,7 @@ namespace Inputshare.Common
             return 0;
         }
 
+        
         public static IEnumerable<Side> AllSides { get
             {
                 yield return Side.Bottom;

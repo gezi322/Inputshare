@@ -1,8 +1,11 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.Input.Hotkeys;
+using Inputshare.Common.Input.Keys;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.Common.PlatformModules.Input
 {
@@ -42,5 +45,97 @@ namespace Inputshare.Common.PlatformModules.Input
         /// </summary>
         /// <param name="hide"></param>
         public abstract void SetMouseHidden(bool hide);
+
+        public void HandleClientSwitch()
+        {
+            currentModifiers = 0;
+        }
+
+        protected Dictionary<Hotkey, Action> hotkeys = new Dictionary<Hotkey, Action>();
+        protected KeyModifiers currentModifiers = 0;
+
+        protected override Task OnStart()
+        {
+            hotkeys.Clear();
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Registers a hotkey
+        /// </summary>
+        /// <param name="hk"></param>
+        public void RegisterHotkey(Hotkey hk, Action callback)
+        {
+            if (IsHotkeyInUse(hk))
+                throw new InvalidOperationException("Hotkey in use");
+
+            hotkeys.Add(hk, callback);
+        }
+
+        /// <summary>
+        /// Unregisters a hotkey (must be reference to object used in registerhotkey)
+        /// </summary>
+        /// <param name="hk"></param>
+        public void RemoveHotkey(Hotkey remove)
+        {
+            hotkeys.Remove(remove);
+        }
+
+        protected void HandleKeyDown(WindowsVirtualKey key) {
+            if (key == WindowsVirtualKey.Control || key == WindowsVirtualKey.LeftControl || key == WindowsVirtualKey.RightControl)
+                currentModifiers |= KeyModifiers.Ctrl;
+            else if (key == WindowsVirtualKey.Menu || key == WindowsVirtualKey.LeftMenu || key == WindowsVirtualKey.RightMenu) //menu is alt
+                currentModifiers |= KeyModifiers.Alt;
+            else if (key == WindowsVirtualKey.Shift || key == WindowsVirtualKey.LeftShift || key == WindowsVirtualKey.RightShift)
+                currentModifiers |= KeyModifiers.Shift;
+            else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
+                currentModifiers |= KeyModifiers.Win;
+
+            CheckHotkeys(key);
+        }
+
+        protected void HandleKeyUp(WindowsVirtualKey key){
+            if (key == WindowsVirtualKey.Control || key == WindowsVirtualKey.LeftControl || key == WindowsVirtualKey.RightControl)
+                currentModifiers &= ~KeyModifiers.Ctrl;
+            else if (key == WindowsVirtualKey.Menu || key == WindowsVirtualKey.LeftMenu || key == WindowsVirtualKey.RightMenu) //menu is alt
+                currentModifiers &= ~KeyModifiers.Alt;
+            else if (key == WindowsVirtualKey.Shift || key == WindowsVirtualKey.LeftShift || key == WindowsVirtualKey.RightShift)
+                currentModifiers &= ~KeyModifiers.Shift;
+            else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
+                currentModifiers &= ~KeyModifiers.Win;
+        }
+
+        private void CheckHotkeys(WindowsVirtualKey key)
+        {
+            //for each value is hotkey dictionary
+            foreach(var hkDirval in hotkeys)
+            {
+                //if the dictionary key matches the hotkey and modifiers
+                if(hkDirval.Key.Key == key && hkDirval.Key.Mods == currentModifiers)
+                {
+                    //invoke the callback method
+                    hkDirval.Value();
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if a hotkey with the specified key and modifiers is already
+        /// in use
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="mods"></param>
+        /// <returns></returns>
+        internal bool IsHotkeyInUse(Hotkey hk)
+        {
+            foreach(var storedHk in hotkeys.Keys)
+            {
+                if (hk == storedHk)
+                    return true;
+            }
+            return false;
+        }
+
     }
 }
