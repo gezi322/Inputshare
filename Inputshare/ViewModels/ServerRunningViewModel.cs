@@ -62,10 +62,10 @@ namespace Inputshare.ViewModels
 
         }
 
-        public override void OnBottomButtonPress()
+        public override async void OnBottomButtonPress()
         {
             if (_model.Running)
-                _model.StopAsync();
+                await _model.StopAsync();
         }
     }
 }

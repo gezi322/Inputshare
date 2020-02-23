@@ -187,8 +187,7 @@ namespace Inputshare.Common.Client
 
         private void OnSocketDisconnected(object sender, Exception ex)
         {
-            _broadcastListener = BroadcastListener.Create();
-            _broadcastListener.BroadcastReceived += OnBroadcastReceived;
+            Console.WriteLine("Disconnected: " + ex.Message);
             Disconnected?.Invoke(this, ex.Message);
         }
 

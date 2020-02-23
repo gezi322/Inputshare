@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29111.141
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare.Common", "Inputshare.Common\Inputshare.Common.csproj", "{70F57706-7FAE-48D2-ACFD-B7E20FBFD029}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inputshare", "Inputshare\Inputshare.csproj", "{945D5873-AA8B-43CB-A24F-C8C9F5389B97}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inputshare", "Inputshare\Inputshare.csproj", "{945D5873-AA8B-43CB-A24F-C8C9F5389B97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,8 +33,8 @@ Global
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Debug|x64.Build.0 = Debug|Any CPU
-		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|Any CPU.ActiveCfg = Debug|Any CPU
-		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|Any CPU.Build.0 = Debug|Any CPU
+		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|Any CPU.ActiveCfg = Linux|Any CPU
+		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|Any CPU.Build.0 = Linux|Any CPU
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|x64.ActiveCfg = Debug|Any CPU
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Linux|x64.Build.0 = Debug|Any CPU
 		{945D5873-AA8B-43CB-A24F-C8C9F5389B97}.Release|Any CPU.ActiveCfg = Release|Any CPU

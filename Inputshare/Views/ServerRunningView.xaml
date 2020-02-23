@@ -8,28 +8,32 @@
   <StackPanel Spacing="10">
     <ListBox Items="{Binding ServerDisplaysList}" SelectionMode="Single" SelectedItem="{Binding SelectedDisplay}"/>
 
+    
     <StackPanel HorizontalAlignment="Center">
       <TextBlock Text="{Binding Path=SelectedDisplay, StringFormat=Display settings for {0}}"/>
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+          <TextBlock Text="Left display"/>
+          <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.LeftDisplay}"/>
+        </StackPanel>
+
+        <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+          <TextBlock Text="Right display"/>
+          <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.RightDisplay}"/>
+        </StackPanel>
+
+        <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+          <TextBlock Text="Top display"/>
+          <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.TopDisplay}"/>
+        </StackPanel>
+
+        <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
+          <TextBlock Text="Bottom display"/>
+          <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.BottomDisplay}"/>
+        </StackPanel>
+      </StackPanel>
       
-      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
-        <TextBlock Text="Left display"/>
-        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.LeftDisplay}"/>
-      </StackPanel>
-
-      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
-        <TextBlock Text="Right display"/>
-        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.RightDisplay}"/>
-      </StackPanel>
-
-      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
-        <TextBlock Text="Top display"/>
-        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.TopDisplay}"/>
-      </StackPanel>
-
-      <StackPanel HorizontalAlignment="Center" Orientation="Vertical">
-        <TextBlock Text="Bottom display"/>
-        <ComboBox Items="{Binding ServerSelectableDisplayList}" SelectedItem="{Binding SelectedDisplay.BottomDisplay}"/>
-      </StackPanel>
     </StackPanel>
 
   </StackPanel>

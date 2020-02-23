@@ -33,6 +33,7 @@ namespace Inputshare.Common.Net.UDP
             BindAddress = _udpSocket.LocalEndPoint as IPEndPoint;
 
             _readThread = new Thread(ReadThreadLoop);
+            _readThread.Priority = ThreadPriority.Highest;
             _readThread.Start();
         }
 

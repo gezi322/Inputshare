@@ -48,12 +48,12 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(BottomButtonText));
         }
 
-        public override void OnBottomButtonPress()
+        public override async void OnBottomButtonPress()
         {
             if(SelectedView is ClientDisconnectedViewModel)
             {
                 if (_model.ClientRunning)
-                    _model.StopAsync();
+                    await _model.StopAsync();
 
                 Leave?.Invoke(this, null);
             }
@@ -64,10 +64,10 @@ namespace Inputshare.ViewModels
             
         }
 
-        public override void HandleWindowClosing()
+        public override async void HandleWindowClosing()
         {
             if (_model.ClientRunning)
-                _model.StopAsync();
+                await _model.StopAsync();
         }
     }
 }

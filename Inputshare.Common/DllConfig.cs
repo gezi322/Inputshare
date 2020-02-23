@@ -92,7 +92,7 @@ namespace Inputshare.Common
                 }
                 catch (Exception ex)
                 {
-                    //Logger.Write($"Failed to save property: {ex.Message}");
+                    Logger.Write($"Failed to save config property: {ex.Message}");
                     return false;
                 }
             }
