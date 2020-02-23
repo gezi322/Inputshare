@@ -111,7 +111,7 @@ namespace Inputshare.Common.PlatformModules.Input
             foreach(var hkDirval in hotkeys)
             {
                 //if the dictionary key matches the hotkey and modifiers
-                if(hkDirval.Key.Key == key && hkDirval.Key.Mods == currentModifiers)
+                if(hkDirval.Key.Key == key && hkDirval.Key.Modifiers == currentModifiers)
                 {
                     //invoke the callback method
                     hkDirval.Value();

@@ -74,18 +74,12 @@ namespace Inputshare.Common.Server
                 _dependencies = dependencies;
                 _fileController = new RFSController();
                 _clipboardController = new GlobalClipboard(Displays, _fileController);
-                _udpHost = ServerUdpSocket.Create(bindAddress.Port);
                 await StartModulesAsync();
-                LocalHostDisplay = new LocalDisplay(_dependencies, Displays);
-                InputDisplay = LocalHostDisplay;
-                OnDisplayAdded(LocalHostDisplay);
+                CreateLocalhostDisplay();
                 InputModule.InputReceived += OnInputReceived;
-
-                _listener = new ClientListener();
-                _listener.ClientConnected += OnClientConnected;
-                _listener.BeginListening(bindAddress, _fileController);
+                CreateClientListener(bindAddress);
                 _broadcaster = BroadcastSender.Create(2000, bindAddress.Port, "0.0.0.10");
-
+                _udpHost = ServerUdpSocket.Create(bindAddress.Port);
                 Running = true;
                 
             }catch(Exception ex)
@@ -102,6 +96,19 @@ namespace Inputshare.Common.Server
             }
         }
 
+        private void CreateClientListener(IPEndPoint bindAddress)
+        {
+            _listener = new ClientListener();
+            _listener.ClientConnected += OnClientConnected;
+            _listener.BeginListening(bindAddress, _fileController);
+        }
+
+        private void CreateLocalhostDisplay()
+        {
+            LocalHostDisplay = new LocalDisplay(_dependencies, Displays);
+            InputDisplay = LocalHostDisplay;
+            OnDisplayAdded(LocalHostDisplay);
+        }
 
         private void OnInputReceived(object sender, InputData e)
         {
@@ -155,22 +162,32 @@ namespace Inputshare.Common.Server
         /// <param name="args"></param>
         private void OnClientConnected(object sender, ClientConnectedArgs args)
         {
-            if(Displays.Where(i => i.DisplayName.ToLower() == args.Name.ToLower()).FirstOrDefault() != null)
+            DisplayBase display = null;
+
+            try
             {
-                Logger.Write($"Removed client {args.Name}: Duplicate client name");
-                args.Socket.Dispose();
-                return;
+                if (Displays.Where(i => i.DisplayName.ToLower() == args.Name.ToLower()).FirstOrDefault() != null)
+                {
+                    Logger.Write($"Removed client {args.Name}: Duplicate client name");
+                    args.Socket.Dispose();
+                    return;
+                }
+
+                //Create a display object and set it up
+                display = new ClientDisplay(Displays, args);
+
+                if (_udpHost != null && args.UdpPort != 0)
+                    args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));
+
+                OnDisplayAdded(display);
+            }catch(Exception ex)
+            {
+                if (display != null)
+                    display.RemoveDisplay();
+
+                Logger.Write($"An error occurred at OnClientConnect: {ex.Message}");
             }
-
-            //Create a display object and set it up
-            var display = new ClientDisplay(Displays, args);
-
-            if(_udpHost != null && args.UdpPort != 0)
-                args.Socket.SetUdpSocket(_udpHost, new IPEndPoint(args.Socket.Address.Address, args.UdpPort));
-
-            OnDisplayAdded(display);
-
-            KeyModifiers mods = Hotkey.CreateKeyModifiers(false, true, true, false);
+            
         }
 
         /// <summary>
@@ -205,6 +222,10 @@ namespace Inputshare.Common.Server
                 Logger.Write($"Removed display {display.DisplayName}");
                 Displays.Remove(display);
                 RemoveReferences(display);
+
+                if (display.Hotkey != null)
+                    if (InputModule.IsHotkeyInUse(display.Hotkey))
+                        InputModule.RemoveHotkey(display.Hotkey);
 
                 //If the display that was removed was the input display, switch back to local input
                 if (display == InputDisplay)
@@ -246,15 +267,30 @@ namespace Inputshare.Common.Server
 
         private void OnDisplayHotkeyChanged(object sender, Hotkey hk)
         {
-            var display = sender as DisplayBase;
+            try
+            {
+                var display = sender as DisplayBase;
 
-            InputModule.RegisterHotkey(hk, new Action(() => {
-                SetInputDisplay(display);
-                Logger.Write($"Hotkey for {display} pressed");
-            }));
+                if (hk != Hotkey.None)
+                {
+                    InputModule.RegisterHotkey(hk, new Action(() => {
+                        SetInputDisplay(display);
+                    }));
 
-            display.Hotkey = hk;
-            Logger.Write($"Set hotkey for {display} to {hk}");
+                    Logger.Write($"Set hotkey for {display} to {hk}");
+                }
+                else
+                {
+                    Logger.Write("Cleared hotkey for " + display);
+                }
+
+                display.Hotkey = hk;
+                DisplayConfig.TrySaveClientHotkey(display, hk);
+            }catch(Exception ex)
+            {
+                Logger.Write($"Failed to set hotkey: {ex.Message}");
+            }
+            
         }
 
         /// <summary>
@@ -346,6 +382,9 @@ namespace Inputshare.Common.Server
             {
                 foreach (var display in Displays)
                 {
+                    if (DisplayConfig.TryGetClientHotkey(display, out var hk))
+                        display.SetHotkey(hk);
+
                     foreach (Side side in Extensions.AllSides)
                     {
                         if (DisplayConfig.TryGetClientAtSide(display, side, out var clientName))

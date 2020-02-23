@@ -20,6 +20,7 @@ namespace Inputshare.Models
         public event EventHandler<ServerDisplayModel> DisplayRemoved;
 
         public ObservableCollection<ServerDisplayModel> Displays { get; } = new ObservableCollection<ServerDisplayModel>();
+        
 
         public bool Running { get => _server.Running; }
         public IPEndPoint BindAddress { get => _server.BoundAddress; }
@@ -30,7 +31,10 @@ namespace Inputshare.Models
             _server = new ISServer();
             _server.Displays.DisplayAdded += OnServerDisplayAdded;
             _server.Displays.DisplayRemoved += OnServerDisplayRemoved;
+           
         }
+
+        
 
         private void OnServerDisplayAdded(object sender, DisplayBase display)
         {
@@ -38,11 +42,6 @@ namespace Inputshare.Models
                 var model = new ServerDisplayModel(display, Displays);
                 Displays.Add(model);
                 DisplayAdded?.Invoke(this, model);
-
-                if (display.DisplayName == "IPC")
-                    display.SetHotkey(new Hotkey(WindowsVirtualKey.X, KeyModifiers.Alt));
-                else if (display.DisplayName == "Localhost")
-                    display.SetHotkey(new Hotkey(WindowsVirtualKey.S, KeyModifiers.Alt));
             });
         }
 

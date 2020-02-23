@@ -40,9 +40,6 @@
     <None Remove="Views\ServerView.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="bin\Debug\netcoreapp3.0\test.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Avalonia" Version="0.9.3" />
     <PackageReference Include="Avalonia.Desktop" Version="0.9.3" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="0.9.3" />

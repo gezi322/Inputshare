@@ -1,4 +1,5 @@
 ﻿using Inputshare.Common;
+using Inputshare.Common.Input.Hotkeys;
 using Inputshare.Common.Server.Display;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,9 @@ namespace Inputshare.Models
         public event PropertyChangedEventHandler PropertyChanged;
         public string DisplayName { get; } 
         public Rectangle Bounds { get => _display.DisplayBounds; }
+
+        private ServerHotkeyModel _hotkey = new ServerHotkeyModel();
+        public ServerHotkeyModel Hotkey { get => _hotkey; set => SetHotkey(value); }
 
         private ServerDisplayModel _leftDisplay = ServerDisplayModel.None;
         public ServerDisplayModel LeftDisplay { get => _leftDisplay; set => SetDisplayAtSide(Side.Left, value); }
@@ -43,25 +47,38 @@ namespace Inputshare.Models
             _display = display;
             DisplayName = _display.DisplayName;
             _display.DisplayAtSideChanged += OnDisplaySideChanged;
+            _display.HotkeyChanged += OnHotkeychanged;
             RefreshSides();
         }
-
-        public static ServerDisplayModel None { get; } = new ServerDisplayModel();
 
         private ServerDisplayModel()
         {
             DisplayName = "None";
         }
 
+        private void OnHotkeychanged(object sender, Hotkey hk)
+        {
+            _hotkey = new ServerHotkeyModel(hk);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Hotkey)));
+        }
+
+        private void SetHotkey(ServerHotkeyModel hkModel)
+        {
+            _display.SetHotkey(hkModel.GetInputshareHotkey());
+        }
+
+        public void PushHotkey()
+        {
+            SetHotkey(_hotkey);
+        }
+
+        public static ServerDisplayModel None { get; } = new ServerDisplayModel();
+
+      
         private void SetDisplayAtSide(Side side, ServerDisplayModel display)
         {
-            Console.WriteLine("set display at side");
             if (display == null)
-            {
-                Console.WriteLine("Ignoring null display " + side);
                 return;
-            }
-
 
             switch (side)
             {
@@ -90,7 +107,6 @@ namespace Inputshare.Models
 
         private void OnDisplaySideChanged(object sender, Common.Side e)
         {
-            Console.WriteLine("side changed");
             RefreshSides();
 
 
@@ -99,7 +115,6 @@ namespace Inputshare.Models
                 case Common.Side.Left:
                     {
                         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LeftDisplay)));
-                        Console.WriteLine("Property changed to " + LeftDisplay.ToString());
                         break;
                     }
                 case Common.Side.Right:
@@ -155,8 +170,14 @@ namespace Inputshare.Models
         {
             if (ReferenceEquals(obj, this))
                 return true;
-            else
+
+            if (obj == null)
                 return false;
+
+            if (!(obj is ServerDisplayModel model))
+                return false;
+
+            return model.DisplayName == DisplayName;
         }
 
         public override string ToString()

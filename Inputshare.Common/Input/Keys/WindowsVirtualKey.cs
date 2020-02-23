@@ -6,6 +6,7 @@ namespace Inputshare.Common.Input.Keys
 {
     public enum WindowsVirtualKey : short
     {
+        None = 0,
         LeftButton = 1,
         RightButton = 2,
         Cancel = 3,

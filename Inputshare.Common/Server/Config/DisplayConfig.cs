@@ -1,4 +1,5 @@
-﻿using Inputshare.Common.Server.Display;
+﻿using Inputshare.Common.Input.Hotkeys;
+using Inputshare.Common.Server.Display;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -20,6 +21,22 @@ namespace Inputshare.Common.Server.Config
         internal static bool TrySaveClientAtSide(DisplayBase display, Side side, DisplayBase sideDisplay)
         {
             return DllConfig.TryWrite(display.DisplayName + "." + side.ToString(), sideDisplay.DisplayName);
+        }
+
+        internal static bool TryGetClientHotkey(DisplayBase display, out Hotkey hk)
+        {
+            hk = null;
+
+            if (DllConfig.TryReadProperty(display.DisplayName + ".Hotkey", out string hkStr))
+                if (Hotkey.TryReadFromSettingsString(hkStr, out hk))
+                    return true;
+
+            return false;
+        }
+
+        internal static bool TrySaveClientHotkey(DisplayBase display, Hotkey hk)
+        {
+            return DllConfig.TryWrite(display.DisplayName + ".Hotkey", hk.ToSettingsString());
         }
     }
 }
