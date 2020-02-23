@@ -26,9 +26,15 @@ namespace Inputshare.ViewModels
             _runningView = new ServerRunningViewModel(_model);
             _stoppedView = new ServerStoppedViewModel(_model);
             SelectedView = _stoppedView;
+            _stoppedView.Leave += OnStoppedVMLeave;
 
             _model.Started += OnServerStarted;
             _model.Stopped += OnServerStopped;
+        }
+
+        private void OnStoppedVMLeave(object sender, EventArgs e)
+        {
+            Leave.Invoke(this, null);
         }
 
         private void OnServerStopped(object sender, EventArgs e)
@@ -56,6 +62,7 @@ namespace Inputshare.ViewModels
 
         public override async Task HandleBottomButtonPressAsync()
         {
+            Console.WriteLine("Handle");
             if (SelectedView == _runningView)
                 await _runningView.HandleBottomButtonPressAsync();
             else

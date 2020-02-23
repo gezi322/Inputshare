@@ -44,13 +44,17 @@ namespace Inputshare.ViewModels
             CommandConnectSelected = ReactiveCommand.CreateFromTask(ExecConnectSelected, this.WhenAnyValue(i => i._validServerAddress));
         }
 
+        public override async Task OnShow()
+        {
+            await _model.StartAsync();
+        }
+
         private async Task ExecConnect()
         {
             if (!_model.ClientRunning)
                 await _model.StartAsync();
 
-            bool ret = await _model.ConnectAsync(IPEndPoint.Parse(AddressEntryText));
-            Console.WriteLine("Connect returned " + ret);
+            await _model.ConnectAsync(IPEndPoint.Parse(AddressEntryText));
         }
 
         private void OnAddressEntryChanged(string value)

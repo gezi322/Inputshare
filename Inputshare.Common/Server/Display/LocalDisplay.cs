@@ -9,6 +9,7 @@ using Inputshare.Common.PlatformModules;
 using Inputshare.Common.PlatformModules.Clipboard;
 using Inputshare.Common.PlatformModules.Input;
 using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.Server.Config;
 
 namespace Inputshare.Common.Server.Display
 {
@@ -39,13 +40,17 @@ namespace Inputshare.Common.Server.Display
         internal override void NotfyInputActive()
         {
             _inputModule.SetInputRedirected(false);
-            _inputModule.SetMouseHidden(false);
+
+            if (ServerConfig.HideCursor)
+                _inputModule.SetMouseHidden(false);
         }
 
         internal override void NotifyClientInvactive()
         {
             _inputModule.SetInputRedirected(true);
-            _inputModule.SetMouseHidden(true);
+
+            if(ServerConfig.HideCursor)
+                _inputModule.SetMouseHidden(true);
         }
 
         internal override async Task SetClipboardAsync(ClipboardData cbData)

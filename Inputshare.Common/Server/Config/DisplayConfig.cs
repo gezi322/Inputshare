@@ -14,20 +14,20 @@ namespace Inputshare.Common.Server.Config
     {
         internal static bool TryGetClientAtSide(DisplayBase display, Side side, out string clientName)
         {
-            string prop = display.DisplayName + "." + side.ToString();
+            string prop = "Server.Display." + display.DisplayName + "." + side.ToString();
             return DllConfig.TryReadProperty(prop, out clientName);
         }
 
         internal static bool TrySaveClientAtSide(DisplayBase display, Side side, DisplayBase sideDisplay)
         {
-            return DllConfig.TryWrite(display.DisplayName + "." + side.ToString(), sideDisplay.DisplayName);
+            return DllConfig.TryWrite("Server.Display." + display.DisplayName + "." + side.ToString(), sideDisplay.DisplayName);
         }
 
         internal static bool TryGetClientHotkey(DisplayBase display, out Hotkey hk)
         {
             hk = null;
 
-            if (DllConfig.TryReadProperty(display.DisplayName + ".Hotkey", out string hkStr))
+            if (DllConfig.TryReadProperty("Server.Display." + display.DisplayName + ".Hotkey", out string hkStr))
                 if (Hotkey.TryReadFromSettingsString(hkStr, out hk))
                     return true;
 
@@ -36,7 +36,7 @@ namespace Inputshare.Common.Server.Config
 
         internal static bool TrySaveClientHotkey(DisplayBase display, Hotkey hk)
         {
-            return DllConfig.TryWrite(display.DisplayName + ".Hotkey", hk.ToSettingsString());
+            return DllConfig.TryWrite("Server.Display." + display.DisplayName + ".Hotkey", hk.ToSettingsString());
         }
     }
 }

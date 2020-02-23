@@ -114,8 +114,9 @@ namespace Inputshare.Common.Input.Hotkeys
             sb.Append(Key);
             foreach (var mod in (KeyModifiers[])Enum.GetValues(typeof(KeyModifiers)))
             {
-                if (Modifiers.HasFlag(mod))
-                    sb.Append(":" + mod);
+                if(mod != KeyModifiers.None)
+                    if (Modifiers.HasFlag(mod))
+                        sb.Append(":" + mod);
             }
 
             return sb.ToString();

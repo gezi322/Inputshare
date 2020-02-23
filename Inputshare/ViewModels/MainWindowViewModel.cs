@@ -24,9 +24,11 @@ namespace Inputshare.ViewModels
 
             _homeVM.SelectClient += OnHomeClientSelected;
             _homeVM.SelectServer += OnHomeServerSelected;
+
+            _serverVM.Leave += OnViewModelLeave;
             _clientVM.Leave += OnViewModelLeave;
-            _serverVM.Leave += OnServerVMLeave;
         }
+
 
         private void OnServerVMLeave(object sender, EventArgs e)
         {
@@ -45,6 +47,7 @@ namespace Inputshare.ViewModels
 
         private void OnHomeClientSelected(object sender, EventArgs e)
         {
+
             SetViewModel(_clientVM);
         }
 
@@ -56,6 +59,7 @@ namespace Inputshare.ViewModels
         private void SetViewModel(ViewModelBase vm)
         {
             CurrentView = vm;
+            CurrentView.OnShow();
             this.RaisePropertyChanged(nameof(CurrentView));
         }
 

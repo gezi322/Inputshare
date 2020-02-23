@@ -12,8 +12,10 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-  <DockPanel>
-    <ContentControl Content="{Binding CurrentView}" DockPanel.Dock="Top" VerticalAlignment="Stretch"/>
+  <DockPanel VerticalAlignment="Stretch">
+    <Border BorderBrush="LightGray" BorderThickness="5" DockPanel.Dock="Top" VerticalAlignment="Stretch">
+      <ContentControl Content="{Binding CurrentView}" />
+    </Border>
     <Button Content="{Binding CurrentView.BottomButtonText}" Command="{Binding HandleBottomButtonPressAsync}" DockPanel.Dock="Bottom" Height="25" VerticalAlignment="Bottom"/>
   </DockPanel>
 </Window>

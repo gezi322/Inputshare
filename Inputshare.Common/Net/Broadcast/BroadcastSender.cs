@@ -12,15 +12,16 @@ namespace Inputshare.Common.Net.Broadcast
     internal sealed class BroadcastSender : IDisposable
     {
         private UdpClient _broadcastSocket;
-        private IPEndPoint _broadcastAddress = new IPEndPoint(IPAddress.Broadcast, 12333);
+        private IPEndPoint _broadcastAddress;
         private Timer _broadcastTimer;
         private IPEndPoint _serverAddress;
         private string _version;
 
 
-        public static BroadcastSender Create(int broadcastInterval, int localServerPort, string serverVersion)
+        public static BroadcastSender Create(int broadcastInterval, int localServerPort, int broadcastPort, string serverVersion)
         {
             BroadcastSender instance = new BroadcastSender();
+            instance._broadcastAddress = new IPEndPoint(IPAddress.Broadcast, broadcastPort);
             instance._serverAddress = GetLocalAddress(localServerPort);
             instance._broadcastSocket = new UdpClient();
             instance._broadcastTimer = new Timer(instance.BroadcastTimerCallback, 0, 0, broadcastInterval);

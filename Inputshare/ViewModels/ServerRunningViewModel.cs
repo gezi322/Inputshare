@@ -13,6 +13,8 @@ namespace Inputshare.ViewModels
 {
     public class ServerRunningViewModel : ViewModelBase
     {
+        public override event EventHandler Leave;
+
         public override string BottomButtonText { get; protected set; } = "Stop server";
         public ObservableCollection<ServerDisplayModel> ServerDisplaysList { get; }
         public ObservableCollection<ServerDisplayModel> ServerSelectableDisplayList { get; } = new ObservableCollection<ServerDisplayModel>();
@@ -87,6 +89,8 @@ namespace Inputshare.ViewModels
         {
             if (_model.Running)
                 await _model.StopAsync();
+
+            Leave?.Invoke(this, null);
         }
     }
 }

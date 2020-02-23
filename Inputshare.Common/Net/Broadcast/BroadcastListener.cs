@@ -19,10 +19,14 @@ namespace Inputshare.Common.Net.Broadcast
         /// listening in the background
         /// </summary>
         /// <returns></returns>
-        public static BroadcastListener Create()
+        public static BroadcastListener Create(int listenPort)
         {
-            BroadcastListener instance = new BroadcastListener();
-            instance._listenClient = new UdpClient(12333);
+
+            BroadcastListener instance = new BroadcastListener
+            {
+                _listenClient = new UdpClient(listenPort)
+            };
+
             instance._listenClient.BeginReceive(instance.ReceiveCallback, null);
             return instance;
         }
@@ -32,7 +36,6 @@ namespace Inputshare.Common.Net.Broadcast
             try
             {
                 IPEndPoint ipe = new IPEndPoint(IPAddress.Any, 0);
-
                 byte[] data = _listenClient.EndReceive(ar, ref ipe);
                 _listenClient.BeginReceive(ReceiveCallback, null);
                 IUdpMessage msg = UdpMessageFactory.ReadMessage(data);

@@ -32,6 +32,11 @@ namespace Inputshare.Views
                 _usingTrayIcon = false;
                 Console.WriteLine("Failed to create tray icon: " + ex.Message);
             }
+
+            this.CanResize = false;
+            this.Width = 450;
+            this.Height = 300;
+            this.SizeToContent = SizeToContent.WidthAndHeight;
             
         }
 

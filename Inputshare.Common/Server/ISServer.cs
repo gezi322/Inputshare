@@ -70,7 +70,7 @@ namespace Inputshare.Common.Server
 
             try
             {
-                
+                ServerConfig.LoadConfig();
                 _dependencies = dependencies;
                 _fileController = new RFSController();
                 _clipboardController = new GlobalClipboard(Displays, _fileController);
@@ -78,8 +78,8 @@ namespace Inputshare.Common.Server
                 CreateLocalhostDisplay();
                 InputModule.InputReceived += OnInputReceived;
                 CreateClientListener(bindAddress);
-                _broadcaster = BroadcastSender.Create(2000, bindAddress.Port, "0.0.0.10");
-                _udpHost = ServerUdpSocket.Create(bindAddress.Port);
+                CreateBroadcastHost(bindAddress.Port);
+                CreateUdpHost(bindAddress.Port);
                 Running = true;
                 
             }catch(Exception ex)
@@ -93,6 +93,22 @@ namespace Inputshare.Common.Server
 
                 Logger.Write("Failed to start server: " + ex.Message);
                 Logger.Write(ex.StackTrace);
+            }
+        }
+
+        private void CreateBroadcastHost(int serverBindPort)
+        {
+            if (ServerConfig.BroadcastEnabled)
+            {
+                _broadcaster = BroadcastSender.Create(2000, serverBindPort, ServerConfig.BroadcastPort, "0.0.0.10");
+            }
+        }
+
+        private void CreateUdpHost(int bindPort)
+        {
+            if (ServerConfig.BindUDP)
+            {
+                _udpHost = ServerUdpSocket.Create(bindPort);
             }
         }
 

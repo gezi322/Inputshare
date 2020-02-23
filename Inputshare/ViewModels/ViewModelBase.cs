@@ -13,6 +13,10 @@ namespace Inputshare.ViewModels
         public abstract string BottomButtonText { get; protected set; }
         public abstract Task HandleBottomButtonPressAsync();
         public abstract Task HandleWindowClosingAsync();
+        public virtual Task OnShow()
+        {
+            return Task.CompletedTask;
+        }
 
     }
 }

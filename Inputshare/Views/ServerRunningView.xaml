@@ -36,7 +36,7 @@
 
       <StackPanel>
         <TextBlock Text="Hotkey:" HorizontalAlignment="Center"/>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="15">
           <CheckBox Content="Alt" IsChecked="{Binding SelectedDisplay.Hotkey.Alt}"/>
           <CheckBox Content="Ctrl" IsChecked="{Binding SelectedDisplay.Hotkey.Ctrl}"/>
           <CheckBox Content="Shift" IsChecked="{Binding SelectedDisplay.Hotkey.Shift}"/>

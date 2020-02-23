@@ -21,11 +21,6 @@ namespace Inputshare.Models
         public string ClientName { get => _client.ClientName; set => _client.ClientName = value; }
         public async Task StopAsync() => await _client.StopAsync();
         public async Task StartAsync() => await _client.StartAsync();
-        
-        /// <summary>
-        /// Enables monitoring of broadcast udp messages from servers on the network
-        /// </summary>
-        public bool MonitorBroadcasts { get => _client.MonitorBroadcasts; set => _client.MonitorBroadcasts = value; }
 
         private readonly ISClient _client = new ISClient();
 
