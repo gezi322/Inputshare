@@ -19,7 +19,8 @@ namespace Inputshare.Common.PlatformModules.Windows.Native
         public const int WS_EX_LAYERED = 0x80000;
         public const int LWA_ALPHA = 0x2;
         public const int LWA_COLORKEY = 0x1;
-
+        [DllImport("user32.dll")]
+        public static extern uint EnumClipboardFormats(uint format);
         [DllImport("user32.dll")]
         public static extern bool DestroyWindow(IntPtr handle);
 

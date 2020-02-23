@@ -20,7 +20,7 @@ namespace Inputshare.Common.Net.UDP
                 handlers.Add(address, handler);
             }catch(Exception ex)
             {
-                Logger.Write($"Failed to create UDP handler for {address}: {ex.Message}");
+                Logger.Error($"Failed to create UDP handler for {address}: {ex.Message}");
             }
             
         }
@@ -31,6 +31,7 @@ namespace Inputshare.Common.Net.UDP
 
             foreach (var addr in matches){
                 handlers.Remove(addr.Key);
+                Logger.Verbose("Removed UDP message handler for " + address);
             }
                 
         }
@@ -44,11 +45,11 @@ namespace Inputshare.Common.Net.UDP
                 if (handlers.TryGetValue(sender, out var handler))
                     handler(UdpMessageFactory.ReadMessage(dg));
                 else
-                    Logger.Write("No handler found for " + sender.ToString());
+                    Logger.Warning("No UDP handler found for address" + sender.ToString());
             }
             catch(Exception ex)
             {
-                Logger.Write("Failed to handle UDP message: " + ex.Message);
+                Logger.Error("Failed to handle UDP message: " + ex.Message);
             }
         }
 

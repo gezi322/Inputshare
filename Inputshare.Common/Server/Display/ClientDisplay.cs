@@ -24,6 +24,7 @@ namespace Inputshare.Common.Server.Display
             Socket.ClipboardDataReceived += (object obj, ClipboardData cbData) => base.OnClipboardChanged(cbData);
             Socket.SideHit += (object o, Tuple<Side, int, int> data) => base.OnSideHit(data.Item1, data.Item2, data.Item3);
             Socket.Disconnected += (object o, ServerSocket s) => RemoveDisplay();
+            Logger.Information($"Created client display {DisplayName} ({Socket.Address}) ({connectedArgs.DisplayBounds})");
         }
 
         protected override async Task SendSideChangedAsync()
@@ -37,6 +38,7 @@ namespace Inputshare.Common.Server.Display
             activeSides[2] = GetDisplayAtSide(Side.Bottom) == null ? 0 : Side.Bottom;
             activeSides[3] = GetDisplayAtSide(Side.Top) == null ? 0 : Side.Top;
             await Socket.SendSideUpdateAsync(activeSides);
+            Logger.Verbose($"Notifying sides changed update to: {DisplayName}");
             await base.SendSideChangedAsync();
         }
 
@@ -58,27 +60,31 @@ namespace Inputshare.Common.Server.Display
 
         internal override void NotfyInputActive()
         {
+            Logger.Verbose($"Notifying client active: {DisplayName}");
             Socket.NotifyInputClient(true);
         }
 
         internal override void NotifyClientInvactive()
         {
+            Logger.Verbose($"Notifying client inactive: {DisplayName}");
             Socket.NotifyInputClient(false);
         }
 
         internal override void RemoveDisplay()
         {
+            Logger.Information($"Removing display {DisplayName}");
+
             base.RemoveDisplay();
 
             if (Socket.Connected)
                 Socket.DisconnectSocket();
 
             Socket.Dispose();
-
         }
 
         internal override async Task SetClipboardAsync(ClipboardData cbData)
         {
+            Logger.Debug($"Sending clipboard data to display {DisplayName}");
             await Socket.SendClipboardDataAsync(cbData);
         }
     }

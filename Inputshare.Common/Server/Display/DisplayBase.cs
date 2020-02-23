@@ -40,7 +40,6 @@ namespace Inputshare.Common.Server.Display
             _displays = displayList;
             DisplayName = name;
             DisplayBounds = bounds;
-            Logger.Write($"Created display {name} ({bounds.Width}:{bounds.Height})");
         }
 
         /// <summary>
@@ -74,7 +73,7 @@ namespace Inputshare.Common.Server.Display
                 throw new ArgumentException("Cannot set X to the side of X");
 
             GetDisplayAtSide(side) = display;
-            Logger.Write($"Set side {side} of {DisplayName} to {display.DisplayName}");
+            Logger.Verbose($"Set side {side} of {DisplayName} to {display.DisplayName}");
             DisplayAtSideChanged?.Invoke(this, side);
             SendSideChangedAsync();
         }
@@ -124,7 +123,7 @@ namespace Inputshare.Common.Server.Display
         /// <param name="side"></param>
         public void RemoveDisplayAtSide(Side side)
         {
-            Logger.Write($"Removing side {side} of {DisplayName}");
+            Logger.Verbose($"Removing side {side} of {DisplayName}");
             GetDisplayAtSide(side) = null;
             DisplayAtSideChanged?.Invoke(this, side);
             SendSideChangedAsync();

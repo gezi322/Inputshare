@@ -16,15 +16,6 @@ namespace Inputshare.Common.PlatformModules.Linux
         private X11ErrorDelegate errorHandler;
         private X11IOErrorDelegate ioErrorHandler;
 
-
-        private Thread _xThread;
-
-        ~XConnection()
-        {
-            Console.WriteLine("CONNECTION DISPOSED");
-        }
-        
-
         public XConnection()
         {
             XInitThreads();

@@ -51,6 +51,16 @@ namespace Inputshare.Common.PlatformModules
                 throw new PlatformNotSupportedException();
         }
 
+        public string[] GetModuleNames()
+        {
+            return new string[]
+            {
+                 InputModule.GetType().Name,
+                OutputModule.GetType().Name,
+                ClipboardModule.GetType().Name,
+            };
+        }
+
         private ISServerDependencies()
         {
 

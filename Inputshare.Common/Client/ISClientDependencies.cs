@@ -52,6 +52,16 @@ namespace Inputshare.Common.Client
             throw new PlatformNotSupportedException();
         }
 
+        public string[] GetModuleNames()
+        {
+            return new string[]
+            {
+                InputModule.GetType().Name,
+                OutputModule.GetType().Name,
+                ClipboardModule.GetType().Name,
+            };
+        }
+
         private ISClientDependencies()
         {
 
@@ -66,7 +76,6 @@ namespace Inputshare.Common.Client
             {
                 if (disposing)
                 {
-                    Console.WriteLine("Dispose");
                     foreach (var dep in _pDependencies)
                         dep.Dispose();
                 }

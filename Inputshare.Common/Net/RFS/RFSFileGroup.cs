@@ -7,44 +7,15 @@ using System.Threading.Tasks;
 namespace Inputshare.Common.Net.RFS
 {
     /// <summary>
-    /// A group of remote files
+    /// Contains a list of file headers
     /// </summary>
     [Serializable]
     internal class RFSFileGroup
     {
-        [field:NonSerialized]
-        internal bool RemoveOnIdle { get; set; }
-
-        [field:NonSerialized]
-        internal virtual event EventHandler<RFSFileGroup> TransfersFinished;
-
         internal RFSFileGroup(Guid groupId, RFSFileHeader[] files)
         {
             GroupId = groupId;
             Files = files;
-        }
-
-        internal virtual Task<Guid> GetTokenAsync()
-        {
-            throw new NotSupportedException();
-        }
-        internal virtual Task<int> ReadAsync(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
-        {
-            throw new NotSupportedException();
-        }
-
-        internal virtual int Read(Guid tokenId, Guid fileId, byte[] buffer, int readLen)
-        {
-            throw new NotSupportedException();
-        }
-        internal virtual Guid GetToken()
-        {
-            throw new NotSupportedException();
-        }
-
-        internal virtual long Seek(Guid tokenId, Guid fileId, SeekOrigin origin, long offset)
-        {
-            throw new NotSupportedException();
         }
 
         public Guid GroupId { get; }

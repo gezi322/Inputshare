@@ -9,8 +9,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using static Inputshare.Common.PlatformModules.Windows.Native.Ole32;
-using static Inputshare.Common.PlatformModules.Windows.Native.User32;
-using System.Threading.Tasks;
 using System.Drawing;
 using System.IO;
 
@@ -44,6 +42,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
         public IntPtr GetData([In] ref FORMATETC format, out STGMEDIUM medium)
         {
+            Logger.Verbose($"ClipboardDataObject: GetData for type {WinClipboardDataFormat.GetFormatName((uint)format.cfFormat)} as {format.tymed}");
             medium = new STGMEDIUM
             {
                 tymed = TYMED.TYMED_NULL
@@ -65,6 +64,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
         public IntPtr GetDataHere([In] ref FORMATETC format, ref STGMEDIUM medium)
         {
+            Logger.Verbose($"ClipboardDataObject: GetDataHere for type {WinClipboardDataFormat.GetFormatName((uint)format.cfFormat)} as {format.tymed}");
             if (format.cfFormat == WinClipboardDataFormat.CFSTR_FILEDESCRIPTOR)
                 GetFileDescriptor(ref format, ref medium);
             else if (format.cfFormat == WinClipboardDataFormat.CFSTR_FILECONTENTS)
@@ -76,6 +76,8 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
         public IntPtr QueryGetData([In] ref FORMATETC format)
         {
+            Logger.Verbose($"ClipboardDataObject: QueryGetData for type {WinClipboardDataFormat.GetFormatName((uint)format.cfFormat)} as {format.tymed}");
+
             if((int)format.tymed == -1)
             {
                 foreach (var supportedFormat in _formats)
@@ -139,20 +141,23 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             formats.Add(CreateTempFormat());
 
             if (cbData.IsTypeAvailable(ClipboardDataType.UnicodeText))
+            {
                 formats.Add(CreateUnicodeFormat());
+            }
+                
 
-            if (cbData.IsTypeAvailable(ClipboardDataType.RemoteFileGroup))
+            if (cbData.IsTypeAvailable(ClipboardDataType.FileGroup))
             {
                 try
                 {
-                    _fileStreams = new NativeRFSStream[cbData.GetRemoteFiles().Files.Length];
+                    _fileStreams = new NativeRFSStream[cbData.GetFileGroup().Files.Length];
                     formats.Add(CreateFileContentsFormat());
                     formats.Add(CreateFileDescriptorWFormat());
                     formats.Add(CreatePreferredEffectFormat());
                 }catch(Exception ex)
                 {
-                    Logger.Write(ex.Message);
-                    Logger.Write(ex.StackTrace);
+                    Logger.Error("ClipboardDataObject: " + ex.Message);
+                    Logger.Error(ex.StackTrace);
                 } 
             }
 
@@ -161,7 +166,16 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                 
 
             _formats = formats.ToArray();
+            LogFormats();
         }
+
+        private void LogFormats()
+        {
+            Logger.Debug($"ClipboardDataObject: Available formats:");
+            foreach(var format in _formats)
+                Logger.Debug($"ClipboardDataObject: {WinClipboardDataFormat.GetFormatName((uint)format.cfFormat)} as {format.tymed}");
+        }
+
         private FORMATETC CreateTempFormat()
         {
             return new FORMATETC
@@ -244,7 +258,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                 medium.pUnkForRelease = IntPtr.Zero;
             }catch(Exception ex)
             {
-                Logger.Write($"Failed to return text to shell: {ex.Message}");
+                Logger.Error($"Failed to return text to shell: {ex.Message}");
             }
         }
 
@@ -263,7 +277,8 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
             try
             {
-                RFSFileGroup group = InnerData.GetRemoteFiles();
+                Logger.Verbose($"ClipboardDataObject: returning filedescriptor");
+                RFSFileGroup group = InnerData.GetFileGroup();
                 var memStr = FILEDESCRIPTOR.GenerateFileDescriptor(group);
                 IntPtr ptr = CopyHGlobal(memStr.ToArray());
                 memStr.Dispose();
@@ -275,7 +290,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             }
             catch(Exception ex)
             {
-                Logger.Write("Failed to return file descriptor to shell: " + ex.Message);
+                Logger.Error("Failed to return file descriptor to shell: " + ex.Message);
             }
         }
 
@@ -289,30 +304,37 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
         private void GetFileContentsStream(ref FORMATETC format, ref STGMEDIUM medium)
         {
-            if (format.lindex == -1)
+            int index = format.lindex;
+            Logger.Verbose($"ClipboardDataObject: Returning ISTREAM for index {index}");
+
+            if (index == -1)
                 return;
 
             try
             {
-                
-                int index = format.lindex;
-
                 //Get a token to read the file group
                 if (_fileStreamToken == Guid.Empty)
-                    _fileStreamToken = (InnerData.GetRemoteFiles() as RFSClientFileGroup).GetToken();
+                {
+                    Logger.Verbose($"ClipboardDataObject: Getting token for filegroup {InnerData.GetFileGroup().GroupId}");
+                    _fileStreamToken = (InnerData.GetFileGroup() as RFSReadableFileGroup).GetToken();
+                    Logger.Verbose($"ClipboardDataObject: got token for filegroup {InnerData.GetFileGroup().GroupId} ({_fileStreamToken})");
+                }
+                    
 
                 if (_fileStreams[index] == null)
                 {
-                    var group = (InnerData.GetRemoteFiles() as RFSClientFileGroup);
+                    Logger.Verbose($"ClipboardDataObject: creating stream for file {InnerData.GetFileGroup().Files[index].FileName}");
+                    var group = (InnerData.GetFileGroup() as RFSClientFileGroup);
                     _fileStreams[index] = new NativeRFSStream(group.CreateStream(group.Files[index], _fileStreamToken));
                     
                 }
+
                 medium.tymed = TYMED.TYMED_ISTREAM;
                 IStream str = _fileStreams[index];
                 medium.unionmember = Marshal.GetComInterfaceForObject(str, typeof(IStream));
             }catch(Exception ex)
             {
-                Logger.Write("Failed to return filestream to shell: " + ex.Message);
+                Logger.Verbose("Failed to return filestream to shell: " + ex.Message);
             }
         }
 

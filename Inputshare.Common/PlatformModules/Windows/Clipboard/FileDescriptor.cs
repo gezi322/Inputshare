@@ -68,7 +68,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             }
             catch (Exception ex)
             {
-                Logger.Write("Get file descriptor failed: " + ex.Message);
+                Logger.Verbose("Get file descriptor failed: " + ex.Message);
                 return null;
             }
         }

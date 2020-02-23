@@ -28,6 +28,7 @@ namespace Inputshare.Common.Net.Broadcast
             };
 
             instance._listenClient.BeginReceive(instance.ReceiveCallback, null);
+            Logger.Debug($"Waiting for broadcast messages on port {listenPort}");
             return instance;
         }
 
@@ -38,14 +39,27 @@ namespace Inputshare.Common.Net.Broadcast
                 IPEndPoint ipe = new IPEndPoint(IPAddress.Any, 0);
                 byte[] data = _listenClient.EndReceive(ar, ref ipe);
                 _listenClient.BeginReceive(ReceiveCallback, null);
+
+                Logger.Verbose($"BroadcastListener: Received {data.Length} bytes from {ipe}");
+
+                //Read the udp message
                 IUdpMessage msg = UdpMessageFactory.ReadMessage(data);
+                Logger.Verbose($"BroadcastListener: Message type = {msg.GetType().Name}");
+                //Check that it is a valid message
                 if (msg is UdpServerBroadcastMessage broadcastMessage)
                 {
+                    //check that the message address is valid
                     if (IPEndPoint.TryParse(broadcastMessage.Address, out var address))
                     {
                         Ping p = new Ping();
+                        //ping the address to make sure that we can connect to it
                         var reply = p.Send(address.Address, 500);
+                        Logger.Verbose($"BroadcastListener: Got ping reply from {reply.Address} ({reply.RoundtripTime}MS)");
                         BroadcastReceived?.Invoke(this, new BroadcastReceivedArgs(address, reply, broadcastMessage.ServerVersion));
+                    }
+                    else
+                    {
+                        Logger.Verbose($"BroadcastListener: Message contained invalid address");
                     }
                 }
             }
@@ -54,9 +68,8 @@ namespace Inputshare.Common.Net.Broadcast
                 //Ignore errors after dispose is called
             }catch(Exception ex)
             {
-                Logger.Write("Failed to read UDP broadcast: " + ex.Message);
+                Logger.Warning("Failed to read UDP broadcast: " + ex.Message);
             }
-           
         }
 
         #region IDisposable Support

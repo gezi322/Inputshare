@@ -8,6 +8,7 @@ using Avalonia.ReactiveUI;
 using Inputshare.Common.Client;
 using Inputshare.Common.Server;
 using Inputshare.Tray;
+using Serilog;
 
 namespace Inputshare
 {
@@ -18,6 +19,8 @@ namespace Inputshare
         // yet and stuff might break.
         public static async Task Main(string[] args)
         {
+           
+
             if(args.Length > 0 && args[0] == "test")
             {
                 ISServer s = new ISServer();

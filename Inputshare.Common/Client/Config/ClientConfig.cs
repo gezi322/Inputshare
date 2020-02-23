@@ -13,26 +13,24 @@ namespace Inputshare.Common.Client.Config
         internal static string ClientName = Environment.MachineName;
         internal static bool HideCursor = true;
         internal static bool BindUDP = true;
+        internal static int SpecifyUDPPort;
 
         internal static void LoadConfig()
         {
             if (DllConfig.TryReadProperty("Client.LastAddress", out var result))
                 IPEndPoint.TryParse(result, out LastAddress);
-
             if (DllConfig.TryReadProperty("Client.Name", out result))
                 ClientName = result;
-
             if (DllConfig.TryReadProperty("Client.Broadcast.Enabled", out result))
                 bool.TryParse(result, out BroadcastEnabled);
-
             if (DllConfig.TryReadProperty("Client.Broadcast.Port", out result))
                 int.TryParse(result, out BroadcastPort);
-
             if (DllConfig.TryReadProperty("Client.HideCursor", out result))
                 bool.TryParse(result, out HideCursor);
             if (DllConfig.TryReadProperty("Client.BindUDP", out result))
                 bool.TryParse(result, out BindUDP);
-
+            if (DllConfig.TryReadProperty("Client.SpecifyUDPPort", out result))
+                int.TryParse(result, out SpecifyUDPPort);
 
         }
 

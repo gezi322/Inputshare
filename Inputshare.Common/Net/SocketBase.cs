@@ -99,6 +99,7 @@ namespace Inputshare.Common.Net
                         bytesIn += _stream.Read(_buffer, bytesIn, header.MessageLength - bytesIn);
 
                     NetMessageBase message = MessageSerializer.Deserialize(_buffer, ref header);
+                    //Logger.Verbose($"Got TCP message {message.GetType().Name}");
                     DispatchMessage(message);
                 }
             }catch(Exception ex)
@@ -129,7 +130,7 @@ namespace Inputshare.Common.Net
             //Sends a message every 1500MS to make sure that the socket knows if it
             //is disconnected
             if(!Closed && !_disconnecting)
-                SendMessage(new NetNullMessage());
+                SendMessage(new NetPingMessage());
         }
 
         private void HandleRequestInternal(NetRequestBase request)
@@ -247,8 +248,8 @@ namespace Inputshare.Common.Net
             {
                 int bOut = 0;
                 Guid messageId = Guid.NewGuid();
-
-                while(bOut < serializedMessage.Length)
+                
+                while (bOut < serializedMessage.Length)
                 {
                     int pSize = serializedMessage.Length - bOut - SegmentSize > 0 ? SegmentSize : serializedMessage.Length - bOut;
                     byte[] data = new byte[pSize];
@@ -311,7 +312,8 @@ namespace Inputshare.Common.Net
                 }
 
                 await _stream.WriteAsync(data, 0, data.Length);
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
                 HandleExceptionInternal(ex);
             }
@@ -334,7 +336,6 @@ namespace Inputshare.Common.Net
                     Task.Run(async () => await SendMessageSegmentedAsync(data));
                     return;
                 }
-
 
                 _stream.Write(data, 0, data.Length);
             }
@@ -383,6 +384,7 @@ namespace Inputshare.Common.Net
             {
                 if (disposing)
                 {
+                    Logger.Debug("SocketBase disposing");
                     Closed = true;
                     _disconnecting = true;
                     _pingTimer?.Dispose();

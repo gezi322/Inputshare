@@ -70,6 +70,7 @@ namespace Inputshare.Common.Server
 
             try
             {
+                Logger.Information($"Starting server with modules:\n {string.Join('\n', dependencies.GetModuleNames())}");
                 ServerConfig.LoadConfig();
                 _dependencies = dependencies;
                 _fileController = new RFSController();
@@ -81,6 +82,7 @@ namespace Inputshare.Common.Server
                 CreateBroadcastHost(bindAddress.Port);
                 CreateUdpHost(bindAddress.Port);
                 Running = true;
+                Logger.Information($"Server started at address {bindAddress}");
                 
             }catch(Exception ex)
             {
@@ -91,29 +93,35 @@ namespace Inputshare.Common.Server
                     if (display != LocalHostDisplay)
                         display.RemoveDisplay();
 
-                Logger.Write("Failed to start server: " + ex.Message);
-                Logger.Write(ex.StackTrace);
+                await StopModulesAsync();
+                _udpHost?.Dispose();
+                _broadcaster?.Dispose();
+
+                Logger.Error("Failed to start server: " + ex.Message);
+                Logger.Error(ex.StackTrace);
+                throw ex;
             }
         }
 
         private void CreateBroadcastHost(int serverBindPort)
         {
             if (ServerConfig.BroadcastEnabled)
-            {
                 _broadcaster = BroadcastSender.Create(2000, serverBindPort, ServerConfig.BroadcastPort, "0.0.0.10");
-            }
+            else
+                Logger.Debug($"Disabling broadcasting");
         }
 
         private void CreateUdpHost(int bindPort)
         {
             if (ServerConfig.BindUDP)
-            {
                 _udpHost = ServerUdpSocket.Create(bindPort);
-            }
+            else
+                Logger.Debug($"Disabling udp socket");
         }
 
         private void CreateClientListener(IPEndPoint bindAddress)
         {
+            Logger.Verbose($"Creating TCP client listener");
             _listener = new ClientListener();
             _listener.ClientConnected += OnClientConnected;
             _listener.BeginListening(bindAddress, _fileController);
@@ -139,6 +147,8 @@ namespace Inputshare.Common.Server
             if (!Running)
                 throw new InvalidOperationException("Server is not running");
 
+            Logger.Information($"Stopping server");
+
             if (_listener != null && _listener.Listening)
                 _listener.Stop();
 
@@ -152,12 +162,13 @@ namespace Inputshare.Common.Server
             _listener.Stop();
             await StopModulesAsync();
             _fileController.Dispose();
-
+            Logger.Information($"Server stopped");
             Running = false;
         }
 
         private async Task StartModulesAsync()
         {
+            Logger.Verbose($"Starting modules");
             await InputModule.StartIfNotRunningAsync();
             await OutputModule.StartIfNotRunningAsync();
             await ClipboardModule.StartIfNotRunningAsync();
@@ -165,6 +176,7 @@ namespace Inputshare.Common.Server
 
         private async Task StopModulesAsync()
         {
+            Logger.Verbose($"Stopping modules");
             await InputModule.StopIfRunningAsync();
             await OutputModule.StopIfRunningAsync();
             await ClipboardModule.StopIfRunningAsync();
@@ -184,7 +196,7 @@ namespace Inputshare.Common.Server
             {
                 if (Displays.Where(i => i.DisplayName.ToLower() == args.Name.ToLower()).FirstOrDefault() != null)
                 {
-                    Logger.Write($"Removed client {args.Name}: Duplicate client name");
+                    Logger.Warning($"Removed client {args.Name}: Duplicate client name");
                     args.Socket.Dispose();
                     return;
                 }
@@ -201,7 +213,7 @@ namespace Inputshare.Common.Server
                 if (display != null)
                     display.RemoveDisplay();
 
-                Logger.Write($"An error occurred at OnClientConnect: {ex.Message}");
+                Logger.Verbose($"An error occurred at OnClientConnect: {ex.Message}");
             }
             
         }
@@ -235,7 +247,7 @@ namespace Inputshare.Common.Server
                 if (display is ClientDisplay cDisplay)
                     _udpHost?.RemoveHandlersForAddress(cDisplay.Socket.UdpAddress);
 
-                Logger.Write($"Removed display {display.DisplayName}");
+                Logger.Verbose($"Removed display {display.DisplayName}");
                 Displays.Remove(display);
                 RemoveReferences(display);
 
@@ -286,6 +298,7 @@ namespace Inputshare.Common.Server
             try
             {
                 var display = sender as DisplayBase;
+                Logger.Debug($"Setting hotkey for {display.DisplayName} to {hk.ToString()}");
 
                 if (hk != Hotkey.None)
                 {
@@ -293,18 +306,18 @@ namespace Inputshare.Common.Server
                         SetInputDisplay(display);
                     }));
 
-                    Logger.Write($"Set hotkey for {display} to {hk}");
+                    Logger.Information($"Set hotkey for {display} to {hk}");
                 }
                 else
                 {
-                    Logger.Write("Cleared hotkey for " + display);
+                    Logger.Information("Cleared hotkey for " + display);
                 }
 
                 display.Hotkey = hk;
                 DisplayConfig.TrySaveClientHotkey(display, hk);
             }catch(Exception ex)
             {
-                Logger.Write($"Failed to set hotkey: {ex.Message}");
+                Logger.Verbose($"Failed to set hotkey: {ex.Message}");
             }
             
         }
@@ -339,9 +352,10 @@ namespace Inputshare.Common.Server
 
             lock (_inputClientLock)
             {
+                Logger.Information($"Setting input display to {display.DisplayName}");
                 if (!Displays.Contains(display))
                 {
-                    Logger.Write($"Can't switch to {display.DisplayName}: Not in display list");
+                    Logger.Verbose($"Can't switch to {display.DisplayName}: Not in display list");
                     RemoveReferences(display);
                     return;
                 }
@@ -349,9 +363,8 @@ namespace Inputshare.Common.Server
                 display.NotfyInputActive();
                 InputDisplay.NotifyClientInvactive();
                 InputDisplay = display;
+                Logger.Debug($"Input display set to {display.DisplayName}");
             }
-
-            
         }
 
         /// <summary>
@@ -364,7 +377,9 @@ namespace Inputshare.Common.Server
         /// <param name="hitY"></param>
         internal void SetInputDisplay(DisplayBase display, Side side, int hitX, int hitY)
         {
+            Logger.Debug($"Calculating cursor position switching to {display} from side {side} of {InputDisplay}");
             var newPos = CalculateCursorPosition(display, side, hitX, hitY);
+            Logger.Debug($"Setting position: {newPos.X}:{newPos.Y}");
             var input = new InputData(InputCode.MouseMoveAbsolute, (short)newPos.X, (short)newPos.Y);
             display.SendInput(ref input);
             SetInputDisplay(display);
@@ -394,6 +409,8 @@ namespace Inputshare.Common.Server
         /// </summary>
         private void ReloadConfiguration()
         {
+            Logger.Debug("Reloading configuration");
+
             lock (_clientListLock)
             {
                 foreach (var display in Displays)

@@ -12,7 +12,7 @@ namespace Inputshare.Common.Net.RFS.Client
     /// A group of remote files that can be streamed
     /// </summary>
     [Serializable]
-    internal class RFSClientFileGroup : RFSFileGroup
+    internal class RFSClientFileGroup : RFSReadableFileGroup
     {
         internal RFSClientFileGroup(Guid groupId, RFSFileHeader[] files, SocketBase host) : base(groupId, files)
         {

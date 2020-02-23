@@ -37,6 +37,7 @@ namespace Inputshare.Common.PlatformModules.Input
 
         public override void SetInputRedirected(bool redirect)
         {
+            Logger.Verbose($"{ModuleName}: Redirecting input: {redirect}");
             InputRedirected = redirect;
             GetCursorPos(out _oldPos);
         }
@@ -47,6 +48,7 @@ namespace Inputshare.Common.PlatformModules.Input
         private void HideMouse()
         {
             _window.InvokeAction(() => {
+                Logger.Verbose($"{ModuleName}: Hiding cursor");
                 GetCursorPos(out var pos);
                 SetWindowPos(_window.Handle, new IntPtr(0), pos.X, pos.Y, 1, 1, 0x0040 | 0x0010);
                 EnableWindow(_window.Handle, true);
@@ -57,6 +59,7 @@ namespace Inputshare.Common.PlatformModules.Input
         private void ShowMouse()
         {
             _window.InvokeAction(() => {
+                Logger.Verbose($"{ModuleName}: Unhiding cursor");
                 ShowWindow(_window.Handle, 0);
                 EnableWindow(_window.Handle, false);
             });
@@ -65,9 +68,12 @@ namespace Inputshare.Common.PlatformModules.Input
         {
             _window = await WinMessageWindow.CreateWindowAsync("IS_InputWnd");
             _window.MessageRecevied += OnWindowMessageReceived;
-            SetProcessDpiAwareness(new IntPtr(2));
+            var dpiVal = SetProcessDpiAwareness(new IntPtr(2));
+ 
 
-            if(!DEBUGSETTINGS.DISABLEWINHOOKS)
+             Logger.Verbose($"{ModuleName}: Set process DPI awareness (returned {dpiVal})");
+
+            if (!DEBUGSETTINGS.DISABLEWINHOOKS)
                 await InstallHooksAsync(_window);
 
             UpdateVirtualDisplayBounds();
@@ -106,14 +112,16 @@ namespace Inputshare.Common.PlatformModules.Input
             var waitHandle = new SemaphoreSlim(0, 1);
 
             window.InvokeAction(() => {
+                
                 SetWindowLongPtr(_window.Handle, GWL_EXSTYLE, new IntPtr(WS_EX_LAYERED | 0x00000080));
                 ShowWindow(_window.Handle, 0);
                 SetLayeredWindowAttributes(_window.Handle, 0, 1, LWA_ALPHA);
                 ShowCursor(false);
-
+                Logger.Verbose($"{ModuleName}: Installing Mouse hook");
                 _mHook = SetWindowsHookEx(WH_MOUSE_LL, _mCallback, GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName), 0);
                 if (_mHook == default)
                     throw new Win32Exception();
+                Logger.Verbose($"{ModuleName}: Installing keyboard hook");
                 _kbHook = SetWindowsHookEx(WH_KEYBOARD_LL, _kbCallback, GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName), 0);
                 if (_kbHook == default)
                     throw new Win32Exception();

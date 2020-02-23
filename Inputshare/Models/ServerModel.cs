@@ -56,8 +56,16 @@ namespace Inputshare.Models
 
         public async Task StartAsync(int bindPort)
         {
-            await _server.StartAsync(new IPEndPoint(IPAddress.Any, bindPort));
-            Started?.Invoke(this, null);
+            try
+            {
+                await _server.StartAsync(new IPEndPoint(IPAddress.Any, bindPort));
+                Started?.Invoke(this, null);
+            }
+            catch (Exception)
+            {
+                Stopped?.Invoke(this, null);
+            }
+            
         }
 
         public async Task StopAsync()

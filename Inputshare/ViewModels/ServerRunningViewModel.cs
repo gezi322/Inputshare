@@ -68,6 +68,10 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(SelectedDisplay));
         }
 
+        /// <summary>
+        /// Builds a list of clients that can be selected. EG removing the selected client
+        /// and adding the client 'none'
+        /// </summary>
         private void BuildSelectableDisplayList()
         {
             ServerSelectableDisplayList.Clear();

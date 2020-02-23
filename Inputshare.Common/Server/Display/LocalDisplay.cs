@@ -30,6 +30,7 @@ namespace Inputshare.Common.Server.Display
 
             _clipboardModule.ClipboardChanged += (object o, ClipboardData cbData) => base.OnClipboardChanged(cbData);
             _inputModule.SideHit += (object o, SideHitArgs args) => base.OnSideHit(args.Side, args.PosX, args.PosY);
+            Logger.Information($"Created localhost display ({_inputModule.VirtualDisplayBounds}");
         }
 
         internal override void SendInput(ref InputData input)
@@ -39,6 +40,8 @@ namespace Inputshare.Common.Server.Display
 
         internal override void NotfyInputActive()
         {
+            Logger.Verbose($"Notifying local display active");
+
             _inputModule.SetInputRedirected(false);
 
             if (ServerConfig.HideCursor)
@@ -47,6 +50,8 @@ namespace Inputshare.Common.Server.Display
 
         internal override void NotifyClientInvactive()
         {
+            Logger.Verbose($"Notifying local display inactive");
+
             _inputModule.SetInputRedirected(true);
 
             if(ServerConfig.HideCursor)
@@ -55,6 +60,7 @@ namespace Inputshare.Common.Server.Display
 
         internal override async Task SetClipboardAsync(ClipboardData cbData)
         {
+            Logger.Verbose($"Setting local display clipboard");
             await _clipboardModule.SetClipboardAsync(cbData);
         }
     }

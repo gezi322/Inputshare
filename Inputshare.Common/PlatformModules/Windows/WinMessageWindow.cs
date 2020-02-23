@@ -71,6 +71,8 @@ namespace Inputshare.Common.PlatformModules.Windows
             Win32Message msg;
             int ret;
 
+            Logger.Verbose($"Created message window '{WindowName}'");
+
             //Passing the window handle to getmessage will actually stop
             //dataobjects set withj olesetclipboard from working proplery... pass intptr.zero instead
             while ((ret = GetMessage(out msg, IntPtr.Zero, 0, 0)) != 0)
@@ -80,6 +82,8 @@ namespace Inputshare.Common.PlatformModules.Windows
 
                 DispatchMessage(ref msg);
             }
+
+            Logger.Verbose($"window {WindowName} exited message loop");
             _closed = true;
         }
 
@@ -119,6 +123,7 @@ namespace Inputshare.Common.PlatformModules.Windows
             if (ret == 0)
                 throw new Win32Exception();
 
+            Logger.Verbose($"Registered window class {cls.lpszClassName}");
             return cls;
         }
 

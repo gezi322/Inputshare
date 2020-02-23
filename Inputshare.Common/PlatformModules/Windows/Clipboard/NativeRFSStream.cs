@@ -50,7 +50,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                 Marshal.WriteIntPtr(pcbRead, new IntPtr(bIn));
             }catch(Exception ex)
             {
-                Logger.Write("NativeRFSStream read failed: " + ex.Message);
+                Logger.Verbose("NativeRFSStream read failed: " + ex.Message);
                 Marshal.WriteIntPtr(pcbRead, new IntPtr(0));
             }
             
@@ -70,7 +70,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             }
             catch (Exception ex)
             {
-                Logger.Write("NativeRFSStream seek failed: " + ex.Message);
+                Logger.Verbose("NativeRFSStream seek failed: " + ex.Message);
                 Marshal.WriteIntPtr(plibNewPosition, new IntPtr(-1));
             }
             

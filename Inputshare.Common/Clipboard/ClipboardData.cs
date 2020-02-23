@@ -16,9 +16,9 @@ namespace Inputshare.Common.Clipboard
         private List<ClipboardDataType> _availableTypes = new List<ClipboardDataType>();
 
         private RFSFileGroup _fileGroup;
-        private string[] _localFiles;
         private string _text;
         private byte[] _serializedBitmap;
+        private string[] _localFilePaths;
 
         internal void SetBitmap(byte[] serializedBitmap)
         {
@@ -45,20 +45,39 @@ namespace Inputshare.Common.Clipboard
             SetTypeAvailable(ClipboardDataType.UnicodeText);
         }
 
+
         internal string GetText()
         {
             return _text;
         }
 
-        internal void SetRemoteFiles(RFSFileGroup files)
-        {
-            _fileGroup = files;
-            SetTypeAvailable(ClipboardDataType.RemoteFileGroup);
-        }
-
-        internal RFSFileGroup GetRemoteFiles()
+        internal RFSFileGroup GetFileGroup()
         {
             return _fileGroup;
+        }
+
+        internal void SetFileGroup(RFSFileGroup group)
+        {
+            _fileGroup = group;
+
+            SetTypeAvailable(ClipboardDataType.FileGroup);
+        }
+
+        internal void SetLocalFilePaths(string[] paths)
+        {
+            _localFilePaths = paths;
+            SetTypeAvailable(ClipboardDataType.LocalFilePaths);
+        }
+
+        internal void RemoveLocalFilePaths()
+        {
+            _localFilePaths = null;
+            SetTypeUnvailable(ClipboardDataType.LocalFilePaths);
+        }
+
+        internal string[] GetLocalFilePaths()
+        {
+            return _localFilePaths;
         }
 
         internal bool IsTypeAvailable(ClipboardDataType type)
@@ -72,15 +91,10 @@ namespace Inputshare.Common.Clipboard
                 _availableTypes.Add(type);
         }
 
-        internal void SetLocalFiles(string[] sources)
+        private void SetTypeUnvailable(ClipboardDataType type)
         {
-            _localFiles = sources;
-            SetTypeAvailable(ClipboardDataType.HostFileGroup);
-        }
-
-        internal string[] GetLocalFiles()
-        {
-            return _localFiles;
+            if (_availableTypes.Contains(type))
+                _availableTypes.Remove(type);
         }
     }
 }

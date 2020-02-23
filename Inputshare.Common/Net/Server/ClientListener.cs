@@ -36,7 +36,7 @@ namespace Inputshare.Common.Net.Server
             BindAddress = bindAddress;
             _tokenSource.Token.Register(() => _listener.Stop());
             Listening = true;
-            Logger.Write($"Listening at {bindAddress}");
+            Logger.Debug($"Listening at {bindAddress}");
             Task.Run(async() => { await ListenLoop(fileController); });
         }
 
@@ -47,6 +47,7 @@ namespace Inputshare.Common.Net.Server
                 try
                 {
                     var client = await _listener.AcceptSocketAsync();
+                    Logger.Debug($"Accepted socket {client.RemoteEndPoint}");
                     await ProcessClient(client, fileController);
                 }
                 catch (ObjectDisposedException) when (_tokenSource.IsCancellationRequested)
@@ -57,7 +58,7 @@ namespace Inputshare.Common.Net.Server
 
                     _processingClients.Clear();
                     _listener.Stop();
-                    Logger.Write("Stopped listening");
+                    Logger.Verbose("Stopped listening");
                     Listening = false;
                 }
             }
@@ -84,7 +85,7 @@ namespace Inputshare.Common.Net.Server
                 _processingClients.Add(client);
                 var stream = new NetworkStream(client);
                 
-                Logger.Write($"Accepting connection from {clientAddr}");
+                Logger.Verbose($"Accepting connection from {clientAddr}");
 
                 //Use a cancellationtoken to timeout after 3000ms
                 cts = new CancellationTokenSource(3000);
@@ -106,15 +107,15 @@ namespace Inputshare.Common.Net.Server
 
                 //Deserialize message, if incorrect message type is sent then throw
                 NetClientConnectionMessage msg = (NetClientConnectionMessage)MessageSerializer.Deserialize(clientBuff, ref header);
-
+                Logger.Verbose($"Valid data received from {clientAddr}: {msg.ClientName} {msg.ClientVersion} {msg.DisplayBounds} {msg.UdpPort}");
                 ClientConnected?.Invoke(this, new ClientConnectedArgs(new ServerSocket(client, fileController), msg.ClientName, msg.ClientId, msg.DisplayBounds, msg.UdpPort));
             }catch(OperationCanceledException) when (cts.IsCancellationRequested)
             {
-                Logger.Write($"{clientAddr} timed out");
+                Logger.Error($"{clientAddr} timed out");
                 client?.Dispose();
             }catch(Exception ex)
             {
-                Logger.Write($"Failed to accept connection from {client.RemoteEndPoint}: {ex.Message}\n{ex.StackTrace}");
+                Logger.Error($"Failed to accept connection from {clientAddr}: {ex.Message}\n{ex.StackTrace}");
                 client?.Dispose();
             }
             finally

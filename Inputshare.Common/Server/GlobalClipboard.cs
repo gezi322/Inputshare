@@ -26,60 +26,85 @@ namespace Inputshare.Common.Server
             _displays = clients;
             clients.DisplayAdded += (object o, DisplayBase display) => OnDisplayAdded(display);
             clients.DisplayRemoved += (object o, DisplayBase display) => OnDisplayRemoved(display);
+            Logger.Verbose($"Created global clipboard controller");
         }
 
         private void OnDisplayRemoved(DisplayBase display)
         {
-
+            Logger.Verbose($"GlobalClipboard: Removed display {display.DisplayName}");
         }
 
         private void OnDisplayAdded(DisplayBase display)
         {
+            Logger.Verbose($"GlobalClipboard: Added display {display.DisplayName}");
             display.ClipboardChanged += (object o, ClipboardData cbData) => OnDisplayClipboardChanged(o as DisplayBase, cbData);
         }
 
-        private async void OnDisplayClipboardChanged(DisplayBase sender, ClipboardData cbData)
+        private void OnDisplayClipboardChanged(DisplayBase sender, ClipboardData cbData)
         {
-            Logger.Write($"GlobalClipboard -> {sender.DisplayName} set clipboard");
+            Logger.Information($"GlobalClipboard: {sender.DisplayName} set clipboard");
+            Logger.Debug($"Avaliable clipboard data types: {string.Join(',', cbData.AvailableTypes)}");
 
             //Stop hosting the previous clipboard file group
             if (_previousClipboardFileGroup != null)
                 _fileController.UnHostFiles(_previousClipboardFileGroup);
 
-            if (sender is LocalDisplay && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
+            if (sender is LocalDisplay)
+                OnLocalhostClipboardChanged(cbData, sender as LocalDisplay);
+            else
+                OnClientClipboardChanged(cbData, sender as ClientDisplay);
+        }
+
+        private void OnLocalhostClipboardChanged(ClipboardData cbData, LocalDisplay sender)
+        {
+            if (cbData.IsTypeAvailable(ClipboardDataType.LocalFilePaths))
             {
-                //If localhost copied a list of file sources, convert them into an RFS file group
-                //that a client can read from
-                ConvertLocalFileGroup(cbData);
-            }
-            else if (!(sender is LocalDisplay) && cbData.IsTypeAvailable(ClipboardDataType.HostFileGroup))
-            {
-                //If another client set the clipboard files, convert the given filegroup into a client filegroup
-                //that the server, and other clients can read from the remote file group
-                ConvertRemoteFileGroup(cbData, sender);
+                //If we copied a string of file sources, we need to convert them to an RFS group
+                //and host them so that clients can create streams of the files
+                string[] files = cbData.GetLocalFilePaths();
+
+                //Host the files to allow clients to access the group
+                var group = _fileController.HostLocalGroup(files);
+
+                //remote the local file paths from the clipboard
+                cbData.RemoveLocalFilePaths();
+                cbData.SetFileGroup(group);
+                Logger.Debug($"Hosting filegroup for local files (Group ID {group.GroupId})");
             }
 
+            BroadcastClipboard(sender, cbData);
+        }
+
+        private void OnClientClipboardChanged(ClipboardData cbData, ClientDisplay sender)
+        {
+            if (cbData.IsTypeAvailable(ClipboardDataType.FileGroup))
+            {
+                //Clients can't send files between eachother, so the rfscontroller acts as a middleman
+                //by relaying requests to the client that is hosting the files
+                var readableGroup = _fileController.HostRelayGroup(cbData.GetFileGroup(), sender.Socket);
+                cbData.SetFileGroup(readableGroup);
+                Logger.Debug($"Hosting relay filegroup for remote files (host = {sender.DisplayName}) (Group ID {readableGroup.GroupId})");
+            }
+
+            BroadcastClipboard(sender, cbData);
+        }
+
+        /// <summary>
+        /// Sends the clipboard data to each client except the sender
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="cbData"></param>
+        private async void BroadcastClipboard(DisplayBase sender, ClipboardData cbData)
+        {
+            if (cbData.IsTypeAvailable(ClipboardDataType.FileGroup))
+                _previousClipboardFileGroup = cbData.GetFileGroup();
+
+            Logger.Verbose($"Broadcasting clipboard data");
             foreach (var display in _displays.Where(i => i != sender))
             {
                 await display.SetClipboardAsync(cbData);
+                Logger.Verbose($"Sent clipboard data to {display.DisplayName}");
             }
-        }
-
-        private void ConvertRemoteFileGroup(ClipboardData cbData, DisplayBase sender)
-        {
-            var group = cbData.GetRemoteFiles();
-            var clientGroup = RFSClientFileGroup.FromGroup(group, (sender as ClientDisplay).Socket);
-            _fileController.HostRemoteGroup(clientGroup);
-            cbData.SetRemoteFiles(clientGroup);
-            _previousClipboardFileGroup = group;
-        }
-
-        private void ConvertLocalFileGroup(ClipboardData cbData)
-        {
-            string[] files = cbData.GetLocalFiles();
-            var group = _fileController.HostLocalGroup(files);
-            cbData.SetRemoteFiles(group);
-            _previousClipboardFileGroup = group;
         }
     }
 }

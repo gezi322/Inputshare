@@ -28,6 +28,7 @@ namespace Inputshare.Common.Net.UDP
             _tokenSource = new CancellationTokenSource();
             _udpSocket.Bind(new IPEndPoint(IPAddress.Any, bindPort));
             Task.Run(() => UdpReadLoop());
+            Logger.Debug($"Created UDP host socket on port {bindPort}");
         }
 
         private void UdpReadLoop()
@@ -43,11 +44,12 @@ namespace Inputshare.Common.Net.UDP
                     HandleDatagram(_buffer, sender as IPEndPoint);
                 }catch(Exception) when (_tokenSource.IsCancellationRequested)
                 {
+                    Logger.Debug($"Created UDP host socket closed");
                     return;
                 }
                 catch(Exception ex)
                 {
-                    Logger.Write($"Failed to read UDP message: {ex.Message}");
+                    Logger.Error($"Failed to read UDP message: {ex.Message}");
                 }
             }
         }

@@ -8,7 +8,7 @@ namespace Inputshare.Common.Clipboard
     {
         UnicodeText,
         Bitmap,
-        HostFileGroup,
-        RemoteFileGroup
+        FileGroup,
+        LocalFilePaths,
     }
 }

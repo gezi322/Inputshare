@@ -29,10 +29,12 @@ namespace Inputshare.Common.Net.Client
         private bool _disconnecting;
         private ClientUdpSocket _udpSocket;
         private bool _bindUdp;
+        private int _specifyUdpPort = 0;
 
-        internal ClientSocket(RFSController fileController, bool bindUdp) : base(fileController)
+        internal ClientSocket(RFSController fileController, bool bindUdp, int bindSpecificPort) : base(fileController)
         {
             _bindUdp = bindUdp;
+            _specifyUdpPort = bindSpecificPort;
         }
 
         /// <summary>
@@ -59,7 +61,7 @@ namespace Inputshare.Common.Net.Client
                 _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 _state = ClientSocketState.AttemptingConnection;
-                Logger.Write($"Connecting to {args.Address}");
+                Logger.Verbose($"Connecting to {args.Address}");
 
                 //Create a waithandle that will release when we receive a NetServerConnectionMessage
                 _connectSemaphore = new SemaphoreSlim(0, 1);
@@ -71,7 +73,7 @@ namespace Inputshare.Common.Net.Client
                 BeginReceiveData(_client);
 
                 if (_bindUdp)
-                    CreateUdpClient(args.Address);
+                    CreateUdpClient(args.Address, _specifyUdpPort);
 
                 //Send a initial message to the server containing information about this client
                 await SendConnectionInfoAsync(args, _udpSocket == null ? 0 : _udpSocket.BindAddress.Port);
@@ -83,26 +85,26 @@ namespace Inputshare.Common.Net.Client
                     throw new NetConnectionFailedException("Connection timed out");
                 }
 
-                Logger.Write($"Connected to {args.Address}");
+                Logger.Verbose($"Connected to {args.Address}");
                 _state = ClientSocketState.Connected;
                 return true;
             } catch (ObjectDisposedException) {
                 ResetSocket();
-                Logger.Write("Failed to connect: Server took too long to reply");
+                Logger.Verbose("Failed to connect: Server took too long to reply");
                 return false;
             }
             catch (Exception ex)
             {
                 ResetSocket();
-                Logger.Write("Failed to connect: " + ex.Message);
+                Logger.Verbose("Failed to connect: " + ex.Message);
                 return false;
             }
             
         }
 
-        private void CreateUdpClient(IPEndPoint serverAddress)
+        private void CreateUdpClient(IPEndPoint serverAddress, int bindSpecificPort)
         {
-            _udpSocket = ClientUdpSocket.Create(serverAddress);
+            _udpSocket = ClientUdpSocket.Create(serverAddress, bindSpecificPort);
             _udpSocket.RegisterHandlerForAddress(serverAddress, new UdpBase.UdpMessageHandler(HandleUdpMessage));
         }
 
@@ -126,7 +128,7 @@ namespace Inputshare.Common.Net.Client
             _disconnecting = true;
             base.DisconnectSocket();
             _state = ClientSocketState.Idle;
-            Logger.Write("Disconnected");
+            Logger.Verbose("Disconnected");
         }
 
         internal async Task SendDisplayUpdateAsync(Rectangle newBounds)
@@ -175,6 +177,9 @@ namespace Inputshare.Common.Net.Client
                 SendMessage(new NetNameReply("Hello world", request.MessageId));
         }
 
+        /// <summary>
+        /// Resets the socket to its original state
+        /// </summary>
         private void ResetSocket()
         {
             _udpSocket?.Dispose();

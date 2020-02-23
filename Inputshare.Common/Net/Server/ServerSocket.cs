@@ -44,14 +44,17 @@ namespace Inputshare.Common.Net.Server
             UdpAddress = udpAddress;
             socket.RegisterHandlerForAddress(udpAddress, HandleUdpMessage);
             _udpSocket.SendMessage(new UdpGenericMessage(UdpMessageType.ServerOK), UdpAddress);
+            Logger.Information($"Set UDP address for {Address} ({UdpAddress})");
         }
 
         private void HandleUdpMessage(IUdpMessage message)
         {
+            Logger.Verbose($"Received UDP message {message.GetType().Name}");
+
             if(message.Type == UdpMessageType.ClientOK && !UdpConnected)
             {
                 UdpConnected = true;
-                Logger.Write($"{Address.Address}: Udp enabled");
+                Logger.Information($"{Address.Address}: Udp enabled");
             }
         }
 
@@ -91,7 +94,7 @@ namespace Inputshare.Common.Net.Server
         {
             if (Connected)
             {
-                Logger.Write($"({Address}) : {ex.Message} \n {ex.StackTrace}");
+                Logger.Error($"({Address}) : {ex.Message} \n {ex.StackTrace}");
                 Connected = false;
                 base.Dispose();
                 Disconnected?.Invoke(this, this);

@@ -48,7 +48,7 @@ namespace Inputshare.Common.Net.RFS.Host
 
                 Closed?.Invoke(this, this);
                 _timeoutTimer.Dispose();
-                Logger.Write("Token timed out!");
+                Logger.Verbose("Token timed out!");
             }
         }
 

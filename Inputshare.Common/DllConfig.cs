@@ -25,7 +25,7 @@ namespace Inputshare.Common
             }
             catch (Exception ex)
             {
-                //Logger.Write($"Failed to open configuration file: {ex.Message}");
+                Logger.Error($"Failed to load configuration file: {ex.Message}");
                 return false;
             }
         }
@@ -51,15 +51,18 @@ namespace Inputshare.Common
                     if (configFile.AppSettings.Settings[prop] != null)
                     {
                         value = configFile.AppSettings.Settings[prop].Value;
+                        Logger.Verbose($"Loaded property {prop}");
                         return true;
                     }
                     else
                     {
+                        //Logger.Debug($"Failed to load property {prop}: Property not found");
                         return false;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Logger.Error($"Failed to load property {prop}: {ex.Message}");
                     return false;
                 }
             }
@@ -87,12 +90,13 @@ namespace Inputshare.Common
                     else
                         configFile.AppSettings.Settings[prop.ToString()].Value = value;
 
+                    Logger.Debug($"Saved configuration property '{prop}' as {value}");
                     configFile.Save();
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write($"Failed to save config property: {ex.Message}");
+                    Logger.Error($"Failed to save configuration property '{prop}' : {ex.Message}");
                     return false;
                 }
             }

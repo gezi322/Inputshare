@@ -26,7 +26,7 @@ namespace Inputshare.Common.Net.RFS
         /// <summary>
         /// File groups that are hosted on clients. This is used for client->client transfers
         /// </summary>
-        internal Dictionary<Guid, RFSClientFileGroup> RemoteGroups = new Dictionary<Guid, RFSClientFileGroup>();
+        internal Dictionary<Guid, RFSClientFileGroup> RelayedGroups = new Dictionary<Guid, RFSClientFileGroup>();
 
         private Thread _messageHandleThread;
         private BlockingCollection<RFSMessage> _messageQueue = new BlockingCollection<RFSMessage>();
@@ -50,6 +50,8 @@ namespace Inputshare.Common.Net.RFS
 
         private void WorkerThreadLoop()
         {
+            Logger.Verbose("RFSController worker thread created");
+
             while (!disposedValue)
             {
                 try
@@ -66,11 +68,11 @@ namespace Inputshare.Common.Net.RFS
                 }
                 catch (OperationCanceledException)
                 {
-                    Logger.Write("RFSController stopped");
+                    Logger.Verbose("RFSController stopped");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write("Failed to handle RFS message: " + ex.Message);
+                    Logger.Warning("Failed to handle RFS message: " + ex.Message);
                 }
             }
         }
@@ -84,10 +86,14 @@ namespace Inputshare.Common.Net.RFS
         {
             if (sources == null) throw new ArgumentNullException(nameof(sources));
 
+            //Convert the list of files into a custom relative file structure
             RFSFileHeader[] headers = FileStructureConverter.CreateFileHeaders(sources);
+
+            //Create a filegroup that clients will be able to read from
             var group = new RFSHostFileGroup(Guid.NewGuid(), headers);
             group.TransfersFinished += OnFileGroupFinished;
             HostedGroups.Add(group.GroupId, group);
+            Logger.Debug($"RFSController: Hosting local filegroup (ID {group.GroupId}");
             return new RFSFileGroup(group.GroupId, group.Files);
         }
 
@@ -97,8 +103,8 @@ namespace Inputshare.Common.Net.RFS
             //then remove the group from the dictionary
             if (HostedGroups.ContainsKey(e.GroupId))
                 HostedGroups.Remove(e.GroupId);
-            else if (RemoteGroups.ContainsKey(e.GroupId))
-                RemoteGroups.Remove(e.GroupId);
+            else if (RelayedGroups.ContainsKey(e.GroupId))
+                RelayedGroups.Remove(e.GroupId);
         }
 
         /// <summary>
@@ -117,10 +123,16 @@ namespace Inputshare.Common.Net.RFS
             //are no files being transfered
         }
         
-        internal void HostRemoteGroup(RFSClientFileGroup group)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="group"></param>
+        internal RFSClientFileGroup HostRelayGroup(RFSFileGroup group, SocketBase host)
         {
-            RemoteGroups.Add(group.GroupId, group);
-            Logger.Write("Current hosted groups = " + HostedGroups.Count);
+            var readableGroup = RFSClientFileGroup.FromGroup(group, host);
+            RelayedGroups.Add(group.GroupId, readableGroup);
+            Logger.Debug($"RFSController: Hosting relay filegroup (ID {group.GroupId}");
+            return readableGroup;
         }
 
         private void HandleTokenRequest(RFSTokenRequest request, SocketBase sender)
@@ -128,6 +140,7 @@ namespace Inputshare.Common.Net.RFS
             var group = GetGroup(request.GroupId);
             Guid tokenId = group.GetToken();
             sender.SendMessage(new RFSTokenReply(tokenId, request.MessageId));
+            Logger.Verbose($"RFSController: returning token {tokenId} to {sender.Address} for group {request.GroupId}");
         }
 
         private void HandleSeekRequest(RFSSeekRequest request, SocketBase sender)
@@ -157,7 +170,7 @@ namespace Inputshare.Common.Net.RFS
         /// <param name="tokenId"></param>
         /// <param name="readLen"></param>
         /// <returns></returns>
-        private byte[] ReadFromGroupFile(RFSFileGroup group, Guid fileId, Guid tokenId, int readLen)
+        private byte[] ReadFromGroupFile(RFSReadableFileGroup group, Guid fileId, Guid tokenId, int readLen)
         {
             byte[] buff = new byte[readLen];
             int bRead = group.Read(tokenId, fileId, buff, readLen);
@@ -173,11 +186,11 @@ namespace Inputshare.Common.Net.RFS
             return buff;
         }  
 
-        internal RFSFileGroup GetGroup(Guid group)
+        internal RFSReadableFileGroup GetGroup(Guid group)
         {
             if (HostedGroups.TryGetValue(group, out var hostGroup))
                 return hostGroup;
-            if (RemoteGroups.TryGetValue(group, out var remoteGroup))
+            if (RelayedGroups.TryGetValue(group, out var remoteGroup))
                 return remoteGroup;
 
             throw new RFSException("GroupID not found");

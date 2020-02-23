@@ -38,23 +38,23 @@ namespace Inputshare.Common.PlatformModules.Clipboard
                 try
                 {
                     ClipboardDataObject obj = ClipboardDataObject.Create(cbData);
-
                     //When the object is pasted by another program, place a new instance
                     //of the dataobject back on the clipboard to create multiple instances
                     //of the file streams
                     obj.FilesPasted += async(object o, ClipboardDataObject obj) =>
                     {
-                        Logger.Write("Files pasted. Resetting clipboard object");
+                        Logger.Debug("Files pasted. Resetting clipboard object");
                         await SetClipboardAsync(obj.InnerData);
                     };
 
                     Ole32.OleFlushClipboard();
                     IntPtr ret = Ole32.OleSetClipboard(obj);
                     SetClipboardData((uint)WinClipboardDataFormat.InputshareFormat, IntPtr.Zero);
+                    Logger.Debug($"{ModuleName}: Set dataobject to clipboard (returned {ret.ToString()}");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write("Failed to set clipboard data: " + ex.Message + "\n" + ex.StackTrace);
+                    Logger.Error($"{ModuleName}: Failed to set clipboard data: " + ex.Message + "\n" + ex.StackTrace);
                 }
             });
 
@@ -70,22 +70,29 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         private void InstallClipboardMontior(WinMessageWindow window)
         {
             window.InvokeAction(() => {
-                AddClipboardFormatListener(window.Handle);
-            });
+                try
+                {
+                    if (!AddClipboardFormatListener(window.Handle))
+                        throw new Win32Exception();
+                }catch(Win32Exception ex)
+                {
+                    Logger.Verbose($"{ModuleName}: Added clipboard format listener: {ex.Message}");
+                }
+            }); 
 
             window.MessageRecevied += OnWindowMessageRecieved;
         }
 
-        private async void OnWindowMessageRecieved(object sender, Win32Message e)
+        private void OnWindowMessageRecieved(object sender, Win32Message e)
         {
             if(e.message == (int)Win32MessageCode.WM_CLIPBOARDUPDATE)
             {
                 try
                 {
-                    var obj = await OpenOleClipboardAsync().ConfigureAwait(true);
+                    var obj = OpenOleClipboard();
                     if (obj == null)
                     {
-                        Logger.Write("Failed to open OLE clipboard");
+                        Logger.Verbose("Failed to open OLE clipboard");
                         return;
                     }
 
@@ -101,14 +108,14 @@ namespace Inputshare.Common.PlatformModules.Clipboard
                     if(obj.QueryGetData(ref format) == IntPtr.Zero)
                         return;
                     
-                    await OpenClipboardAsync();
+                    OpenClipboard();
                     var data = ReadClipboard();
                     CloseClipboard();
                     ClipboardChanged?.Invoke(this, data);
                 }
                 catch(Exception ex)
                 {
-                    Logger.Write("Failed to read clipboard: " + ex.Message + "\n " + ex.StackTrace);
+                    Logger.Error("Failed to read clipboard: " + ex.Message + "\n " + ex.StackTrace);
                 }
                 finally
                 {
@@ -117,18 +124,21 @@ namespace Inputshare.Common.PlatformModules.Clipboard
             }
         }
 
-        private async Task<Windows.Native.Interfaces.IDataObject> OpenOleClipboardAsync()
+        private Windows.Native.Interfaces.IDataObject OpenOleClipboard()
         {
+            IntPtr ret = default;
+
             for (int i = 0; i < 10; i++)
             {
-                IntPtr ret = Ole32.OleGetClipboard(out var obj);
+                ret = Ole32.OleGetClipboard(out var obj);
 
                 if (ret == IntPtr.Zero)
                     return obj;
 
-                await Task.Delay(50);
+                Thread.Sleep(25);
             }
 
+            Logger.Verbose($"{ModuleName}: OleOpenClipboard failed (returned {ret.ToString()})");
             return null;
         }
 
@@ -136,14 +146,14 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         /// Attempts to open the clipboard
         /// </summary>
         /// <returns></returns>
-        private async Task OpenClipboardAsync()
+        private void OpenClipboard()
         {
             for (int i = 0; i < 10; i++)
             {
-                if (OpenClipboard(_window.Handle))
+                if (User32.OpenClipboard(_window.Handle))
                     return;
 
-                await Task.Delay(50);
+                Thread.Sleep(30);
             }
 
             throw new Win32Exception();
@@ -157,6 +167,11 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         {
             ClipboardData cbData = new ClipboardData();
 
+            Logger.Debug($"{ModuleName}: Reading clipboard. available formats:");
+            uint format = 0;
+            while((format = EnumClipboardFormats(format)) != 0)
+                Logger.Debug($"{ModuleName}: Format {WinClipboardDataFormat.GetFormatName(format)}");
+
             if (IsClipboardFormatAvailable(WinClipboardDataFormat.CF_HDROP))
                 ReadFileDrop(cbData);
 
@@ -165,6 +180,8 @@ namespace Inputshare.Common.PlatformModules.Clipboard
 
             if (IsClipboardFormatAvailable(WinClipboardDataFormat.CF_BITMAP))
                 ReadBitmap(cbData);
+
+            Logger.Debug($"{ModuleName}: Read clipboard. Output formats: {string.Join(',', cbData.AvailableTypes)}");
 
             return cbData;
         }
@@ -175,23 +192,30 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         /// <param name="cbData"></param>
         private void ReadText(ClipboardData cbData)
         {
-            IntPtr ptr = GetClipboardData(WinClipboardDataFormat.CF_UNICODETEXT);
+            try
+            {
+                IntPtr ptr = GetClipboardData(WinClipboardDataFormat.CF_UNICODETEXT);
 
-            if (ptr == default)
-                throw new Win32Exception();
+                if (ptr == default)
+                    throw new Win32Exception();
 
-            var sizePtr = GlobalSize(ptr);
+                var sizePtr = GlobalSize(ptr);
 
-            byte[] buffer;
+                byte[] buffer;
 
-            if(IntPtr.Size == 8)
-                buffer = new byte[sizePtr.ToUInt64()];
-            else
-                buffer = new byte[sizePtr.ToUInt32()];
+                if (IntPtr.Size == 8)
+                    buffer = new byte[sizePtr.ToUInt64()];
+                else
+                    buffer = new byte[sizePtr.ToUInt32()];
 
-            Marshal.Copy(ptr, buffer, 0, buffer.Length);
-            string str = Encoding.Unicode.GetString(buffer);
-            cbData.SetText(str);
+                Marshal.Copy(ptr, buffer, 0, buffer.Length);
+                string str = Encoding.Unicode.GetString(buffer);
+                cbData.SetText(str);
+            }catch(Exception ex)
+            {
+                Logger.Error($"{ModuleName}: Failed to read clipboard text: {ex.Message}");
+            }
+            
         }
 
         /// <summary>
@@ -201,20 +225,25 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         /// <param name="cbData"></param>
         private void ReadBitmap(ClipboardData cbData)
         {
-            IntPtr gdiBitmap = GetClipboardData(WinClipboardDataFormat.CF_BITMAP);
-
-            if (gdiBitmap == default)
-                throw new Win32Exception();
-
-            using (Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap))
+            try
             {
-                using (MemoryStream ms = new MemoryStream())
+                IntPtr gdiBitmap = GetClipboardData(WinClipboardDataFormat.CF_BITMAP);
+
+                if (gdiBitmap == default)
+                    throw new Win32Exception();
+
+                using (Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap))
                 {
-                    bmp.Save(ms, ImageFormat.Png);
-                    cbData.SetBitmap(ms.ToArray());
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        bmp.Save(ms, ImageFormat.Png);
+                        cbData.SetBitmap(ms.ToArray());
+                    }
                 }
+            }catch(Exception ex)
+            {
+                Logger.Error($"{ModuleName}: Failed to read bitmap from clipboard: {ex.Message}");
             }
-            
         }
 
         /// <summary>
@@ -223,26 +252,33 @@ namespace Inputshare.Common.PlatformModules.Clipboard
         /// <param name="cbData"></param>
         private void ReadFileDrop(ClipboardData cbData)
         {
-            IntPtr ptr = GetClipboardData(WinClipboardDataFormat.CF_HDROP);
+            try
+            {
+                IntPtr ptr = GetClipboardData(WinClipboardDataFormat.CF_HDROP);
 
-            if (ptr == default)
-                throw new Win32Exception();
+                if (ptr == default)
+                    throw new Win32Exception();
 
-            var sizePtr = GlobalSize(ptr);
-            byte[] buffer = new byte[sizePtr.ToUInt64()];
-            Marshal.Copy(ptr, buffer, 0, buffer.Length);
-            string str = Encoding.Unicode.GetString(buffer);
-            //The data returned by GetClipboardData(CF_HDROP) is a DROPFILES struct which
-            //if followed by an unmanaged string which is a list of files. 
+                var sizePtr = GlobalSize(ptr);
+                byte[] buffer = new byte[sizePtr.ToUInt64()];
+                Marshal.Copy(ptr, buffer, 0, buffer.Length);
+                string str = Encoding.Unicode.GetString(buffer);
+                //The data returned by GetClipboardData(CF_HDROP) is a DROPFILES struct which
+                //if followed by an unmanaged string which is a list of files. 
 
-            //Remove the header
-            str = str.Substring(10);
-            //Remove the double null terminator at the end of the string
-            str = str[0..^2];
-            //Split the string into seperate files
-            var result = str.Split('\0');
+                //Remove the header
+                str = str.Substring(10);
+                //Remove the double null terminator at the end of the string
+                str = str[0..^2];
+                //Split the string into seperate files
+                var result = str.Split('\0');
 
-            cbData.SetLocalFiles(result);
+                cbData.SetLocalFilePaths(result);
+            }catch(Exception ex)
+            {
+                Logger.Error($"{ModuleName}: Failed to read HDROP from clipboard: {ex.Message}");
+            }
+            
         }
 
         protected override Task OnStop()

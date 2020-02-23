@@ -18,23 +18,23 @@ namespace Inputshare.Common.Net.UDP
         private bool _exitLoop = false;
         private IPEndPoint _serverAddress;
 
-        public static ClientUdpSocket Create(IPEndPoint serverAddress)
+        public static ClientUdpSocket Create(IPEndPoint serverAddress, int bindSpecificPort)
         {
             ClientUdpSocket instance = new ClientUdpSocket();
-            instance.StartReadSocket(serverAddress);
+            instance.StartReadSocket(serverAddress, bindSpecificPort);
             return instance;
         }
 
-        private void StartReadSocket(IPEndPoint serverAddress)
+        private void StartReadSocket(IPEndPoint serverAddress, int bindSpecificPort)
         {
             _serverAddress = serverAddress;
             _udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            _udpSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
+            _udpSocket.Bind(new IPEndPoint(IPAddress.Any, bindSpecificPort));
             BindAddress = _udpSocket.LocalEndPoint as IPEndPoint;
-
             _readThread = new Thread(ReadThreadLoop);
             _readThread.Priority = ThreadPriority.Highest;
             _readThread.Start();
+            Logger.Debug($"Created client UDP socket on {_udpSocket.LocalEndPoint} (server address = {serverAddress})");
         }
 
         private void ReadThreadLoop()
@@ -53,7 +53,7 @@ namespace Inputshare.Common.Net.UDP
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write("Failed to read UDP message: " + ex.Message);
+                    Logger.Error("Failed to read UDP message: " + ex.Message);
                 }
             }
         }

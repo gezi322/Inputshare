@@ -9,7 +9,7 @@ namespace Inputshare.Common.Net.RFS.Host
     /// <summary>
     /// Represents a file group that is being hosted.
     /// </summary>
-    internal class RFSHostFileGroup : RFSFileGroup, IDisposable
+    internal class RFSHostFileGroup : RFSReadableFileGroup, IDisposable
     {
         internal override event EventHandler<RFSFileGroup> TransfersFinished;
         internal RFSFileHeader[] SourceFiles;

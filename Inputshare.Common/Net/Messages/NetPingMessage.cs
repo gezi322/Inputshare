@@ -5,7 +5,7 @@ using System.Text;
 namespace Inputshare.Common.Net.Messages
 {
     [Serializable]
-    internal class NetNullMessage : NetMessageBase
+    internal class NetPingMessage : NetMessageBase
     {
     }
 }

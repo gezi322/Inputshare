@@ -26,6 +26,13 @@ namespace Inputshare.Common.Net.Broadcast
             instance._broadcastSocket = new UdpClient();
             instance._broadcastTimer = new Timer(instance.BroadcastTimerCallback, 0, 0, broadcastInterval);
             instance._version = serverVersion;
+            Logger.Verbose($"Created Broadcast sender");
+            Logger.Verbose($"Broadcast sender port: {broadcastPort}");
+            Logger.Verbose($"Broadcast sender interval: {broadcastInterval}");
+            Logger.Verbose($"Broadcast sender server address: {instance._serverAddress}");
+            Logger.Verbose($"Broadcast sender server version: {instance._version}");
+
+
             return instance;
         }
 

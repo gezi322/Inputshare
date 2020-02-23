@@ -140,8 +140,6 @@ namespace Inputshare.Models
 
         private void RefreshSides()
         {
-            Console.WriteLine("Refresh " + DisplayName);
-
             //Prevent a stackoverflow from calling leftclient.rightclient.leftclient etc
             //instead get the client from the list matching the display name
             _leftDisplay = GetDisplayCopy(_display.GetDisplayAtSide(Common.Side.Left));

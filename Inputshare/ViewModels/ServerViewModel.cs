@@ -62,7 +62,6 @@ namespace Inputshare.ViewModels
 
         public override async Task HandleBottomButtonPressAsync()
         {
-            Console.WriteLine("Handle");
             if (SelectedView == _runningView)
                 await _runningView.HandleBottomButtonPressAsync();
             else

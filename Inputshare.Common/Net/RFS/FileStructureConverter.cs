@@ -32,7 +32,7 @@ namespace Inputshare.Common.Net.RFS
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write($"Could not copy file {absPaths[i]} : {ex.Message}");
+                    Logger.Verbose($"Could not copy file {absPaths[i]} : {ex.Message}");
                     headers[i] = null;
                 }
             }
@@ -103,7 +103,7 @@ namespace Inputshare.Common.Net.RFS
                 }
                 catch (Exception ex) when (!(ex is InvalidDataException))
                 {
-                    Logger.Write("Failed to add path " + path + ": " + ex.Message);
+                    Logger.Verbose("Failed to add path " + path + ": " + ex.Message);
                 }
             }
         }
