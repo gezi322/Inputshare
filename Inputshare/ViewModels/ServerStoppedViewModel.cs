@@ -15,27 +15,38 @@ namespace Inputshare.ViewModels
 
         public ReactiveCommand<Unit, Unit> CommandStart { get; private set; }
 
+        private bool _validPortEntry => int.TryParse(_portEntryText, out _);
+        private string _portEntryText = "4441";
+        public string PortEntryText { get => _portEntryText; set => OnPortEntryTextChanged(value); }
+
         private ServerModel _model;
 
         public ServerStoppedViewModel(ServerModel model)
         {
             _model = model;
-            CommandStart = ReactiveCommand.CreateFromTask(ExecStart);
+            CommandStart = ReactiveCommand.CreateFromTask(ExecStart, this.WhenAnyValue(i => i._validPortEntry));
+        }
+
+        private void OnPortEntryTextChanged(string value)
+        {
+            _portEntryText = value;
+            this.RaisePropertyChanged(nameof(_validPortEntry));
+            this.RaisePropertyChanged(nameof(PortEntryText));
         }
 
         private async Task ExecStart()
         {
-            await _model.StartAsync(4444);
+            await _model.StartAsync(int.Parse(_portEntryText));
         }
 
-        public override void HandleWindowClosing()
+        public override Task HandleWindowClosingAsync()
         {
-
+            return Task.CompletedTask;
         }
 
-        public override void OnBottomButtonPress()
+        public override Task HandleBottomButtonPressAsync()
         {
-
+            return Task.CompletedTask;
         }
     }
 }

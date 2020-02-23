@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -14,17 +15,12 @@ namespace Inputshare.ViewModels
         public override event EventHandler Leave;
 
         public override string BottomButtonText { get; protected set; } = "Exit";
-        public ReactiveCommand<Unit, Unit> CommandSelectClient { get; }
-        public ReactiveCommand<Unit, Unit> CommandSelectServer { get; }
-
 
         public event EventHandler SelectClient;
         public event EventHandler SelectServer;
 
         public HomeViewModel()
         {
-            CommandSelectServer = ReactiveCommand.Create(OnServerSelected);
-            CommandSelectClient = ReactiveCommand.Create(OnClientSelected);
         }
 
         private void OnClientSelected()
@@ -38,15 +34,17 @@ namespace Inputshare.ViewModels
         }
         
 
-        public override void OnBottomButtonPress()
+        public override Task HandleBottomButtonPressAsync()
         {
             //Exit program
             Leave?.Invoke(this, null);
+
+            return Task.CompletedTask;
         }
 
-        public override void HandleWindowClosing()
+        public override Task HandleWindowClosingAsync()
         {
-            
+            return Task.CompletedTask;
         }
     }
 }

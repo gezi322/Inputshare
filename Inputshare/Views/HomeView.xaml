@@ -6,8 +6,8 @@
              x:Class="Inputshare.Views.HomeView">
   <Border BorderThickness="5" BorderBrush="Gray" Background="LightGray">
     <StackPanel>
-      <Button Content="Client" Command="{Binding CommandSelectClient}"/>
-      <Button Content="Server" Command="{Binding CommandSelectServer}"/>
+      <Button Content="Client" Command="{Binding OnClientSelected}"/>
+      <Button Content="Server" Command="{Binding OnServerSelected}"/>
 
     </StackPanel>
   </Border>

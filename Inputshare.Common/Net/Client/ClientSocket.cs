@@ -42,7 +42,7 @@ namespace Inputshare.Common.Net.Client
         /// <param name="timeout"></param>
         /// <returns>True if connected</returns>
         /// <exception cref="NetConnectionFailedException"/>
-        internal async Task<bool> ConnectAsync(ClientConnectArgs args, int timeout = 1000)
+        internal async Task<bool> ConnectAsync(ClientConnectArgs args, int timeout = 5000)
         {
             if (_state != ClientSocketState.Idle)
                 throw new InvalidOperationException("Cannot connect when state is " + _state);
@@ -50,6 +50,12 @@ namespace Inputshare.Common.Net.Client
             try
             {
                 _disconnecting = false;
+                CancellationTokenSource cts = new CancellationTokenSource(timeout);
+                cts.Token.Register(() => {
+                    if (_state == ClientSocketState.AttemptingConnection)
+                        _client?.Dispose();
+                });
+
                 _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 _state = ClientSocketState.AttemptingConnection;
@@ -71,20 +77,23 @@ namespace Inputshare.Common.Net.Client
                 await SendConnectionInfoAsync(args, _udpSocket == null ? 0 : _udpSocket.BindAddress.Port);
 
                 //don't return until we receive a ServerConnection message, or throw if timeout reached
-                if (!await _connectSemaphore.WaitAsync(timeout))
+                if (!await _connectSemaphore.WaitAsync(timeout, cts.Token))
                 {
-                    _state = ClientSocketState.Idle;
-                    Dispose();
-
+                    ResetSocket();
                     throw new NetConnectionFailedException("Connection timed out");
                 }
 
                 Logger.Write($"Connected to {args.Address}");
                 _state = ClientSocketState.Connected;
                 return true;
-            }catch(Exception ex)
+            } catch (ObjectDisposedException) {
+                ResetSocket();
+                Logger.Write("Failed to connect: Server took too long to reply");
+                return false;
+            }
+            catch (Exception ex)
             {
-                _state = ClientSocketState.Idle;
+                ResetSocket();
                 Logger.Write("Failed to connect: " + ex.Message);
                 return false;
             }
@@ -166,13 +175,19 @@ namespace Inputshare.Common.Net.Client
                 SendMessage(new NetNameReply("Hello world", request.MessageId));
         }
 
+        private void ResetSocket()
+        {
+            _udpSocket?.Dispose();
+            _state = ClientSocketState.Idle;
+            _client?.Dispose();
+            _connectSemaphore?.Dispose();
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _udpSocket?.Dispose();
-                _state = ClientSocketState.Idle;
-                _connectSemaphore?.Dispose();
+                ResetSocket();
             }
 
             base.Dispose(disposing);

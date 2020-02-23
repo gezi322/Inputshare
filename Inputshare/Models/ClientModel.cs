@@ -27,7 +27,7 @@ namespace Inputshare.Models
         /// </summary>
         public bool MonitorBroadcasts { get => _client.MonitorBroadcasts; set => _client.MonitorBroadcasts = value; }
 
-        private ISClient _client = new ISClient();
+        private readonly ISClient _client = new ISClient();
 
         public ClientModel()
         {

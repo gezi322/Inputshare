@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -24,9 +25,13 @@ namespace Inputshare.ViewModels
             _homeVM.SelectClient += OnHomeClientSelected;
             _homeVM.SelectServer += OnHomeServerSelected;
             _clientVM.Leave += OnViewModelLeave;
+            _serverVM.Leave += OnServerVMLeave;
         }
 
-       
+        private void OnServerVMLeave(object sender, EventArgs e)
+        {
+            SetViewModel(_homeVM);
+        }
 
         private void OnHomeVMLeave(object sender, EventArgs e)
         {
@@ -54,14 +59,14 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(CurrentView));
         }
 
-        public override void OnBottomButtonPress()
+        public override async Task HandleBottomButtonPressAsync()
         {
-            CurrentView.OnBottomButtonPress();
+            await CurrentView.HandleBottomButtonPressAsync();
         }
 
-        public override void HandleWindowClosing()
+        public override async Task HandleWindowClosingAsync()
         {
-            CurrentView.HandleWindowClosing();
+            await CurrentView.HandleWindowClosingAsync();
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using ReactiveUI;
 
 namespace Inputshare.ViewModels
@@ -10,8 +11,8 @@ namespace Inputshare.ViewModels
         public virtual event EventHandler Leave;
 
         public abstract string BottomButtonText { get; protected set; }
-        public abstract void OnBottomButtonPress();
-        public abstract void HandleWindowClosing();
+        public abstract Task HandleBottomButtonPressAsync();
+        public abstract Task HandleWindowClosingAsync();
 
     }
 }

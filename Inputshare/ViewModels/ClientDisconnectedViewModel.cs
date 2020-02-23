@@ -49,7 +49,8 @@ namespace Inputshare.ViewModels
             if (!_model.ClientRunning)
                 await _model.StartAsync();
 
-            await _model.ConnectAsync(IPEndPoint.Parse(AddressEntryText));
+            bool ret = await _model.ConnectAsync(IPEndPoint.Parse(AddressEntryText));
+            Console.WriteLine("Connect returned " + ret);
         }
 
         private void OnAddressEntryChanged(string value)
@@ -93,14 +94,14 @@ namespace Inputshare.ViewModels
                 await _model.ConnectAsync(ServerSelectedAddress);
         }
 
-        public override void OnBottomButtonPress()
+        public override Task HandleBottomButtonPressAsync()
         {
-
+            return Task.CompletedTask;
         }
 
-        public override void HandleWindowClosing()
+        public override Task HandleWindowClosingAsync()
         {
-
+            return Task.CompletedTask;
         }
     }
 }

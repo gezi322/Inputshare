@@ -5,6 +5,11 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Inputshare.Views.ServerStoppedView">
   <StackPanel>
+    <StackPanel Orientation="Horizontal">
+      <TextBlock Text="Port: "/>
+      <TextBox Text="{Binding PortEntryText}"/>
+    </StackPanel>
+    
     <Button Content="Start" Command="{Binding CommandStart}"/>
   </StackPanel>
 </UserControl>

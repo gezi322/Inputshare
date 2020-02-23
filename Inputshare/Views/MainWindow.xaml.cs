@@ -82,7 +82,7 @@ namespace Inputshare.Views
             if(_usingTrayIcon)
                 _trayIcon?.Dispose();
 
-            (this.DataContext as MainWindowViewModel).HandleWindowClosing();
+            (this.DataContext as MainWindowViewModel).HandleWindowClosingAsync();
             return base.HandleClosing();
         }
 

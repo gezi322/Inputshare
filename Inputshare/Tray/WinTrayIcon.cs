@@ -26,6 +26,7 @@ namespace Inputshare.Tray
 
         private const int WM_TRAYICONMESSAGE = 6666;
         private const int WM_DESTROYTRAYICON = 6667;
+        private uint WM_TASKBARCREATED;
 
         /// <summary>
         /// Creates an instance of a tray icon for windows
@@ -63,7 +64,7 @@ namespace Inputshare.Tray
         private IntPtr CreateWindow()
         {
             RegisterClass("InputshareTrayWnd");
-            IntPtr hWnd = NativeMethods.CreateWindowEx(0, "InputshareTrayWnd", "", 0, 0, 0, 0, 0, new IntPtr(-3),
+            IntPtr hWnd = NativeMethods.CreateWindowEx(0, "InputshareTrayWnd", "", 0, 0, 0, 0, 0, IntPtr.Zero,
                 IntPtr.Zero, Process.GetCurrentProcess().Handle, IntPtr.Zero);
 
             if (hWnd == default)
@@ -124,6 +125,12 @@ namespace Inputshare.Tray
 
         private IntPtr WndProc(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam)
         {
+            if(message == 1)
+            {
+                //Register the taskbarcreated message so that we can recreate the icon
+                //if explorer crashes/restarts
+                WM_TASKBARCREATED = NativeMethods.RegisterWindowMessageA("TaskbarCreated");
+            }
             if(message == WM_TRAYICONMESSAGE)
             {
                 if ((int)lParam == 0x0201)
@@ -134,6 +141,9 @@ namespace Inputshare.Tray
             {
                 RemoveTrayIcon();
                 NativeMethods.PostQuitMessage(0);
+            }else if(message == WM_TASKBARCREATED)
+            {
+                AddTrayIcon();
             }
 
             return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
@@ -170,6 +180,9 @@ namespace Inputshare.Tray
 
             [DllImport("user32.dll")]
             internal static extern IntPtr DefWindowProc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+            [DllImport("user32.dll", SetLastError = true)]
+            internal static extern uint RegisterWindowMessageA(string message);
 
             [DllImport("user32.dll", SetLastError = true)]
             internal static extern UInt16 RegisterClassEx(ref WNDCLASSEX classEx);

@@ -34,7 +34,7 @@ namespace Inputshare.Models
         public ServerDisplayModel BottomDisplay { get => _bottomDisplay; set => SetDisplayAtSide(Side.Bottom, value); }
 
         private DisplayBase _display;
-        private ObservableCollection<ServerDisplayModel> _list;
+        private ObservableCollection<ServerDisplayModel> _displayList;
         public ServerDisplayModel(DisplayBase display, ObservableCollection<ServerDisplayModel> modelList)
         {
             if (display == null)
@@ -43,7 +43,7 @@ namespace Inputshare.Models
                 return;
             }
 
-            _list = modelList;
+            _displayList = modelList;
             _display = display;
             DisplayName = _display.DisplayName;
             _display.DisplayAtSideChanged += OnDisplaySideChanged;
@@ -158,10 +158,11 @@ namespace Inputshare.Models
             }
             else
             {
-                var ret = _list.Where(i => i.DisplayName == display.DisplayName).FirstOrDefault();
+                var ret = _displayList.Where(i => i.DisplayName == display.DisplayName).FirstOrDefault();
 
                 if (ret == null)
-                    throw new Exception("Client not found");
+                    return ServerDisplayModel.None;
+
                 return ret;
             }
         }

@@ -1,8 +1,10 @@
-﻿using Inputshare.Models;
+﻿using Avalonia.Threading;
+using Inputshare.Models;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -48,7 +50,7 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(BottomButtonText));
         }
 
-        public override async void OnBottomButtonPress()
+        public override async Task HandleBottomButtonPressAsync()
         {
             if(SelectedView is ClientDisconnectedViewModel)
             {
@@ -59,12 +61,12 @@ namespace Inputshare.ViewModels
             }
             else
             {
-                SelectedView.OnBottomButtonPress();
+                await SelectedView.HandleBottomButtonPressAsync();
             }
             
         }
 
-        public override async void HandleWindowClosing()
+        public override async Task HandleWindowClosingAsync()
         {
             if (_model.ClientRunning)
                 await _model.StopAsync();

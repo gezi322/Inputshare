@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Reactive;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -26,14 +27,16 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(ServerAddress));
         }
 
-        public override void OnBottomButtonPress()
+        public override Task HandleBottomButtonPressAsync()
         {
             _model.Disconnect();
+
+            return Task.CompletedTask;
         }
 
-        public override void HandleWindowClosing()
+        public override Task HandleWindowClosingAsync()
         {
-
+            return Task.CompletedTask;
         }
     }
 }

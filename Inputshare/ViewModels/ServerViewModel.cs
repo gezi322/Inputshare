@@ -3,6 +3,7 @@ using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -47,16 +48,16 @@ namespace Inputshare.ViewModels
             this.RaisePropertyChanged(nameof(BottomButtonText));
         }
 
-        public override void HandleWindowClosing()
+        public override async Task HandleWindowClosingAsync()
         {
             if (_model.Running)
-                _model.StopAsync().Wait();
+                await _model.StopAsync();
         }
 
-        public override void OnBottomButtonPress()
+        public override async Task HandleBottomButtonPressAsync()
         {
             if (SelectedView == _runningView)
-                _runningView.OnBottomButtonPress();
+                await _runningView.HandleBottomButtonPressAsync();
             else
                 Leave?.Invoke(this, null);
         }

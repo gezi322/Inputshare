@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inputshare.ViewModels
 {
@@ -45,10 +46,7 @@ namespace Inputshare.ViewModels
         private void BuildPossibleKeyList()
         {
             foreach (var key in (WindowsVirtualKey[])Enum.GetValues(typeof(WindowsVirtualKey)))
-            {
                 PossibleKeys.Add(key);
-                Console.WriteLine("Added key " + key);
-            }
         }
 
         private void OnServerStopped(object sender, EventArgs e)
@@ -76,16 +74,16 @@ namespace Inputshare.ViewModels
             foreach (var display in ServerDisplaysList)
                 ServerSelectableDisplayList.Add(display);
 
-            if (SelectedDisplay != null && SelectedDisplay != ServerDisplayModel.None)
+            if (SelectedDisplay != null && !SelectedDisplay.Equals(ServerDisplayModel.None))
                 ServerSelectableDisplayList.Remove(SelectedDisplay);
         }
 
-        public override void HandleWindowClosing()
+        public override Task HandleWindowClosingAsync()
         {
-
+            return Task.CompletedTask;
         }
 
-        public override async void OnBottomButtonPress()
+        public override async Task HandleBottomButtonPressAsync()
         {
             if (_model.Running)
                 await _model.StopAsync();

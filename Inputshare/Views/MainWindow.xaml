@@ -14,6 +14,6 @@
 
   <DockPanel>
     <ContentControl Content="{Binding CurrentView}" DockPanel.Dock="Top" VerticalAlignment="Stretch"/>
-    <Button Content="{Binding CurrentView.BottomButtonText}" Command="{Binding OnBottomButtonPress}" DockPanel.Dock="Bottom" Height="25" VerticalAlignment="Bottom"/>
+    <Button Content="{Binding CurrentView.BottomButtonText}" Command="{Binding HandleBottomButtonPressAsync}" DockPanel.Dock="Bottom" Height="25" VerticalAlignment="Bottom"/>
   </DockPanel>
 </Window>
