@@ -43,7 +43,7 @@ namespace Inputshare.Common.Server
         private void OnDisplayClipboardChanged(DisplayBase sender, ClipboardData cbData)
         {
             Logger.Information($"GlobalClipboard: {sender.DisplayName} set clipboard");
-            Logger.Debug($"Avaliable clipboard data types: {string.Join(',', cbData.AvailableTypes)}");
+            Logger.Information($"Avaliable clipboard data types: {string.Join(',', cbData.AvailableTypes)}");
 
             //Stop hosting the previous clipboard file group
             if (_previousClipboardFileGroup != null)

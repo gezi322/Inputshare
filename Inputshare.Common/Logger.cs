@@ -7,12 +7,27 @@ namespace Inputshare.Common
 {
     public static class Logger
     {
-        private static Serilog.ILogger _logger = new LoggerConfiguration().
+        private static Serilog.ILogger _logger;
+
+        static Logger()
+        {
+            _logger = new LoggerConfiguration().
             WriteTo.Console(outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj} (Thread {ThreadId}) {NewLine}{Exception}").
             WriteTo.File("Inputshare_Log.txt", outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj} (Thread {ThreadId}) {NewLine}{Exception}")
             .Enrich.
-            WithThreadId().MinimumLevel.Verbose().
+            WithThreadId().MinimumLevel.Information().
             CreateLogger();
+        }
+
+        public static void SetLogFileName(string file)
+        {
+            _logger = new LoggerConfiguration().
+            WriteTo.Console(outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj} (Thread {ThreadId}) {NewLine}{Exception}").
+            WriteTo.File(file, outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj} (Thread {ThreadId}) {NewLine}{Exception}")
+            .Enrich.
+            WithThreadId().MinimumLevel.Information().
+            CreateLogger();
+        }
 
         public static void Verbose(string message, params object[] args)
         {

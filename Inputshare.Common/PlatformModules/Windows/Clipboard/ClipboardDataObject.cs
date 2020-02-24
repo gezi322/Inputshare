@@ -16,6 +16,8 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     /// <summary>
     /// An object that can be placed on the windows clipboard
+    /// 
+    /// https://docs.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-idataobject
     /// </summary>
     internal class ClipboardDataObject : Native.Interfaces.IDataObject, IAsyncOperation
     {
@@ -29,6 +31,12 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
 #pragma warning disable IDE0060
 
+        /// <summary>
+        /// Creates a dataobject to store on the windows clipboard that
+        /// represents the given clipboard data
+        /// </summary>
+        /// <param name="cbData"></param>
+        /// <returns></returns>
         internal static  ClipboardDataObject Create(ClipboardData cbData)
         {
             ClipboardDataObject cbobj = new ClipboardDataObject
@@ -94,39 +102,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             return new IntPtr(1);
         }
 
-        public IntPtr GetCanonicalFormatEtc([In] ref FORMATETC formatIn, out FORMATETC formatOut)
-        {
-            formatOut = new FORMATETC();
-            return new IntPtr(0x80004001);
-        }
-
-        public IntPtr SetData([In] ref FORMATETC formatIn, [In] ref STGMEDIUM medium, [MarshalAs(UnmanagedType.Bool)] bool release)
-        {
-            return new IntPtr(0x80004001);
-        }
-
-        public IntPtr EnumFormatEtc(DATADIR direction, out IEnumFORMATETC ppenumFormatEtc)
-        {
-            IntPtr x = SHCreateStdEnumFmtEtc((uint)_formats.Length, _formats, out ppenumFormatEtc);
-            return x;
-        }
-
-        public IntPtr DAdvise([In] ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
-        {
-            connection = -1;
-            return new IntPtr(0x80004001);
-        }
-
-        public IntPtr DUnadvise(int connection)
-        {
-            return new IntPtr(0x80004001);
-        }
-
-        public IntPtr EnumDAdvise(out IEnumSTATDATA enumAdvise)
-        {
-            enumAdvise = null;
-            return new IntPtr(0x80004001);
-        }
+       
 
         /// <summary>
         /// Creates a formatetc array of compatible data formats stored in the given
@@ -138,11 +114,11 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
         {
             List<FORMATETC> formats = new List<FORMATETC>();
 
-            formats.Add(CreateTempFormat());
+            formats.Add(FormatEtcHelper.CreateTempFormat());
 
             if (cbData.IsTypeAvailable(ClipboardDataType.UnicodeText))
             {
-                formats.Add(CreateUnicodeFormat());
+                formats.Add(FormatEtcHelper.CreateUnicodeFormat());
             }
                 
 
@@ -151,9 +127,9 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                 try
                 {
                     _fileStreams = new NativeRFSStream[cbData.GetFileGroup().Files.Length];
-                    formats.Add(CreateFileContentsFormat());
-                    formats.Add(CreateFileDescriptorWFormat());
-                    formats.Add(CreatePreferredEffectFormat());
+                    formats.Add(FormatEtcHelper.CreateFileContentsFormat());
+                    formats.Add(FormatEtcHelper.CreateFileDescriptorWFormat());
+                    formats.Add(FormatEtcHelper.CreatePreferredEffectFormat());
                 }catch(Exception ex)
                 {
                     Logger.Error("ClipboardDataObject: " + ex.Message);
@@ -162,7 +138,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             }
 
             if (cbData.IsTypeAvailable(ClipboardDataType.Bitmap))
-                formats.Add(CreateBitmapFormat());
+                formats.Add(FormatEtcHelper.CreateBitmapFormat());
                 
 
             _formats = formats.ToArray();
@@ -174,78 +150,6 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             Logger.Debug($"ClipboardDataObject: Available formats:");
             foreach(var format in _formats)
                 Logger.Debug($"ClipboardDataObject: {WinClipboardDataFormat.GetFormatName((uint)format.cfFormat)} as {format.tymed}");
-        }
-
-        private FORMATETC CreateTempFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = (short)WinClipboardDataFormat.InputshareFormat,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_NULL
-            };
-        }
-        
-        private FORMATETC CreateUnicodeFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = (short)WinClipboardDataFormat.CF_UNICODETEXT,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_HGLOBAL
-            };
-        }
-
-        private FORMATETC CreateFileContentsFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = (short)WinClipboardDataFormat.CFSTR_FILECONTENTS,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_ISTREAM
-            };
-        }
-
-        private FORMATETC CreateFileDescriptorWFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = (short)WinClipboardDataFormat.CFSTR_FILEDESCRIPTOR,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_HGLOBAL
-            };
-        }
-
-        private FORMATETC CreatePreferredEffectFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = WinClipboardDataFormat.PREFERREDDROPEFFECT,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_HGLOBAL
-            };
-        }
-
-        private FORMATETC CreateBitmapFormat()
-        {
-            return new FORMATETC
-            {
-                cfFormat = (short)WinClipboardDataFormat.CF_BITMAP,
-                dwAspect = DVASPECT.DVASPECT_CONTENT,
-                lindex = -1,
-                ptd = IntPtr.Zero,
-                tymed = TYMED.TYMED_GDI
-            };
         }
 
         private void GetTextHGlobal(ref FORMATETC format, ref STGMEDIUM medium)
@@ -352,7 +256,53 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                
         }
 
+        public void StartOperation([In] IBindCtx pbcReserved)
+        {
+            _isInAsyncOperation = true;
+            FilesPasted?.Invoke(this, this);
+        }
+
+        public void EndOperation([In] int hResult, [In] IBindCtx pbcReserved, [In] uint dwEffects)
+        {
+            _isInAsyncOperation = false;
+        }
+
+        #region Non supported
         private bool _isInAsyncOperation = false;
+
+        public IntPtr GetCanonicalFormatEtc([In] ref FORMATETC formatIn, out FORMATETC formatOut)
+        {
+            formatOut = new FORMATETC();
+            return new IntPtr(0x80004001);
+        }
+
+        public IntPtr SetData([In] ref FORMATETC formatIn, [In] ref STGMEDIUM medium, [MarshalAs(UnmanagedType.Bool)] bool release)
+        {
+            return new IntPtr(0x80004001);
+        }
+
+        public IntPtr EnumFormatEtc(DATADIR direction, out IEnumFORMATETC ppenumFormatEtc)
+        {
+            IntPtr x = SHCreateStdEnumFmtEtc((uint)_formats.Length, _formats, out ppenumFormatEtc);
+            return x;
+        }
+
+        public IntPtr DAdvise([In] ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
+        {
+            connection = -1;
+            return new IntPtr(0x80004001);
+        }
+
+        public IntPtr DUnadvise(int connection)
+        {
+            return new IntPtr(0x80004001);
+        }
+
+        public IntPtr EnumDAdvise(out IEnumSTATDATA enumAdvise)
+        {
+            enumAdvise = null;
+            return new IntPtr(0x80004001);
+        }
 
         public void SetAsyncMode([In] int fDoOpAsync)
         {
@@ -364,21 +314,12 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             pfIsOpAsync = -1;
         }
 
-        public void StartOperation([In] IBindCtx pbcReserved)
-        {
-            _isInAsyncOperation = true;
-            FilesPasted?.Invoke(this, this);
-        }
-
         public void InOperation([Out] out int pfInAsyncOp)
         {
             pfInAsyncOp = _isInAsyncOperation ? 0 : -1;
         }
 
-        public void EndOperation([In] int hResult, [In] IBindCtx pbcReserved, [In] uint dwEffects)
-        {
-            _isInAsyncOperation = false;
-        }
+        #endregion
 
 #pragma warning restore IDE0060
     }

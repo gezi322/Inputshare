@@ -9,7 +9,7 @@ using System.Text;
 namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
     /// <summary>
-    /// Allows sharing a RFS stream on the windows clipboard as a standard IStream
+    /// Wraps an RFS client stream as a native windows IStream interface
     /// </summary>
     internal class NativeRFSStream : IStream
     {

@@ -166,6 +166,7 @@ namespace Inputshare.Common.Client
 
             _socket.DisconnectSocket();
             MonitorBroadcasts(true);
+            Logger.Information("Disconnected from server");
         }
 
         public async Task StopAsync()
@@ -196,6 +197,7 @@ namespace Inputshare.Common.Client
 
         private void OnSocketDisconnected(object sender, Exception ex)
         {
+            Logger.Error("Disconnected from server: " + ex.Message);
             MonitorBroadcasts(true);
             Disconnected?.Invoke(this, ex.Message);
         }

@@ -51,7 +51,7 @@ namespace Inputshare.Common
                     if (configFile.AppSettings.Settings[prop] != null)
                     {
                         value = configFile.AppSettings.Settings[prop].Value;
-                        Logger.Verbose($"Loaded property {prop}");
+                        Logger.Verbose($"Loaded property {prop} as \"{value}\"");
                         return true;
                     }
                     else

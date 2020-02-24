@@ -247,7 +247,7 @@ namespace Inputshare.Common.Server
                 if (display is ClientDisplay cDisplay)
                     _udpHost?.RemoveHandlersForAddress(cDisplay.Socket.UdpAddress);
 
-                Logger.Verbose($"Removed display {display.DisplayName}");
+                Logger.Information($"Removed display {display.DisplayName}");
                 Displays.Remove(display);
                 RemoveReferences(display);
 
@@ -352,7 +352,7 @@ namespace Inputshare.Common.Server
 
             lock (_inputClientLock)
             {
-                Logger.Information($"Setting input display to {display.DisplayName}");
+                Logger.Debug($"Setting input display to {display.DisplayName}");
                 if (!Displays.Contains(display))
                 {
                     Logger.Verbose($"Can't switch to {display.DisplayName}: Not in display list");

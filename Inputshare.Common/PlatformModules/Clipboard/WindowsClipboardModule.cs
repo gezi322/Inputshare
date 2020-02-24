@@ -96,6 +96,9 @@ namespace Inputshare.Common.PlatformModules.Clipboard
                         return;
                     }
 
+
+                    DataObjectReader.ReadDataObject(obj);
+
                     FORMATETC format = new FORMATETC
                     {
                         cfFormat = WinClipboardDataFormat.InputshareFormat,

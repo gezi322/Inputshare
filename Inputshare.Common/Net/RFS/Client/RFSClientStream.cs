@@ -25,6 +25,12 @@ namespace Inputshare.Common.Net.RFS.Client
         public override long Length => _file.FileSize;
         public override long Position { get; set; }
 
+        /// <summary>
+        /// Creates stream for the specified file in the specified group
+        /// </summary>
+        /// <param name="group"></param>
+        /// <param name="file"></param>
+        /// <param name="token"></param>
         internal RFSClientStream(RFSClientFileGroup group, RFSFileHeader file, Guid token)
         {
             _token = token;
