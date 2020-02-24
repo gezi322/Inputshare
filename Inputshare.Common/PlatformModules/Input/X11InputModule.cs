@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Inputshare.Common.PlatformModules.Linux.Native.LibX11;
 using static Inputshare.Common.PlatformModules.Linux.Native.LibX11Structs;
+using static Inputshare.Common.PlatformModules.Linux.Native.LibXfixes;
 
 
 namespace Inputshare.Common.PlatformModules.Input
@@ -31,6 +32,8 @@ namespace Inputshare.Common.PlatformModules.Input
 
         private IntPtr _atomCaptureInput;
         private IntPtr _atomReleaseInput;
+        private IntPtr _atomHideCursor;
+        private IntPtr _atomShowCursor;
         private Timer _cursorPositionTimer;
 
         private int _storedPosX;
@@ -304,7 +307,7 @@ namespace Inputshare.Common.PlatformModules.Input
 
         protected override Task OnStart()
         {
-            _xDisplay = _connection._xDisplay;
+            _xDisplay = _connection.XDisplay;
             _xRootWindow = XDefaultRootWindow(_xDisplay);
 
             _atomCaptureInput = XInternAtom(_xDisplay, nameof(_atomCaptureInput), false);
@@ -314,11 +317,15 @@ namespace Inputshare.Common.PlatformModules.Input
 
             _cursorPositionTimer = new Timer(CursorPositionTimerCallback, null, 0, 50);
 
+            
             return base.OnStart();
         }
 
         private void CursorPositionTimerCallback(object sync)
         {
+            if (InputRedirected)
+                return;
+
             XQueryPointer(_xDisplay, _xRootWindow, out _, out _, out int posX, out int posY, out _, out _, out int keys);
             if (posY > VirtualDisplayBounds.Bottom - 2)
                 SideHit?.Invoke(this, new SideHitArgs(Side.Bottom, posX, posY));
@@ -350,7 +357,12 @@ namespace Inputshare.Common.PlatformModules.Input
 
         public override void SetMouseHidden(bool hide)
         {
-            Logger.Warning($"{ModuleName}: Ignoring setmousehidden: Not implemented");
+            if (hide)
+                XFixesHideCursor(_xDisplay, _xRootWindow);
+            else
+                XFixesShowCursor(_xDisplay, _xRootWindow);
+
+            Logger.Warning($"{ModuleName}: Hide mouse: {hide}");
         }
 
         private void InvokeGrabInput(bool grab)

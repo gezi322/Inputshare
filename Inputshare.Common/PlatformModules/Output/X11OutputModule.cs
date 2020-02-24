@@ -22,7 +22,7 @@ namespace Inputshare.Common.PlatformModules.Output
         /// <param name="connection"></param>
         internal X11OutputModule(XConnection connection)
         {
-            _xDisplay = connection._xDisplay;
+            _xDisplay = connection.XDisplay;
         }
 
         public override void SimulateInput(ref InputData input)

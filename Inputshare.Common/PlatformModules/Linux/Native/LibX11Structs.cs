@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Inputshare.Common.PlatformModules.Linux.Native
 {
-    internal static class LibX11Structs
+    public static class LibX11Structs
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct XSetWindowAttributes

@@ -6,7 +6,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging.Serilog;
 using Avalonia.ReactiveUI;
 using Inputshare.Common.Client;
+using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input.Hotkeys;
+using Inputshare.Common.PlatformModules.Clipboard;
 using Inputshare.Common.PlatformModules.Input;
 using Inputshare.Common.PlatformModules.Linux;
 using Inputshare.Common.Server;
@@ -28,11 +30,17 @@ namespace Inputshare
                 //await s.StartAsync(new System.Net.IPEndPoint(IPAddress.Any, 4441));
                 
                 XConnection con = new XConnection();
-                X11InputModule mod = new X11InputModule(con);
+                X11ClipboardModule mod = new X11ClipboardModule(con);
                 await mod.StartAsync();
-                mod.RegisterHotkey(new Hotkey(Common.Input.Keys.WindowsVirtualKey.B, KeyModifiers.Alt), () => {
-                    Console.WriteLine("Hotkey pressed");
-                });
+  
+                mod.ClipboardChanged += (object o, ClipboardData cbData) =>
+                {
+                    Console.WriteLine("Copied");
+                };
+
+                ClipboardData cb = new ClipboardData();
+                cb.SetText("TEST LOL");
+                await mod.SetClipboardAsync(cb);
 
 
                 Console.ReadLine();

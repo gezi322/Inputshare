@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Web;
 
 namespace Inputshare.Common.Net.RFS
 {
@@ -53,16 +54,25 @@ namespace Inputshare.Common.Net.RFS
             List<string> relativePathsList = new List<string>();
 
             int fileCount = 0;
-            foreach (var file in originalSources)
+            foreach (var fileUnfiltered in originalSources)
             {
+                if (string.IsNullOrEmpty(fileUnfiltered))
+                    continue;
+
+                var file = HttpUtility.UrlDecode(fileUnfiltered);
+
                 if (File.GetAttributes(file).HasFlag(FileAttributes.Directory))
                 {
+                    Logger.Verbose($"Adding directory {file}");
                     AddFilesRecursive(fullPathsList, relativePathsList, file, "./" + new DirectoryInfo(file).Name, ref fileCount);
                 }
                 else
                 {
+                   
                     fullPathsList.Add(file);
-                    relativePathsList.Add("./" + new FileInfo(file).Name);
+                    var relPath = "./" + new FileInfo(file).Name;
+                    relativePathsList.Add(relPath);
+                    Logger.Verbose($"Added file {file} (relative path: {relPath}");
                 }
             }
 

@@ -25,6 +25,29 @@ namespace Inputshare.Common.PlatformModules.Linux.Native
         public const int X11_XBUTTONFORWARD = 9;
 
         [DllImport(lib)]
+        public static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, byte[] data, int nelements);
+
+        [DllImport(lib)]
+        public static extern IntPtr XGetSelectionOwner(IntPtr display, IntPtr selection);
+        [DllImport(lib)]
+        public static extern int XSetSelectionOwner(IntPtr display, IntPtr selection, IntPtr owner, IntPtr time = default);
+
+        [DllImport(lib)]
+        public static extern void XDeleteProperty(IntPtr display, IntPtr window, IntPtr prop);
+
+        [DllImport(lib)]
+        public static extern void XConvertSelection(IntPtr display, IntPtr selectionAtom, IntPtr targetAtom, IntPtr propertyAtom, IntPtr requestor, IntPtr time);
+        [DllImport(lib)]
+        public static extern void XFree(IntPtr data);
+
+        [DllImport(lib)]
+        public static extern string XGetAtomName(IntPtr display, IntPtr atom);
+
+        [DllImport(lib)]
+        public static extern int XGetWindowProperty(IntPtr display, IntPtr window, IntPtr property, int offset, int len, bool delete,
+            IntPtr req_type, out IntPtr actual_type_return, out int actual_format_return, out int nitems_return, out int bytes_after_return, out IntPtr prop_return);
+
+        [DllImport(lib)]
         public static extern int XUngrabKey(IntPtr display, LinuxKeyCode key, LinuxKeyMask mask, IntPtr window);
         [DllImport(lib)]
         public extern static IntPtr XCreateSimpleWindow(IntPtr display, IntPtr parent, int x, int y, int width, int height, int border_width, UIntPtr border, UIntPtr background);

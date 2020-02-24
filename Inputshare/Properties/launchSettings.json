@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Inputshare": {
-      "commandName": "Project",
-      "commandLineArgs": "ok"
+      "commandName": "Project"
     }
   }
 }

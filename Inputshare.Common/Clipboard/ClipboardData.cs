@@ -39,7 +39,7 @@ namespace Inputshare.Common.Clipboard
             }
         }
 
-        internal void SetText(string text)
+        public void SetText(string text)
         {
             _text = text;
             SetTypeAvailable(ClipboardDataType.UnicodeText);

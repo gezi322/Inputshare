@@ -35,7 +35,7 @@ namespace Inputshare.Common.PlatformModules
 
             return new ISServerDependencies
             {
-                ClipboardModule = new NullClipboardModule(),
+                ClipboardModule = new X11ClipboardModule(xCon),
                 InputModule = new X11InputModule(xCon),
                 OutputModule = new X11OutputModule(xCon),
                 _pDependencies = new IPlatformDependency[] {xCon}
