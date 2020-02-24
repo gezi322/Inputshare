@@ -5,8 +5,83 @@ using System.Text;
 
 namespace Inputshare.Common.PlatformModules.Linux.Native
 {
-    internal static class LibX11Events
+    internal static class LibX11Structs
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XSetWindowAttributes
+        {
+            public IntPtr background_pixmap;
+            public IntPtr background_pixel;
+            public IntPtr border_pixmap;
+            public IntPtr border_pixel;
+            public Gravity bit_gravity;
+            public Gravity win_gravity;
+            public int backing_store;
+            public IntPtr backing_planes;
+            public IntPtr backing_pixel;
+            public bool save_under;
+            public EventMask event_mask;
+            public EventMask do_not_propagate_mask;
+            public bool override_redirect;
+            public IntPtr colormap;
+            public IntPtr cursor;
+        }
+
+        public enum XWindowType
+        {
+            InputOutput = 1,
+            InputOnly = 2,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XWindowAttributes
+        {
+            public int x;
+            public int y;
+            public int width;
+            public int height;
+            public int border_width;
+            public int depth;
+            public IntPtr visual;
+            public IntPtr root;
+            public int c_class;
+            public Gravity bit_gravity;
+            public Gravity win_gravity;
+            public int backing_store;
+            public IntPtr backing_planes;
+            public IntPtr backing_pixel;
+            public bool save_under;
+            public IntPtr colormap;
+            public bool map_installed;
+            public MapState map_state;
+            public IntPtr all_event_masks;
+            public IntPtr your_event_mask;
+            public IntPtr do_not_propagate_mask;
+            public bool override_direct;
+            public IntPtr screen;
+        }
+
+        public enum MapState
+        {
+            IsUnmapped = 0,
+            IsUnviewable = 1,
+            IsViewable = 2
+        }
+
+        public enum Gravity
+        {
+            ForgetGravity = 0,
+            NorthWestGravity = 1,
+            NorthGravity = 2,
+            NorthEastGravity = 3,
+            WestGravity = 4,
+            CenterGravity = 5,
+            EastGravity = 6,
+            SouthWestGravity = 7,
+            SouthGravity = 8,
+            SouthEastGravity = 9,
+            StaticGravity = 10
+        }
         public enum XEventName
         {
             KeyPress = 2,

@@ -25,7 +25,7 @@ namespace Inputshare.Common.Server.Display
         internal event EventHandler<SideHitArgs> SideHit;
 
         public string DisplayName { get; }
-        public Rectangle DisplayBounds { get; }
+        public Rectangle DisplayBounds { get; protected set; }
         public Hotkey Hotkey { get; internal set; }
 
         protected DisplayBase leftDisplay;

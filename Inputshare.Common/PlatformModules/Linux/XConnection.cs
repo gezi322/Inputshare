@@ -3,25 +3,27 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using static Inputshare.Common.PlatformModules.Linux.Native.LibX11;
-using static Inputshare.Common.PlatformModules.Linux.Native.LibX11Events;
+using static Inputshare.Common.PlatformModules.Linux.Native.LibX11Structs;
 using static Inputshare.Common.PlatformModules.Linux.Native.Libc;
 using System.Threading.Tasks;
 
 namespace Inputshare.Common.PlatformModules.Linux
 {
-    internal class XConnection : IPlatformDependency
+    public class XConnection : IPlatformDependency
     {
         internal event EventHandler<XEvent> EventReceived;
-        internal IntPtr XDisplay;
+        internal IntPtr _xDisplay;
+        internal IntPtr XInvokeEventWindow;
+
         private X11ErrorDelegate errorHandler;
         private X11IOErrorDelegate ioErrorHandler;
 
         public XConnection()
         {
             XInitThreads();
-            XDisplay = XOpenDisplay(0);
+            _xDisplay = XOpenDisplay(0);
 
-            if (XDisplay == IntPtr.Zero)
+            if (_xDisplay == IntPtr.Zero)
                 throw new X11Exception("Failed to open XDisplay");
 
             errorHandler = new X11ErrorDelegate(HandleError);
@@ -29,7 +31,7 @@ namespace Inputshare.Common.PlatformModules.Linux
             XSetErrorHandler(errorHandler);
             XSetIOErrorHandler(ioErrorHandler);
 
-            //Task.Run(() => XMessageLoop());
+            Task.Run(() => XMessageLoop());
             //_xThread = new Thread(XMessageLoop);
             //_xThread.SetApartmentState(ApartmentState.STA);
             //_xThread.Start();
@@ -37,6 +39,10 @@ namespace Inputshare.Common.PlatformModules.Linux
 
         private void XMessageLoop()
         {
+            XInvokeEventWindow = XCreateSimpleWindow(_xDisplay, XDefaultRootWindow(_xDisplay), 0, 0, 1, 1, 0, UIntPtr.Zero, UIntPtr.Zero);
+            //Select structurenotifymask on root window to received configure events when display size changes
+            XSelectInput(_xDisplay, XDefaultRootWindow(_xDisplay), EventMask.StructureNotifyMask);
+            XSelectInput(_xDisplay, XInvokeEventWindow, EventMask.PropertyChangeMask | EventMask.PointerMotionMask | EventMask.StructureNotifyMask);
             XEvent evt = new XEvent();
             while (!disposedValue)
             {
@@ -45,22 +51,29 @@ namespace Inputshare.Common.PlatformModules.Linux
 
                 int num = select(0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref v);
 
-                while (XPending(XDisplay) > 0)
+                while (XPending(_xDisplay) > 0)
                 {
-                    XNextEvent(XDisplay, ref evt);
+                    XNextEvent(_xDisplay, ref evt);
                     EventReceived?.Invoke(this, evt);
                 }
             }
+
+            Logger.Information("Closed X connection");
         }
 
         private int HandleError(IntPtr display, ref XErrorEvent evt)
         {
-            throw X11Exception.Create(evt.error_code, XDisplay);
+            Logger.Error("X11 ERROR!");
+            Logger.Error("minor code " + evt.minor_code);
+            Logger.Error("request code " + evt.request_code);
+            Logger.Error("error code " + evt.error_code);
+            return 0;
         }
 
         private int HandleIOError(IntPtr display)
         {
-            throw new X11Exception("X IO error!");
+            Logger.Fatal("X IO Error!");
+            return 0;
         }
 
         private bool disposedValue = false; // To detect redundant calls

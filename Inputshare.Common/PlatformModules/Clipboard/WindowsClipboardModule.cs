@@ -89,15 +89,13 @@ namespace Inputshare.Common.PlatformModules.Clipboard
             {
                 try
                 {
+                    //todo 
                     var obj = OpenOleClipboard();
                     if (obj == null)
                     {
                         Logger.Verbose("Failed to open OLE clipboard");
                         return;
                     }
-
-
-                    DataObjectReader.ReadDataObject(obj);
 
                     FORMATETC format = new FORMATETC
                     {

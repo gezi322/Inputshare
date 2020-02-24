@@ -44,7 +44,7 @@ namespace Inputshare.Common.Net.UDP
                     HandleDatagram(_buffer, sender as IPEndPoint);
                 }catch(Exception) when (_tokenSource.IsCancellationRequested)
                 {
-                    Logger.Debug($"Created UDP host socket closed");
+                    Logger.Debug($"UDP host socket closed");
                     return;
                 }
                 catch(Exception ex)

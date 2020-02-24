@@ -16,7 +16,7 @@ namespace Inputshare.Common.Client
         public ClipboardModuleBase ClipboardModule { get; private set; }
         public OutputModuleBase OutputModule { get; private set; }
 
-        private IPlatformDependency[] _pDependencies;
+        private IPlatformDependency[] _pDependencies = new IPlatformDependency[0];
 
 
         public static ISClientDependencies GetWindowsDependencies()
@@ -36,7 +36,7 @@ namespace Inputshare.Common.Client
             return new ISClientDependencies
             {
                 ClipboardModule = new NullClipboardModule(),
-                InputModule = new NullInputModule(),
+                InputModule = new X11InputModule(xCon),
                 OutputModule = new X11OutputModule(xCon),
                 _pDependencies = new IPlatformDependency[] {xCon}
             };

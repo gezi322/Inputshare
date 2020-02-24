@@ -1,5 +1,6 @@
 ﻿using Inputshare.Common.PlatformModules.Clipboard;
 using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Linux;
 using Inputshare.Common.PlatformModules.Output;
 using System;
 using System.Collections.Generic;
@@ -11,11 +12,12 @@ namespace Inputshare.Common.PlatformModules
     /// <summary>
     /// Contains modules required to run inputshare server
     /// </summary>
-    public class ISServerDependencies
+    public class ISServerDependencies : IDisposable
     {
         public InputModuleBase InputModule { get; private set; }
         public OutputModuleBase OutputModule { get; private set; }
         public ClipboardModuleBase ClipboardModule { get; private set; }
+        private IPlatformDependency[] _pDependencies = new IPlatformDependency[0];
 
         public static ISServerDependencies GetWindowsDependencies()
         {
@@ -29,11 +31,14 @@ namespace Inputshare.Common.PlatformModules
 
         public static ISServerDependencies GetX11Dependencies()
         {
+            var xCon = new XConnection();
+
             return new ISServerDependencies
             {
                 ClipboardModule = new NullClipboardModule(),
-                InputModule = new NullInputModule(),
-                OutputModule = new NullOutputModule(),
+                InputModule = new X11InputModule(xCon),
+                OutputModule = new X11OutputModule(xCon),
+                _pDependencies = new IPlatformDependency[] {xCon}
             };
         }
 
@@ -65,5 +70,27 @@ namespace Inputshare.Common.PlatformModules
         {
 
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    foreach (var dep in _pDependencies)
+                        dep.Dispose();
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
     }
 }

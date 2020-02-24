@@ -14,7 +14,6 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Inputshare.Common.Server
@@ -162,6 +161,7 @@ namespace Inputshare.Common.Server
             _listener.Stop();
             await StopModulesAsync();
             _fileController.Dispose();
+            _dependencies?.Dispose();
             Logger.Information($"Server stopped");
             Running = false;
         }
@@ -317,7 +317,7 @@ namespace Inputshare.Common.Server
                 DisplayConfig.TrySaveClientHotkey(display, hk);
             }catch(Exception ex)
             {
-                Logger.Verbose($"Failed to set hotkey: {ex.Message}");
+                Logger.Error($"Failed to set hotkey: {ex.Message}");
             }
             
         }

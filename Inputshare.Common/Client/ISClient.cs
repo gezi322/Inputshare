@@ -182,6 +182,7 @@ namespace Inputshare.Common.Client
             _fileController?.Dispose();
             await StopModulesAsync();
             _broadcastListener?.Dispose();
+            _dependencies?.Dispose();
             Running = false;
             Logger.Information("Client stopped");
         }

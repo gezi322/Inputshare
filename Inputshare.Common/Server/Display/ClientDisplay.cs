@@ -22,9 +22,16 @@ namespace Inputshare.Common.Server.Display
         {
             Socket = connectedArgs.Socket;
             Socket.ClipboardDataReceived += (object obj, ClipboardData cbData) => base.OnClipboardChanged(cbData);
+            Socket.DisplayBoundsChanged += OnDisplayBoundsReceived;
             Socket.SideHit += (object o, Tuple<Side, int, int> data) => base.OnSideHit(data.Item1, data.Item2, data.Item3);
             Socket.Disconnected += (object o, ServerSocket s) => RemoveDisplay();
             Logger.Information($"Created client display {DisplayName} ({Socket.Address}) ({connectedArgs.DisplayBounds})");
+        }
+
+        private void OnDisplayBoundsReceived(object sender, System.Drawing.Rectangle newBounds)
+        {
+            DisplayBounds = newBounds;
+            Logger.Information($"Display bounds for {DisplayName} set to {newBounds}");
         }
 
         protected override async Task SendSideChangedAsync()

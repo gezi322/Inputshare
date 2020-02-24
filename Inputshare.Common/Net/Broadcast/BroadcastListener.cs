@@ -54,7 +54,7 @@ namespace Inputshare.Common.Net.Broadcast
                         Ping p = new Ping();
                         //ping the address to make sure that we can connect to it
                         var reply = p.Send(address.Address, 500);
-                        Logger.Verbose($"BroadcastListener: Got ping reply from {reply.Address} ({reply.RoundtripTime}MS)");
+                        Logger.Verbose($"BroadcastListener: Got ping reply from {reply.Address} ({reply.RoundtripTime}");
                         BroadcastReceived?.Invoke(this, new BroadcastReceivedArgs(address, reply, broadcastMessage.ServerVersion));
                     }
                     else
@@ -69,6 +69,7 @@ namespace Inputshare.Common.Net.Broadcast
             }catch(Exception ex)
             {
                 Logger.Warning("Failed to read UDP broadcast: " + ex.Message);
+                Logger.Warning(ex.StackTrace);
             }
         }
 

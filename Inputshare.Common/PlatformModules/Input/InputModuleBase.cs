@@ -70,6 +70,7 @@ namespace Inputshare.Common.PlatformModules.Input
                 throw new InvalidOperationException("Hotkey in use");
 
             hotkeys.Add(hk, callback);
+            OnHotkeyAdded(hk);
         }
 
         /// <summary>
@@ -79,7 +80,11 @@ namespace Inputshare.Common.PlatformModules.Input
         public void RemoveHotkey(Hotkey remove)
         {
             hotkeys.Remove(remove);
+            OnHotkeyRemoved(remove);
         }
+
+        protected virtual void OnHotkeyAdded(Hotkey hk) { }
+        protected virtual void OnHotkeyRemoved(Hotkey hk) { }
 
         protected void HandleKeyDown(WindowsVirtualKey key) {
             if (key == WindowsVirtualKey.Control || key == WindowsVirtualKey.LeftControl || key == WindowsVirtualKey.RightControl)
@@ -91,7 +96,7 @@ namespace Inputshare.Common.PlatformModules.Input
             else if (key == WindowsVirtualKey.LeftWindows || key == WindowsVirtualKey.RightWindows)
                 currentModifiers |= KeyModifiers.Win;
 
-            CheckHotkeys(key);
+            CheckHotkeys(key, currentModifiers);
         }
 
         protected void HandleKeyUp(WindowsVirtualKey key){
@@ -105,13 +110,13 @@ namespace Inputshare.Common.PlatformModules.Input
                 currentModifiers &= ~KeyModifiers.Win;
         }
 
-        private void CheckHotkeys(WindowsVirtualKey key)
+        protected void CheckHotkeys(WindowsVirtualKey key, KeyModifiers mods)
         {
             //for each value is hotkey dictionary
             foreach(var hkDirval in hotkeys)
             {
                 //if the dictionary key matches the hotkey and modifiers
-                if(hkDirval.Key.Key == key && hkDirval.Key.Modifiers == currentModifiers)
+                if(hkDirval.Key.Key == key && hkDirval.Key.Modifiers == mods)
                 {
                     //invoke the callback method
                     hkDirval.Value();

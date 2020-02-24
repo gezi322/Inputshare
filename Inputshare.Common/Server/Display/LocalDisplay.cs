@@ -29,8 +29,22 @@ namespace Inputshare.Common.Server.Display
             _clipboardModule = deps.ClipboardModule;
 
             _clipboardModule.ClipboardChanged += (object o, ClipboardData cbData) => base.OnClipboardChanged(cbData);
-            _inputModule.SideHit += (object o, SideHitArgs args) => base.OnSideHit(args.Side, args.PosX, args.PosY);
+
+            _inputModule.SideHit += (object o, SideHitArgs args) =>
+            {
+                Logger.Information("Hit side " + args.Side);
+                base.OnSideHit(args.Side, args.PosX, args.PosY);
+            };
+
+            _inputModule.DisplayBoundsUpdated += OnDisplayBoundsChanged;
+
             Logger.Information($"Created localhost display ({_inputModule.VirtualDisplayBounds}");
+        }
+
+        private void OnDisplayBoundsChanged(object sender, Rectangle newBounds)
+        {
+            DisplayBounds = newBounds;
+            Logger.Information($"Display bounds for {DisplayName} set to {newBounds}");
         }
 
         internal override void SendInput(ref InputData input)

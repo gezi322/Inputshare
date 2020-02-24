@@ -5,12 +5,12 @@ using Inputshare.Common.PlatformModules.Windows.Native.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using static Inputshare.Common.PlatformModules.Windows.Native.Ole32;
-using System.Drawing;
-using System.IO;
 
 namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 {
@@ -28,6 +28,10 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
 
         private NativeRFSStream[] _fileStreams;
         private Guid _fileStreamToken;
+
+        private IntPtr S_OK = IntPtr.Zero;
+        private IntPtr S_FALSE = new IntPtr(1);
+        
 
 #pragma warning disable IDE0060
 
@@ -67,7 +71,7 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             else if (format.cfFormat == WinClipboardDataFormat.CF_BITMAP)
                 GetDataBitmap(ref format, ref medium);
 
-            return IntPtr.Zero;
+            return S_OK;
         }
 
         public IntPtr GetDataHere([In] ref FORMATETC format, ref STGMEDIUM medium)
@@ -77,9 +81,9 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
                 GetFileDescriptor(ref format, ref medium);
             else if (format.cfFormat == WinClipboardDataFormat.CFSTR_FILECONTENTS)
                 GetFileContentsStream(ref format, ref medium);
-                
 
-            return IntPtr.Zero;
+
+            return S_OK;
         }
 
         public IntPtr QueryGetData([In] ref FORMATETC format)
@@ -90,16 +94,16 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
             {
                 foreach (var supportedFormat in _formats)
                     if (supportedFormat.cfFormat == format.cfFormat)
-                        return new IntPtr(0);
+                        return S_OK;
             }
             else
             {
                 foreach (var supportedFormat in _formats)
                     if (supportedFormat.cfFormat == format.cfFormat && supportedFormat.tymed == format.tymed)
-                        return new IntPtr(0);
+                        return S_OK;
             }
 
-            return new IntPtr(1);
+            return S_FALSE;
         }
 
        

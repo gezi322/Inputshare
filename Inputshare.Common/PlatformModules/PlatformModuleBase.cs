@@ -14,19 +14,19 @@ namespace Inputshare.Common.PlatformModules
         public string ModuleName { get => this.GetType().Name; }
         public bool Running { get; private set; }
 
-        internal async Task StopIfRunningAsync()
+        public async Task StopIfRunningAsync()
         {
             if (Running)
                 await StopAsync();
         }
 
-        internal async Task StartIfNotRunningAsync()
+        public async Task StartIfNotRunningAsync()
         {
             if (!Running)
                 await StartAsync();
         }
 
-        internal async Task StartAsync()
+        public async Task StartAsync()
         {
             if (Running)
                 throw new InvalidOperationException("Module " + ModuleName + " already running");
@@ -36,7 +36,7 @@ namespace Inputshare.Common.PlatformModules
             Logger.Debug($"Module {ModuleName} started");
         }
 
-        internal async Task StopAsync()
+        public async Task StopAsync()
         {
             if (!Running)
                 throw new InvalidOperationException("Module " + ModuleName + " is not running");
