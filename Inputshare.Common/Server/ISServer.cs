@@ -5,9 +5,7 @@ using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.Server;
 using Inputshare.Common.Net.UDP;
 using Inputshare.Common.PlatformModules;
-using Inputshare.Common.PlatformModules.Clipboard;
-using Inputshare.Common.PlatformModules.Input;
-using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.Server.Config;
 using Inputshare.Common.Server.Display;
 using System;
@@ -23,6 +21,9 @@ namespace Inputshare.Common.Server
     /// </summary>
     public sealed class ISServer
     {
+        public event EventHandler Started;
+        public event EventHandler Stopped;
+
         public bool Running { get; private set; }
         public IPEndPoint BoundAddress { get => _listener.BindAddress; }
 
@@ -80,21 +81,13 @@ namespace Inputshare.Common.Server
                 CreateClientListener(bindAddress);
                 CreateBroadcastHost(bindAddress.Port);
                 CreateUdpHost(bindAddress.Port);
+                Started?.Invoke(this, null);
                 Running = true;
                 Logger.Information($"Server started at address {bindAddress}");
                 
             }catch(Exception ex)
             {
-                if (_listener != null && _listener.Listening)
-                    _listener.Stop();
-
-                foreach (var display in Displays.ToArray())
-                    if (display != LocalHostDisplay)
-                        display.RemoveDisplay();
-
-                await StopModulesAsync();
-                _udpHost?.Dispose();
-                _broadcaster?.Dispose();
+                await StopAsync();
 
                 Logger.Error("Failed to start server: " + ex.Message);
                 Logger.Error(ex.StackTrace);
@@ -131,6 +124,13 @@ namespace Inputshare.Common.Server
             LocalHostDisplay = new LocalDisplay(_dependencies, Displays);
             InputDisplay = LocalHostDisplay;
             OnDisplayAdded(LocalHostDisplay);
+
+            //Create a stop hotkey
+            var mods = KeyModifiers.Alt | KeyModifiers.Ctrl | KeyModifiers.Shift;
+            InputModule.RegisterHotkey(new Hotkey(Input.Keys.WindowsVirtualKey.Q, mods), async() => {
+                Logger.Information("Stop hotkey pressed");
+                await StopAsync();
+            });
         }
 
         private void OnInputReceived(object sender, InputData e)
@@ -158,11 +158,13 @@ namespace Inputshare.Common.Server
             Displays.Clear();
             _broadcaster?.Dispose();
             _udpHost?.Dispose();
-            _listener.Stop();
+            _listener?.Stop();
             await StopModulesAsync();
-            _fileController.Dispose();
+            _fileController?.Dispose();
+            _clipboardController?.Dispose();
             _dependencies?.Dispose();
             Logger.Information($"Server stopped");
+            Stopped?.Invoke(this, null);
             Running = false;
         }
 
@@ -177,9 +179,9 @@ namespace Inputshare.Common.Server
         private async Task StopModulesAsync()
         {
             Logger.Verbose($"Stopping modules");
-            await InputModule.StopIfRunningAsync();
-            await OutputModule.StopIfRunningAsync();
-            await ClipboardModule.StopIfRunningAsync();
+            await InputModule?.StopIfRunningAsync();
+            await OutputModule?.StopIfRunningAsync();
+            await ClipboardModule?.StopIfRunningAsync();
         }
 
         /// <summary>

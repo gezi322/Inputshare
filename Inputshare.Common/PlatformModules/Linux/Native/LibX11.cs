@@ -25,6 +25,9 @@ namespace Inputshare.Common.PlatformModules.Linux.Native
         public const int X11_XBUTTONFORWARD = 9;
 
         [DllImport(lib)]
+        public static extern void XCloseDisplay(IntPtr display);
+
+        [DllImport(lib)]
         public static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, byte[] data, int nelements);
 
         [DllImport(lib)]

@@ -9,8 +9,9 @@ using static Inputshare.Common.PlatformModules.Linux.Native.LibX11;
 using System.Threading;
 using System.Collections.Concurrent;
 using Inputshare.Common.Input.Keys;
+using Inputshare.Common.PlatformModules.Base;
 
-namespace Inputshare.Common.PlatformModules.Output
+namespace Inputshare.Common.PlatformModules.Linux.Modules
 {
     public class X11OutputModule : OutputModuleBase
     {

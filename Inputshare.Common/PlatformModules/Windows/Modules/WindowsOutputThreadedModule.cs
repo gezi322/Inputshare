@@ -1,4 +1,5 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.PlatformModules.Windows;
 using System;
 using System.Collections.Concurrent;
@@ -7,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Inputshare.Common.PlatformModules.Output
+namespace Inputshare.Common.PlatformModules.Windows.Modules
 {
     internal class WindowsOutputThreadedModule : OutputModuleBase
     {

@@ -1,9 +1,10 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.PlatformModules.Windows;
 using System.Threading.Tasks;
 
 
-namespace Inputshare.Common.PlatformModules.Output
+namespace Inputshare.Common.PlatformModules.Windows.Modules
 {
     /// <summary>
     /// Simulates user input on windows

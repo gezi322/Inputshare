@@ -1,11 +1,12 @@
 ﻿using Inputshare.Common.Input;
+using Inputshare.Common.PlatformModules.Base;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Inputshare.Common.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Null
 {
 #pragma warning disable CS0067
     public class NullInputModule : InputModuleBase

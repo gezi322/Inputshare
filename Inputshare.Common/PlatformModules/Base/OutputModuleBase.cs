@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Inputshare.Common.PlatformModules.Output
+namespace Inputshare.Common.PlatformModules.Base
 {
     /// <summary>
     /// Base class for output modules. Used to simulate user mouse/keyboard input

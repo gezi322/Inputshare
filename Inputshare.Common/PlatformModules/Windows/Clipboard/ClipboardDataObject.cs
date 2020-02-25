@@ -29,8 +29,8 @@ namespace Inputshare.Common.PlatformModules.Windows.Clipboard
         private NativeRFSStream[] _fileStreams;
         private Guid _fileStreamToken;
 
-        private IntPtr S_OK = IntPtr.Zero;
-        private IntPtr S_FALSE = new IntPtr(1);
+        private readonly IntPtr S_OK = IntPtr.Zero;
+        private readonly IntPtr S_FALSE = new IntPtr(1);
         
 
 #pragma warning disable IDE0060

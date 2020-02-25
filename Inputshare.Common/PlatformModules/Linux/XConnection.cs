@@ -19,8 +19,8 @@ namespace Inputshare.Common.PlatformModules.Linux
         internal IntPtr XDisplay;
         internal IntPtr XInvokeEventWindow;
 
-        private X11ErrorDelegate errorHandler;
-        private X11IOErrorDelegate ioErrorHandler;
+        private readonly X11ErrorDelegate errorHandler;
+        private readonly X11IOErrorDelegate ioErrorHandler;
 
         public XConnection()
         {
@@ -50,8 +50,10 @@ namespace Inputshare.Common.PlatformModules.Linux
             {
                 try
                 {
-                    timeval v = new timeval();
-                    v.tv_usec = 1000; //1 MS poll
+                    timeval v = new timeval
+                    {
+                        tv_usec = 1000 //1 MS poll
+                    };
 
                     int num = select(0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref v);
 
@@ -64,8 +66,9 @@ namespace Inputshare.Common.PlatformModules.Linux
                 {
                     Logger.Error($"XConnection exception in message loop: {ex.Message}");
                 }
-                
             }
+
+            XCloseDisplay(XDisplay);
 
             Logger.Information("Closed X connection");
         }
@@ -92,7 +95,7 @@ namespace Inputshare.Common.PlatformModules.Linux
             {
                 if (disposing)
                 {
-
+                    //Message loop stops when disposedvalue is set
                 }
                 disposedValue = true;
             }

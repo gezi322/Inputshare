@@ -14,8 +14,9 @@ using System.IO;
 using System.Drawing.Imaging;
 using System.Threading;
 using System.Runtime.InteropServices.ComTypes;
+using Inputshare.Common.PlatformModules.Base;
 
-namespace Inputshare.Common.PlatformModules.Clipboard
+namespace Inputshare.Common.PlatformModules.Windows.Modules
 {
     /// <summary>
     /// Monitors and sets the clipboard for windows
@@ -89,7 +90,6 @@ namespace Inputshare.Common.PlatformModules.Clipboard
             {
                 try
                 {
-                    //todo 
                     var obj = OpenOleClipboard();
                     if (obj == null)
                     {
@@ -233,15 +233,13 @@ namespace Inputshare.Common.PlatformModules.Clipboard
                 if (gdiBitmap == default)
                     throw new Win32Exception();
 
-                using (Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap))
-                {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        bmp.Save(ms, ImageFormat.Png);
-                        cbData.SetBitmap(ms.ToArray());
-                    }
-                }
-            }catch(Exception ex)
+                using Bitmap bmp = Bitmap.FromHbitmap(gdiBitmap);
+                using MemoryStream ms = new MemoryStream();
+
+                bmp.Save(ms, ImageFormat.Png);
+                cbData.SetBitmap(ms.ToArray());
+            }
+            catch(Exception ex)
             {
                 Logger.Error($"{ModuleName}: Failed to read bitmap from clipboard: {ex.Message}");
             }

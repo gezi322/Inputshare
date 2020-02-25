@@ -14,7 +14,7 @@ namespace Inputshare.Common.Server
     /// <summary>
     /// Controls the shared clipboard
     /// </summary>
-    internal sealed class GlobalClipboard
+    internal sealed class GlobalClipboard : IDisposable
     {
         private RFSController _fileController;
         private ObservableDisplayList _displays;
@@ -31,17 +31,26 @@ namespace Inputshare.Common.Server
 
         private void OnDisplayRemoved(DisplayBase display)
         {
+            if (disposedValue)
+                return;
+
             Logger.Verbose($"GlobalClipboard: Removed display {display.DisplayName}");
         }
 
         private void OnDisplayAdded(DisplayBase display)
         {
+            if (disposedValue)
+                return;
+
             Logger.Verbose($"GlobalClipboard: Added display {display.DisplayName}");
             display.ClipboardChanged += (object o, ClipboardData cbData) => OnDisplayClipboardChanged(o as DisplayBase, cbData);
         }
 
         private void OnDisplayClipboardChanged(DisplayBase sender, ClipboardData cbData)
         {
+            if (disposedValue)
+                return;
+
             Logger.Information($"GlobalClipboard: {sender.DisplayName} set clipboard");
             Logger.Information($"Avaliable clipboard data types: {string.Join(',', cbData.AvailableTypes)}");
 
@@ -106,5 +115,26 @@ namespace Inputshare.Common.Server
                 Logger.Verbose($"Sent clipboard data to {display.DisplayName}");
             }
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _displays = null;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
     }
 }

@@ -11,8 +11,13 @@ namespace Inputshare.Common.PlatformModules
     /// </summary>
     public abstract class PlatformModuleBase
     {
-        public string ModuleName { get => this.GetType().Name; }
+        public string ModuleName { get; } 
         public bool Running { get; private set; }
+
+        public PlatformModuleBase()
+        {
+            ModuleName = this.GetType().Name;
+        }
 
         public async Task StopIfRunningAsync()
         {

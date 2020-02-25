@@ -7,7 +7,7 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Inputshare.Common.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Base
 {
     /// <summary>
     /// Base class for input modules. Used for redirecting user mouse/keyboard input#

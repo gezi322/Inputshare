@@ -1,6 +1,7 @@
 ﻿using Inputshare.Common.Input;
 using Inputshare.Common.Input.Hotkeys;
 using Inputshare.Common.Input.Keys;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.PlatformModules.Linux;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ using static Inputshare.Common.PlatformModules.Linux.Native.LibX11Structs;
 using static Inputshare.Common.PlatformModules.Linux.Native.LibXfixes;
 
 
-namespace Inputshare.Common.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Linux.Modules
 {
     public class X11InputModule : InputModuleBase
     {
@@ -23,17 +24,15 @@ namespace Inputshare.Common.PlatformModules.Input
         public override event EventHandler<SideHitArgs> SideHit;
         public override event EventHandler<InputData> InputReceived;
 
-        private EventMask anyMotionMask = EventMask.Button1MotionMask | EventMask.Button2MotionMask | EventMask.Button3MotionMask | EventMask.Button4MotionMask
+        private readonly EventMask anyMotionMask = EventMask.Button1MotionMask | EventMask.Button2MotionMask | EventMask.Button3MotionMask | EventMask.Button4MotionMask
                 | EventMask.Button5MotionMask | EventMask.ButtonMotionMask | EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.PointerMotionMask;
 
-        private XConnection _connection;
+        private readonly XConnection _connection;
         private IntPtr _xDisplay;
         private IntPtr _xRootWindow;
 
         private IntPtr _atomCaptureInput;
         private IntPtr _atomReleaseInput;
-        private IntPtr _atomHideCursor;
-        private IntPtr _atomShowCursor;
         private Timer _cursorPositionTimer;
 
         private int _storedPosX;
@@ -48,7 +47,7 @@ namespace Inputshare.Common.PlatformModules.Input
 
         private void OnMessageReceived(object sender, XEvent evt)
         {
-            Logger.Verbose("Got message type " + evt.type);
+            Logger.Verbose($"{ModuleName}: Got message type " + evt.type);
 
             switch (evt.type)
             {
@@ -317,7 +316,6 @@ namespace Inputshare.Common.PlatformModules.Input
 
             _cursorPositionTimer = new Timer(CursorPositionTimerCallback, null, 0, 50);
 
-            
             return base.OnStart();
         }
 
@@ -367,8 +365,11 @@ namespace Inputshare.Common.PlatformModules.Input
 
         private void InvokeGrabInput(bool grab)
         {
-            XEvent evt = new XEvent();
-            evt.type = XEventName.PropertyNotify;
+            XEvent evt = new XEvent
+            {
+                type = XEventName.PropertyNotify
+            };
+
             evt.AnyEvent.window = _xRootWindow;
             evt.PropertyEvent.atom = grab ? _atomCaptureInput : _atomReleaseInput;
 

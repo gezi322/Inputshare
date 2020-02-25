@@ -1,5 +1,6 @@
 ﻿using Inputshare.Common.Input;
 using Inputshare.Common.Input.Keys;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.PlatformModules.Windows;
 using Inputshare.Common.PlatformModules.Windows.Native;
 using System;
@@ -13,7 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Inputshare.Common.PlatformModules.Windows.Native.User32;
 
-namespace Inputshare.Common.PlatformModules.Input
+namespace Inputshare.Common.PlatformModules.Windows.Modules
 {
     public class WindowsInputModule : InputModuleBase
     {
@@ -26,8 +27,8 @@ namespace Inputshare.Common.PlatformModules.Input
         private WinMessageWindow _window;
         private IntPtr _mHook;
         private IntPtr _kbHook;
-        private HookCallback _mCallback;
-        private HookCallback _kbCallback;
+        private readonly HookCallback _mCallback;
+        private readonly HookCallback _kbCallback;
 
         public WindowsInputModule()
         {

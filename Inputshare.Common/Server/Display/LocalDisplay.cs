@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input;
 using Inputshare.Common.PlatformModules;
-using Inputshare.Common.PlatformModules.Clipboard;
-using Inputshare.Common.PlatformModules.Input;
-using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.Server.Config;
 
 namespace Inputshare.Common.Server.Display

@@ -12,7 +12,7 @@ namespace Inputshare.Common.Clipboard
     [Serializable]
     public class ClipboardData
     {
-        internal ClipboardDataType[] AvailableTypes => _availableTypes.ToArray();
+        public ClipboardDataType[] AvailableTypes => _availableTypes.ToArray();
         private List<ClipboardDataType> _availableTypes = new List<ClipboardDataType>();
 
         private RFSFileGroup _fileGroup;

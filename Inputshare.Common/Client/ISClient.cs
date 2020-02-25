@@ -5,16 +5,10 @@ using Inputshare.Common.Net.Broadcast;
 using Inputshare.Common.Net.Client;
 using Inputshare.Common.Net.RFS;
 using Inputshare.Common.Net.RFS.Client;
-using Inputshare.Common.PlatformModules.Clipboard;
-using Inputshare.Common.PlatformModules.Input;
-using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.PlatformModules.Base;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 

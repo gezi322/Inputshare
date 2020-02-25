@@ -1,8 +1,8 @@
 ﻿using Inputshare.Common.PlatformModules;
-using Inputshare.Common.PlatformModules.Clipboard;
-using Inputshare.Common.PlatformModules.Input;
+using Inputshare.Common.PlatformModules.Base;
 using Inputshare.Common.PlatformModules.Linux;
-using Inputshare.Common.PlatformModules.Output;
+using Inputshare.Common.PlatformModules.Linux.Modules;
+using Inputshare.Common.PlatformModules.Windows.Modules;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -35,7 +35,7 @@ namespace Inputshare.Common.Client
 
             return new ISClientDependencies
             {
-                ClipboardModule = new NullClipboardModule(),
+                ClipboardModule = new X11ClipboardModule(xCon),
                 InputModule = new X11InputModule(xCon),
                 OutputModule = new X11OutputModule(xCon),
                 _pDependencies = new IPlatformDependency[] {xCon}

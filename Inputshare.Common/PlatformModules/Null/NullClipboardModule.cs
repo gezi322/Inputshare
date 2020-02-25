@@ -1,10 +1,11 @@
 ﻿using Inputshare.Common.Clipboard;
+using Inputshare.Common.PlatformModules.Base;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Inputshare.Common.PlatformModules.Clipboard
+namespace Inputshare.Common.PlatformModules.Null
 {
     public class NullClipboardModule : ClipboardModuleBase
     {

@@ -31,10 +31,22 @@ namespace Inputshare.Models
             _server = new ISServer();
             _server.Displays.DisplayAdded += OnServerDisplayAdded;
             _server.Displays.DisplayRemoved += OnServerDisplayRemoved;
-           
+            _server.Stopped += OnServerStopped;
+            _server.Started += OnServerStarted;
         }
 
-        
+        private void OnServerStarted(object sender, EventArgs e)
+        {
+            PostToUiThread(() => Started?.Invoke(this, e));
+        }
+
+        private void OnServerStopped(object sender, EventArgs e)
+        {
+            PostToUiThread(() => {
+                Displays.Clear();
+                Stopped?.Invoke(this, e);
+            });
+        }
 
         private void OnServerDisplayAdded(object sender, DisplayBase display)
         {
@@ -59,11 +71,10 @@ namespace Inputshare.Models
             try
             {
                 await _server.StartAsync(new IPEndPoint(IPAddress.Any, bindPort));
-                Started?.Invoke(this, null);
             }
             catch (Exception)
             {
-                Stopped?.Invoke(this, null);
+                //todo
             }
             
         }
@@ -72,7 +83,6 @@ namespace Inputshare.Models
         {
             Displays.Clear();
             await _server.StopAsync();
-            Stopped?.Invoke(this, null);
         }
 
         private void PostToUiThread(Action action)

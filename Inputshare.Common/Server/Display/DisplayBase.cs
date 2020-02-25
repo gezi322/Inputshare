@@ -1,14 +1,10 @@
 ﻿using Inputshare.Common.Clipboard;
 using Inputshare.Common.Input;
 using Inputshare.Common.Input.Hotkeys;
-using Inputshare.Common.Input.Keys;
-using Inputshare.Common.PlatformModules.Input;
 using Inputshare.Common.Server.Config;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Inputshare.Common.Server.Display
@@ -33,7 +29,7 @@ namespace Inputshare.Common.Server.Display
         protected DisplayBase topDisplay;
         protected DisplayBase bottomDisplay;
 
-        private ObservableDisplayList _displays;
+        private readonly ObservableDisplayList _displays;
 
         internal DisplayBase(ObservableDisplayList displayList, Rectangle bounds, string name)
         {
